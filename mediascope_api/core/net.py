@@ -8,21 +8,19 @@ from . import cache
 
 class MediascopeApiNetwork:
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, settings_filename=None, cache_path=None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(MediascopeApiNetwork, cls).__new__(cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, settings_filename=None, cache_path=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        settings_fname = 'settings.json'
-        if 'settings_filename' in kwargs:
-            settings_fname = kwargs['settings_filename']
-        if 'cache_path' in kwargs:
-            cache.cache_path = kwargs['cache_path']
+
+        if cache_path is not None:
+            cache.cache_path = cache_path
 
         self.username, self.passw, self.root_url, self.client_id, \
-        self.client_secret, self.keycloak_url = utils.load_settings(settings_fname)
+        self.client_secret, self.keycloak_url = utils.load_settings(settings_filename)
         self.token = {}
 
     def get_token(self, username, passw):

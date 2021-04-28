@@ -27,6 +27,10 @@ def load_settings(settings_fname='settings.json'):
         auth_server : str
             URL к серверу авторизации
     """
+
+    if settings_fname is None:
+        settings_fname = 'settings.json'
+
     with open(settings_fname) as datafile:
         jd = json.load(datafile)
         return jd['username'], \

@@ -38,16 +38,16 @@ class ResponsumTask:
     DURATION_STAT = ["ATT", "ADDperU", "ADDperP", "ADDperUTotal", "ADDperPTotal", "DATT"]
     USETYPES_DICT = {1: "desktop", 2: "mobile-web", 3: "mobile-app-online", 4: "mobile-app-offline", 34: "mobile-app"}
 
-    def __new__(cls, facility_id, *args, **kwargs):
+    def __new__(cls, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(ResponsumTask, cls).__new__(cls, *args)
         return cls.instance
 
-    def __init__(self, facility_id, *args, **kwargs):
+    def __init__(self, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ParserElement.enablePackrat()
-        self.rnet = net.MediascopeApiNetwork(*args, **kwargs)
-        self.rcats = catalogs.ResponsumCats(facility_id)
+        self.rnet = net.MediascopeApiNetwork(settings_filename, cache_path)
+        self.rcats = catalogs.ResponsumCats(facility_id, settings_filename, cache_path)
         self.demo_attr = self.rcats.get_demo()
         self.demo_dict = self.rcats.get_demo_dict(self.demo_attr)
         self.sql_parser = self._prepare_sql_parser()

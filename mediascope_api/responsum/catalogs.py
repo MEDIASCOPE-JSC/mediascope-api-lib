@@ -6,16 +6,16 @@ from ..core import net
 class ResponsumCats:
     facility_id = None
 
-    def __new__(cls, facility_id, *args, **kwargs):
+    def __new__(cls, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             # print("Creating Instance")
             cls.instance = super(ResponsumCats, cls).__new__(cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, facility_id, *args, **kwargs):
+    def __init__(self, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # load holdings
-        self.msapi_network = net.MediascopeApiNetwork(*args, **kwargs)
+        self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path)
         if facility_id != self.facility_id or not hasattr(self, 'demattr') or not hasattr(self, 'holdings'):
             self.facility_id = facility_id
             self.demattr = self.get_demo()
