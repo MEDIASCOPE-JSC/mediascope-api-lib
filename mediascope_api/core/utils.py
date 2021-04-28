@@ -6,7 +6,7 @@ def load_settings(settings_fname='settings.json'):
     """
         Загрузить настройки из файла
 
-         Parameters
+        Parameters
         ----------
 
         settings_fname : str

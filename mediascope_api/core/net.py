@@ -15,13 +15,22 @@ class MediascopeApiNetwork:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        settings_fname = 'settings.json'
+        if 'settings_filename' in kwargs:
+            settings_fname = kwargs['settings_filename']
+        if 'cache_path' in kwargs:
+            cache.cache_path = kwargs['cache_path']
+
         self.username, self.passw, self.root_url, self.client_id, \
-        self.client_secret, self.keycloak_url = utils.load_settings()
+        self.client_secret, self.keycloak_url = utils.load_settings(settings_fname)
         self.token = {}
 
     def get_token(self, username, passw):
         """
         Получить токен по имени пользователя и паролю
+
+        Parameters
+        ----------
 
         username : str
             Имя пользователя (login)
@@ -42,8 +51,8 @@ class MediascopeApiNetwork:
                 'client_secret': self.client_secret,
                 'username': username,
                 'password': passw,
-                'grant_type': 'password',
-                'scope': 'offline_access'},
+                'grant_type': 'password'
+                },
             headers={'Content-Type': 'application/x-www-form-urlencoded'})
         if my_tocken_req.status_code == 200:
             t = my_tocken_req.json()
@@ -65,7 +74,6 @@ class MediascopeApiNetwork:
             now = time.mktime(datetime.datetime.now().timetuple())
             token_time = time.mktime(self.token['now'].timetuple())
             token_exp = self.token['expires_in']
-            # print(now, token_time, token_exp, token_time + token_exp - now)
             if token_time + token_exp - now <= 0:
                 self.token = self.get_token(self.username, self.passw)
         else:
@@ -75,13 +83,16 @@ class MediascopeApiNetwork:
         """
         Отправляет запрос в Mediascope-API
 
+        Parameters
+        ----------
+
         method : str
             HTTP метод:
                 - get
                 - post
 
         endpoint : str
-            Путь к точке API, к которому идет обращение. Конкотенируется с основным URL
+            Путь к точке API, к которому идет обращение. Конкатенируется с основным URL
             Пример:
                 /task/duplication
 
@@ -90,7 +101,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -98,7 +109,7 @@ class MediascopeApiNetwork:
         Returns
         -------
 
-        resul : dict
+        result : dict
             Результат выполнения запроса
         """
         # Send request
@@ -111,22 +122,23 @@ class MediascopeApiNetwork:
         # Check cache
         cache_query = f'{method}\n{endpoint}\n{data}'
         if use_cache and method in ['post', 'get']:
-            cache_data = cache.get_cache(cache_query)
+            cache_data = cache.get_cache(cache_query, self.username)
             if cache_data is not None:
                 return cache_data
 
         # No cache, request service
         url = self.root_url + endpoint
-        headers = {'Authorization': 'Bearer {}'.format(self.token['access_token']),
+        headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                    'Content-Type': 'application/json'
                    }
         req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
 
         if req.status_code == 200:
             # try to save in cache for next use
+            rj = req.json()
             if use_cache:
-                cache.save_cache(cache_query, req.json())
-            return req.json()
+                cache.save_cache(cache_query, rj, self.username)
+            return rj
         else:
             self._raise_error(req)
             return None
@@ -141,7 +153,7 @@ class MediascopeApiNetwork:
                 - post
 
         endpoint : str
-            Путь к точке API, к которому идет обращение. Конкотенируется с основным URL
+            Путь к точке API, к которому идет обращение. Конкатенируется с основным URL
             Пример:
                 /task/duplication
 
@@ -150,7 +162,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -158,7 +170,7 @@ class MediascopeApiNetwork:
         Returns
         -------
 
-        resul : str
+        result : str
             Результат выполнения запроса
         """
         # Send request
@@ -168,7 +180,7 @@ class MediascopeApiNetwork:
             data = []
         self.refresh_token()
         url = self.root_url + endpoint
-        headers = {'Authorization': 'Bearer {}'.format(self.token['access_token']),
+        headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                    'Content-Type': 'application/json'
                    }
         req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
@@ -188,7 +200,7 @@ class MediascopeApiNetwork:
                 - post
 
         endpoint : str
-            Путь к точке API, к которому идет обращение. Конкотенируется с основным URL
+            Путь к точке API, к которому идет обращение. Конкатенируется с основным URL
             Пример:
                 /task/duplication
 
@@ -197,7 +209,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -205,7 +217,7 @@ class MediascopeApiNetwork:
         Returns
         -------
 
-        resul : str
+        result : str
             Результат выполнения запроса
         """
         # "Задача 2942b28b-d62e-42fb-a013-0ab067d21588 поступила в обработку."
@@ -217,7 +229,7 @@ class MediascopeApiNetwork:
             data = []
         self.refresh_token()
         url = self.root_url + endpoint
-        headers = {'Authorization': 'Bearer {}'.format(self.token['access_token']),
+        headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                    'Content-Type': 'application/json'
                    }
         req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
@@ -229,8 +241,6 @@ class MediascopeApiNetwork:
 
         elif req is not None:
             self._raise_error(req)
-            return None
-        else:
             return None
 
     def get_curl_request(self, method, endpoint, data=None):
@@ -245,7 +255,7 @@ class MediascopeApiNetwork:
                 - post
 
         endpoint : str
-            Путь к точке API, к которому идет обращение. Конкотенируется с основным URL
+            Путь к точке API, к которому идет обращение. Конкатенируется с основным URL
             Пример:
                 /task/duplication
 
@@ -254,7 +264,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -262,7 +272,7 @@ class MediascopeApiNetwork:
         Returns
         -------
 
-        resul : str
+        result : str
             Текст в виде команды CURL. Можно вставлять в консоль и обратиться к API прямо из консоли
         """
 
@@ -279,20 +289,19 @@ class MediascopeApiNetwork:
         treq.append(f"--header 'Authorization: Bearer {self.token['access_token']}'")
         if len(data) > 0:
             treq.append(f"--data-raw '{data}'")
-
         print(" \\\n".join(treq))
 
     @staticmethod
     def _raise_error(req):
         if req.status_code == 204:
-            raise Exception(f'Нет данных', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise Exception('Нет данных', f'Code: {req.status_code}, Сообщение: "{req.text}"')
         elif req.status_code == 401:
-            raise Exception(f'Не авторизирован', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise Exception('Не авторизирован', f'Code: {req.status_code}, Сообщение: "{req.text}"')
         elif req.status_code == 403:
-            raise Exception(f'Доступ запрещен', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise Exception('Доступ запрещен', f'Code: {req.status_code}, Сообщение: "{req.text}"')
         elif req.status_code == 400:
-            raise Exception(f'Не верный запрос', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise Exception('Неверный запрос', f'Code: {req.status_code}, Сообщение: "{req.text}"')
         elif req.status_code == 429:
-            raise Exception(f'Слишком много запросов', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise Exception('Слишком много запросов', f'Code: {req.status_code}, Сообщение: "{req.text}"')
         else:
-            raise Exception(f'Ошибка', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise Exception('Ошибка', f'Code: {req.status_code}, Сообщение: "{req.text}"')

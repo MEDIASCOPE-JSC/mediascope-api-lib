@@ -46,7 +46,7 @@ class ResponsumTask:
     def __init__(self, facility_id, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ParserElement.enablePackrat()
-        self.rnet = net.MediascopeApiNetwork()
+        self.rnet = net.MediascopeApiNetwork(*args, **kwargs)
         self.rcats = catalogs.ResponsumCats(facility_id)
         self.demo_attr = self.rcats.get_demo()
         self.demo_dict = self.rcats.get_demo_dict(self.demo_attr)
@@ -230,7 +230,7 @@ class ResponsumTask:
         return self._parse_expr(prep_points)
 
     @staticmethod
-    def _get_sql_from_list(obj_name, obj_data):
+    def get_sql_from_list(obj_name, obj_data):
         result_text = ''
         if obj_data is not None:
             if type(obj_data) == list:
@@ -719,7 +719,7 @@ class ResponsumTask:
             tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tid))
             print('Расчет задачи [', end='')
             s = dt.datetime.now()
-            while tstate == 'IN_PROGRESS':
+            while tstate == 'IN_PROGRESS' or tstate == 'PENDING':
                 print('=', end=' ')
                 time.sleep(3)
                 tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tsk['taskId']))

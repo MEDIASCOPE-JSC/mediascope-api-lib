@@ -15,7 +15,7 @@ class ResponsumCats:
     def __init__(self, facility_id, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # load holdings
-        self.msapi_network = net.MediascopeApiNetwork()
+        self.msapi_network = net.MediascopeApiNetwork(*args, **kwargs)
         if facility_id != self.facility_id or not hasattr(self, 'demattr') or not hasattr(self, 'holdings'):
             self.facility_id = facility_id
             self.demattr = self.get_demo()
@@ -329,22 +329,28 @@ class ResponsumCats:
                 data.extend(i)
         return list(set(data))
 
-    def get_holdings(self, facility_id, branch='any', find_text=None):
+    def get_holdings(self, facility_id, branch='any', find_text=None, use_cache=True):
         """
         Получить список холдингов - все, по id или поиском по названию. Если id или find_text не заданы, то возвращает
         все доступные холдинги
         
         Parameters
         ----------
-        facility_id : Установка: "desktop", "mobile", "desktop-pre". Обязательный параметр
+        facility_id : str
+            Установка: "desktop", "mobile", "desktop-pre". Обязательный параметр
 
-        branch: Ветка каталога для поиска
+        branch: str
+            Ветка каталога для поиска
             - any - Поиск во всех ветках (по умолчанию)
             - holding - Поиск в ветке Холдинги
             - agency - Поиск в ветке Рекламные агентства
             - network - Поиск в ветке Рекламные сети
         
-        find_text: Текст для поиска по названию холдинга. По умолчанию - не задано (None)
+        find_text: str
+            Текст для поиска по названию холдинга. По умолчанию - не задано (None)
+
+        use_cache : bool
+            Использовать кэширование - Да/Нет = True/False
 
         Returns
         -------
@@ -354,7 +360,7 @@ class ResponsumCats:
         """
 
         data = self.msapi_network.send_request('get', '/media/holdings?facility_id={}'.format(facility_id),
-                                               use_cache=True)
+                                               use_cache=use_cache)
         jdata = []
         for holding in data:
             hid = holding['id']
