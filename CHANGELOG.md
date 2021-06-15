@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.1] - 2021-04-27
+## [1.0.3] - 2021-0-27
+
+### Updated
+- Fixed bug with task state in the wait_task method - The method could finish waiting before the task calculated.
+- Fixed bug in the result2hierarchy method - added search for names for branches: Agency and Network 
+
+## [1.0.1] - [1.0.2] - 2021-04-27
 
 ### Added
 - Changelog (this file)

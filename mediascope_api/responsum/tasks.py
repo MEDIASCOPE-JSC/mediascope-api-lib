@@ -713,13 +713,12 @@ class ResponsumTask:
             print(msg)
 
         if tsk.get('taskId') is not None:
-            # print(tid)
             tid = tsk.get('taskId', None)
             time.sleep(1)
             tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tid))
             print('Расчет задачи [', end='')
             s = dt.datetime.now()
-            while tstate == 'IN_PROGRESS' or tstate == 'PENDING':
+            while tstate == 'IN_PROGRESS' or tstate == 'PENDING' or tstate == 'IN_QUEUE' or tstate == 'IDLE':
                 print('=', end=' ')
                 time.sleep(3)
                 tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tsk['taskId']))
@@ -728,6 +727,8 @@ class ResponsumTask:
             print(f"] время расчета: {str(e - s)}")
             if tstate == 'DONE':
                 return tsk
+            else:
+                print(f" Задача завершена со статутом: {tstate}")
         return None
 
     def get_result(self, tsk):
@@ -1029,17 +1030,15 @@ class ResponsumTask:
                 lev = levels[cname]
                 break
             # Ищем для не пустого значения позицию в каталоге медиа-дерева
-            cat_rows = self.rcats.holdings[self.rcats.holdings[f'{necol_name}_id'] == necol_val].iloc[0]
+            cat_rows = self.rcats.holdings[self.rcats.holdings[f'{self._map_media_tree_id(necol_name)}_id'] == necol_val].iloc[0]
             # Заполняем пустые значения
             for col, vals in res.items():
                 if not str(col).startswith('media_'):
                     continue
                 necol_name = str(col)[6:]
                 if levels[necol_name] <= lev:
-                    vals[i] = cat_rows[f'{necol_name}_title']
-
+                    vals[i] = cat_rows[f'{self._map_media_tree_id(necol_name)}_title']
         df = pd.DataFrame(res)
-
         if project_name is not None:
             df.insert(0, 'prj_name', project_name)
         return self.sort_df(df)
