@@ -7,7 +7,7 @@ with open("README.md", "r") as fh:
 setup(
     name='mediascope_api_lib',
     packages=find_packages(),
-    version='1.0.3',
+    version='1.0.4',
     description='Library for work with the Mediascope-Delivery-API',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -19,7 +19,7 @@ setup(
     requires=['pandas', 'requests', 'pyparsing'],
     install_requires=['pandas', 'requests', 'pyparsing'],
     url='https://github.com/MEDIASCOPE-JSC/mediascope-api-lib',
-    download_url='https://github.com/MEDIASCOPE-JSC/mediascope-api-lib/tarball/v1.0.3',
+    download_url='https://github.com/MEDIASCOPE-JSC/mediascope-api-lib/tarball/v1.0.4',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3.6",

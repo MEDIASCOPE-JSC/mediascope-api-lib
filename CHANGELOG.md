@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.3] - 2021-0-27
+## [1.0.4] - 2021-06-23
+
+### Updated
+- Updated the wait_task method - added ability to wait for many running tasks
+
+## [1.0.3] - 2021-05-27
 
 ### Updated
 - Fixed bug with task state in the wait_task method - The method could finish waiting before the task calculated.

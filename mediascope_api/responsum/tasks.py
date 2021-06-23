@@ -708,28 +708,74 @@ class ResponsumTask:
     def wait_task(self, tsk):
         if tsk is None:
             return None
-        msgs = tsk.get('messages', None)
-        for msg in msgs:
-            print(msg)
+        if type(tsk) == dict:
+            msgs = tsk.get('messages', None)
+            for msg in msgs:
+                print(msg)
 
-        if tsk.get('taskId') is not None:
-            tid = tsk.get('taskId', None)
-            time.sleep(1)
-            tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tid))
-            print('Расчет задачи [', end='')
+            if tsk.get('taskId') is not None:
+                tid = tsk.get('taskId', None)
+                time.sleep(1)
+                tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tid))
+                print('Расчет задачи [ ', end='')
+                s = dt.datetime.now()
+                while tstate == 'IN_PROGRESS' or tstate == 'PENDING' or tstate == 'IN_QUEUE' or tstate == 'IDLE':
+                    print('=', end=' ')
+                    time.sleep(3)
+                    tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tsk['taskId']))
+                time.sleep(1)
+                e = dt.datetime.now()
+                print(f"] время расчета: {str(e - s)}")
+                if tstate == 'DONE':
+                    return tsk
+                else:
+                    print(f" Задача завершена со статутом: {tstate}")
+        elif type(tsk) == list:
+            tasks = list()
+            # получим все идентификаторы заданий
+            for t in tsk:
+                cur_task = t.get('task')
+                if cur_task is None:
+                    continue
+                tid = cur_task.get('taskId')
+                if tid is None:
+                    continue
+                tasks.append(tid)
+            # Проверим состояние заданий
+            print(f'Расчет задач ({len(tasks)}) [ ', end='')
             s = dt.datetime.now()
-            while tstate == 'IN_PROGRESS' or tstate == 'PENDING' or tstate == 'IN_QUEUE' or tstate == 'IDLE':
-                print('=', end=' ')
+            errors = dict()
+            while True:
                 time.sleep(3)
-                tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tsk['taskId']))
-            time.sleep(1)
+                # запросим состояние
+                done_count = 0
+
+                tstates = self.rnet.send_request('post', '/task/state/state-list', data=json.dumps(tasks))
+
+                if tstates is None:
+                    print("Ошибка при получении статусов заданий")
+                    return None
+                if type(tstates) == dict:
+                    for tid, tstate in tstates.items():
+                        if tstate == 'IN_PROGRESS' or tstate == 'PENDING' or tstate == 'IN_QUEUE' or tstate == 'IDLE':
+                            continue
+                        elif tstate == 'DONE':
+                            done_count += 1
+                        else:
+                            errors[tid] = tstate
+                            break
+                print('=', end=' ')
+                if done_count == len(tsk):
+                    break
+            # print("]")
+            if len(errors) > 0:
+                print(f"Одна или несколько задач завершились с ошибкой")
+                for tid, tstate in errors.items():
+                    print(f"Задача: {tid} состояние: {tstate}")
+                return None
             e = dt.datetime.now()
             print(f"] время расчета: {str(e - s)}")
-            if tstate == 'DONE':
-                return tsk
-            else:
-                print(f" Задача завершена со статутом: {tstate}")
-        return None
+            return tsk
 
     def get_result(self, tsk):
         """
