@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.5] - 2021-06-29
+
+### Updated
+- Fixed the facility name for prefact (desktop-pre -> desktop_pre)
+
 ## [1.0.4] - 2021-06-23
 
 ### Updated

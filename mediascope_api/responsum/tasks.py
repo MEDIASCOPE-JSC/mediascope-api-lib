@@ -339,7 +339,7 @@ class ResponsumTask:
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
         facility : str
-            Установка : "desktop", "mobile", "desktop-pre".
+            Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
             Начало периода для расчета, дата в формате YYYY-MM-DD
@@ -454,7 +454,7 @@ class ResponsumTask:
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
         facility : str
-            Установка : "desktop", "mobile", "desktop-pre".
+            Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
             Начало периода для расчета, дата в формате YYYY-MM-DD
@@ -529,7 +529,7 @@ class ResponsumTask:
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
         facility : str
-            Установка : "desktop", "mobile", "desktop-pre".
+            Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
             Начало периода для расчета, дата в формате YYYY-MM-DD
@@ -593,8 +593,8 @@ class ResponsumTask:
     @staticmethod
     def _check_task_params(date_from, date_to, facility, statistics, structure, stat_list):
         error_text = ''
-        if facility is None or facility not in ['desktop', 'mobile', 'desktop-pre']:
-            error_text += 'facility не задано или не допустимо, допустимые значения: desktop, mobile, desktop-pre\n'
+        if facility is None or facility not in ['desktop', 'mobile', 'desktop_pre']:
+            error_text += 'facility не задано или не допустимо, допустимые значения: desktop, mobile, desktop_pre\n'
         if date_from is None:
             error_text += 'date_from должна быть задана, формат: YYYY-MM-DD\n'
         if date_to is None:
@@ -1482,7 +1482,7 @@ class ResponsumTask:
         ----------
 
         facility : str
-            Установка : "desktop", "mobile", "desktop-pre".
+            Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
             Начало периода для расчета, дата в формате YYYY-MM-DD

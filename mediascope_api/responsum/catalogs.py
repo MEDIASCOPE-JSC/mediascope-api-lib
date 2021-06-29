@@ -337,7 +337,7 @@ class ResponsumCats:
         Parameters
         ----------
         facility_id : str
-            Установка: "desktop", "mobile", "desktop-pre". Обязательный параметр
+            Установка: "desktop", "mobile", "desktop_pre". Обязательный параметр
 
         branch: str
             Ветка каталога для поиска
@@ -441,7 +441,7 @@ class ResponsumCats:
         Parameters
         ----------
 
-        facility_id : Установка: "desktop", "mobile", "desktop-pre". Обязательный параметр.
+        facility_id : Установка: "desktop", "mobile", "desktop_pre". Обязательный параметр.
         
         hid : идентификатор холдинга. Обязательный параметр
         
@@ -517,7 +517,7 @@ class ResponsumCats:
         ----------
 
         facility_id : str
-            Установка: "desktop", "mobile", "desktop-pre". Обязательный параметр.
+            Установка: "desktop", "mobile", "desktop_pre". Обязательный параметр.
         
         holdings : DataFrame
             Список холдингов, по которым нужно нужно получить их состав
