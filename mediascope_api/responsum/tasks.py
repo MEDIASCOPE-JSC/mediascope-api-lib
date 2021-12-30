@@ -57,13 +57,13 @@ class ResponsumTask:
     @staticmethod
     def _prepare_sql_parser():
         """
-        Подготовка SQL-like парсера, для разбора условий в фильтрах
+        Подготовка SQL-like парсера для разбора условий в фильтрах.
         
         Returns
         -------
         
         simple_sql : obj
-            Объект класса отвечающего за парсинг
+            Объект класса, отвечающего за парсинг.
         """
         # define SQL tokens
         select_stmt = Forward()
@@ -105,23 +105,23 @@ class ResponsumTask:
 
     def _get_point(self, left_obj, logic_oper, right_obj):
         """
-        Формирует объект - point понятный для API Responsum
+        Формирует объект - point, понятный для API Responsum.
         
         Parameters
         ----------
         
         left_obj : str
-            Левая часть выражения
+            Левая часть выражения.
         logic_oper : str
-            Логический оператор
+            Логический оператор.
         right_obj : obj
-            Правая часть выражения
+            Правая часть выражения.
         
         
         Returns
         -------
         point : dict
-            Объект - point понятный для API Responsum
+            Объект - point, понятный для API Responsum.
         
         """
         # корректируем демо атрибуты: переводим названия в идентификаторы
@@ -156,7 +156,7 @@ class ResponsumTask:
 
     def _find_points(self, obj):
         """
-        Ищет в исходном объекте, объкты типа point и преобразует их в формат Responsum API
+        Ищет в исходном объекте объекты типа point и преобразует их в формат Responsum API
         """
         if type(obj) == list:
             if len(obj) == 3 and type(obj[0]) == str and obj[1] in ['=', '!=', '>', '<', 'in', 'notin']:
@@ -172,19 +172,19 @@ class ResponsumTask:
 
     def _parse_expr(self, obj):
         """
-        Преобразует выражение для фильтрации из набора вложенных списков в формат Responsum API
+        Преобразует выражение для фильтрации из набора вложенных списков в формат Responsum API.
         
         Parameters
         ----------
         
         obj : dict | list
-            Объект с условиями фильтрации в виде набора вложенных списков, полученный после работы SQL парсера
+            Объект с условиями фильтрации в виде набора вложенных списков, полученный после работы SQL парсера.
             
         
         Returns
         -------
         jdat : dict
-            Условия фильтрации в формате Responsum API
+            Условия фильтрации в формате Responsum API.
         """
         if type(obj) == list:
             jdat = {'children': []}
@@ -207,19 +207,19 @@ class ResponsumTask:
 
     def _sql_to_json(self, sql_text):
         """
-        Преобразует условие фильтрации записанное в SQL натации, в формат Responsum API
+        Преобразует условие фильтрации, записанное в SQL нотации, в формат Responsum API.
         
         Parameters
         ----------
         
         sql_text : str
-            Текст условия в SQL формате
+            Текст условия в SQL формате.
             
         
         Returns
         -------
         obj : dict
-            Условия фильтрации в формате Responsum API
+            Условия фильтрации в формате Responsum API.
             
         """
 
@@ -330,44 +330,38 @@ class ResponsumTask:
                             population_filter=None, ages_filter=None, media_filter=None, demo_filter=None,
                             statistics=None, structure=None, reach_n=None, excl_use=None):
         """
-        Формирует текст задания для расчета аудиторных статистик
+        Формирует текст задания для расчета аудиторных статистик.
 
         Parameters
         ----------
 
         task_name : str
-            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+            Название задания, если не задано, то формируется как "пользователь + тип задания + дата/время".
 
         facility : str
             Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
-            Начало периода для расчета, дата в формате YYYY-MM-DD
+            Начало периода для расчета, дата в формате YYYY-MM-DD.
 
         date_to : str
-            Конец периода для расчета, дата в формате YYYY-MM-DD
+            Конец периода для расчета, дата в формате YYYY-MM-DD.
 
         usetype_filter: list|None
-            Список Типов пользования Интернетом
-
-        population_filter: str|None
-            Фильтр по численности населения
-
-        ages_filter: str|None
-            Фильтр по возрастным группам
+            Список типов пользования Интернетом.
 
         media_filter: str|None
-            Условия фильтрации по медиа-объектам
+            Условия фильтрации по медиа-объектам.
 
         demo_filter: str|None
-            Условия фильтрации по демографическим атрибутам
+            Условия фильтрации по демографическим атрибутам.
 
         statistics : list
-            Список статистик, которые необходимо расчитать.
+            Список статистик, которые необходимо рассчитать.
             Например: ["UnwReach", "Reach", "OTS"]
 
         structure: dict
-            Порядок группировки результата расчета, задается в виде словаря
+            Порядок группировки результата расчета, задается в виде словаря.
             Пример:
                 {
                     "date": "day",
@@ -375,7 +369,7 @@ class ResponsumTask:
                     "usetype": False
                 }
             Варианты группировок для каждой из осей:
-                * date - задается строкой, варианты:
+                * date - задается строкой, допустимые варианты:
                     "day",
                     "week",
                     "month",
@@ -396,29 +390,40 @@ class ResponsumTask:
                         "subbrand"
                     ]
 
-                * demo - задается в виде списка демографических-переменных, например:
+                * demo - задается в виде списка демографических переменных, например:
                     [ "AGE", "SEX", "CITY", ...]
 
-                * usetype - задается булевым значением: True/False
+                * usetype - задается булевым значением: True/False.
 
         reach_n: list
-            Шкала для ReachN+Distribution
+            Шкала для ReachN+Distribution.
+            Для расчета необходимо прописать переменную reach_n с требуемыми параметрами в виде списка со словарем.
             Пример:
-                [
-                    {"from": 0, "to": 2},
-                    {"from": 3, "to": 4},
-                    {"from": 5, "to": 255}
-                ]
+            reach_n = [ {"from": 0, "to": 2},
+                        {"from": 3, "to": 4},
+                        {"from": 5, "to": 255}
+                      ]
+            Также необходимо указать заданную переменную при отправке задания.
+            Пример:
+            build_audience_task(self, ..., reach_n=reach_n)
+            
         excl_use: list
-            Шкала для ExclUse, минимальное значение 0, максимальное 9999
-                [
-                    {"from": 0, "to": 5},
-                    {"from": 6, "to": 9999}
-                }
+            Шкала для ExclUse, ее значения соответствуют значениям use type.
+            Для расчета необходимо прописать переменную excl_use с требуемыми параметрами в виде списка со словарем.
+            Пример:
+            excl_use = [ {"from": 1, "to": 1},
+                         {"from": 2, "to": 2},
+                         {"from": 3, "to": 3},
+                         {"from": 4, "to": 4}                  
+                       ] 
+            Также необходимо указать заданную переменную при отправке задания.
+            Пример:
+            build_audience_task(self, ..., excl_use=excl_use)
+            
         Returns
         -------
         text : json
-            Задание в формате Responsum API
+            Задание в формате Responsum API.
         """
         error_text = self._check_task_params(date_from, date_to, facility, statistics, structure, self.AUDIENCE_STAT)
         if 'ReachN' in statistics:
@@ -445,47 +450,41 @@ class ResponsumTask:
                                population_filter=None, ages_filter=None, media_filter=None, dup_media_filter=None,
                                demo_filter=None, statistics=None, structure=None):
         """
-        Формирует текст задания типа duplication, для расчета пересечения аудиторий
+        Формирует текст задания типа duplication для расчета пересечения аудиторий.
 
         Parameters
         ----------
 
         task_name : str
-            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+            Название задания, если не задано, то формируется как "пользователь + тип задания + дата/время".
 
         facility : str
             Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
-            Начало периода для расчета, дата в формате YYYY-MM-DD
+            Начало периода для расчета, дата в формате YYYY-MM-DD.
 
         date_to : str
-            Конец периода для расчета, дата в формате YYYY-MM-DD
+            Конец периода для расчета, дата в формате YYYY-MM-DD.
 
         usetype_filter: list|None
-            Список Типов пользования Интернетом
-
-        population_filter: str|None
-            Фильтр по численности населения
-
-        ages_filter: str|None
-            Фильтр по возрастным группам
+            Список типов пользования Интернетом.
 
         media_filter: str
-            Условия фильтрации по медиа-объектам
+            Условия фильтрации по медиа-объектам.
 
         dup_media_filter: str
-            Условия фильтрации по медиа-объектам для оси duplicatiob
+            Условия фильтрации по медиа-объектам для оси duplication.
 
         demo_filter: str|None
-            Условия фильтрации по демографическим атрибутам
+            Условия фильтрации по демографическим атрибутам.
 
         statistics : list
-            Список статистик, которые необходимо расчитать.
+            Список статистик, которые необходимо рассчитать.
             Например: ["UnwReach", "Reach", "OTS"]
 
         structure: dict
-            Порядок группировки результата расчета, задается в виде словаря
+            Порядок группировки результата расчета, задается в виде словаря.
             Пример:
                 {
                     "date": "day",
@@ -497,7 +496,7 @@ class ResponsumTask:
         Returns
         -------
         text : json
-            Задание в формате Responsum API
+            Задание в формате Responsum API.
         """
         if task_name is None or task_name == '':
             # make task name by user and datetime
@@ -520,59 +519,50 @@ class ResponsumTask:
                             population_filter=None, ages_filter=None, media_filter=None, demo_filter=None,
                             statistics=None, structure=None):
         """
-        Формирует текст задания для расчета длительностей
+        Формирует текст задания для расчета длительностей.
 
         Parameters
         ----------
 
         task_name : str
-            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+            Название задания, если не задано, то формируется как "пользователь + тип задания + дата/время".
 
         facility : str
             Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
-            Начало периода для расчета, дата в формате YYYY-MM-DD
+            Начало периода для расчета, дата в формате YYYY-MM-DD.
 
         date_to : str
-            Конец периода для расчета, дата в формате YYYY-MM-DD
+            Конец периода для расчета, дата в формате YYYY-MM-DD.
 
         usetype_filter: list|None
-            Список Типов пользования Интернетом
-
-        population_filter: str|None
-            Фильтр по численности населения
-
-        ages_filter: str|None
-            Фильтр по возрастным группам
+            Список типов пользования Интернетом.
 
         media_filter: str|None
-            Условия фильтрации по медиа-объектам
+            Условия фильтрации по медиа-объектам.
 
         demo_filter: str|None
-            Условия фильтрации по демографическим атрибутам
+            Условия фильтрации по демографическим атрибутам.
 
         statistics : list
-            Список статистик, которые необходимо расчитать.
-            Например: ["UnwReach", "Reach", "OTS"]
+            Список статистик, которые необходимо рассчитать.
+            Например: ["ADDperU"]
 
         structure: dict
-            Порядок группировки результата расчета, задается в виде словаря
+            Порядок группировки результата расчета, задается в виде словаря.
             Пример:
                 {
-                    "date": "day",
+                    "date": "month",
                     "media": ["site"],
                     "demo": [],
                     "usetype": False
                 }
-            Варианты разбивки для каждой из осей:
-                date - "day", "month",
-
 
         Returns
         -------
         text : json
-            Задание в формате Responsum API
+            Задание в формате Responsum API.
         """
 
         if task_name is None or task_name == '':
@@ -641,19 +631,19 @@ class ResponsumTask:
 
     def send_audience_task(self, data):
         """
-        Отправить задание на расчет аудиторных статистик
+        Отправить задание на расчет аудиторных статистик.
         
         Parameters
         ----------
         
         data : str
-            Текст задания в JSON формате
+            Текст задания в JSON формате.
             
         
         Returns
         -------
         text : json
-            Ответ сервера, содержит taskid, который будет негоходим для получения результата
+            Ответ сервера, содержит taskid, который будет необходим для получения результата.
             
         """
         if data is not None:
@@ -663,19 +653,19 @@ class ResponsumTask:
 
     def send_duplication_task(self, data):
         """
-        Отправить задание типа duplication, для расчета пересечения аудиторий
+        Отправить задание типа duplication, для расчета пересечения аудиторий.
         
         Parameters
         ----------
         
         data : str
-            Текст задания в JSON формате
+            Текст задания в JSON формате.
             
         
         Returns
         -------
         text : json
-            Ответ сервера, содержит taskid, который будет негоходим для получения результата
+            Ответ сервера, содержит taskid, который будет необходим для получения результата.
             
         """
         if data is not None:
@@ -685,19 +675,19 @@ class ResponsumTask:
 
     def _send_duration_task(self, data):
         """
-        Отправить задание типа duration, для расчета расчета статистик по длительностям
+        Отправить задание типа duration, для расчета статистик по длительностям.
         
         Parameters
         ----------
         
         data : str
-            Текст задания в JSON формате
+            Текст задания в JSON формате.
             
         
         Returns
         -------
         text : json
-            Ответ сервера, содержит taskid, который будет негоходим для получения результата
+            Ответ сервера, содержит taskid, который будет необходим для получения результата.
             
         """
         if data is not None:
@@ -779,7 +769,7 @@ class ResponsumTask:
 
     def get_result(self, tsk):
         """
-        Получить результат выполнения задания по его ID
+        Получить результат выполнения задания по его ID.
         
         Parameters
         ----------
@@ -791,7 +781,7 @@ class ResponsumTask:
         Returns
         -------
         text : json
-            Результат выполнения задания в JSON формате
+            Результат выполнения задания в JSON формате.
             
         """
         if tsk is None or tsk.get('taskId') is None:
@@ -801,30 +791,31 @@ class ResponsumTask:
     @staticmethod
     def _result2table(data, axis_y=None):
         """
-        Преобразует результат из JSON в DataFrame
+        Преобразует результат из JSON в DataFrame.
 
         Parameters
         ----------
 
         data : dict
-            Результат расчета задачи в виде JSON объекта
+            Результат расчета задачи в виде JSON объекта.
 
         axis_y : list
             Список осей, которые хотим поместить из столбцов в строки.
-            Например:
-            В отчете присутствет разбивка по двум демографическим перменным:
+            
+            Пример.
+            В отчете присутствует разбивка по двум демографическим переменным:
                 - пол
                 - пол/возвраст
-            если не указать  axis_y, то получим DataFrame в котором каждая демографическая переменная будет в
+            Если не указать axis_y, то получим DataFrame, в котором каждая демографическая переменная будет в
             своем столбце:
                 prj_name | Пол      | Пол Возвраст  | ...
                 -----------------------------------
                 total    | Женский | Женщины 18-24 | ...
 
-            такое прелствление не всегда удобно.
+            Такое представление не всегда удобно.
             Если укажем:
-                axis_y = ['demo']
-            то получим другое предстваление DataFrame:
+                axis_y = ['demo'],
+            то получим другое представление DataFrame:
 
                 prj_name | attrtitle_demo | attrval_demo  | ...
                 ------------------------------------------------
@@ -836,7 +827,7 @@ class ResponsumTask:
         Returns
         -------
         data : DataFrame
-            DataFrame с результатом
+            DataFrame с результатом.
         """
         if data is None:
             return None
@@ -950,34 +941,35 @@ class ResponsumTask:
 
     def result2table(self, data, project_name=None, axis_y=None):
         """
-        Преобразует результат из JSON в DataFrame
+        Преобразует результат из JSON в DataFrame.
 
         Parameters
         ----------
 
         data : dict
-            Результат расчета задачи в виде JSON объекта
+            Результат расчета задачи в виде JSON объекта.
 
         project_name : str
             Название проекта в итоговом DataFrame.
-            Если указано, то в DataFrame добавляется в поле "prj_name" и названием project_name в данных.
+            Если указано, то в DataFrame добавляется в поле "prj_name" с названием project_name в данных.
 
         axis_y : list
             Список осей, которые хотим поместить из столбцов в строки.
-            Например:
-            В отчете присутствет разбивка по двум демографическим перменным:
+            
+            Пример.
+            В отчете присутствует разбивка по двум демографическим переменным:
                 - пол
                 - пол/возвраст
-            если не указать  axis_y, то получим DataFrame в котором каждая демографическая переменная будет в
+            Если не указать axis_y, то получим DataFrame в котором каждая демографическая переменная будет в
             своем столбце:
                 prj_name | Пол      | Пол Возвраст  | ...
                 -----------------------------------
                 total    | Женский | Женщины 18-24 | ...
 
-            такое прелствление не всегда удобно.
+            Такое представление не всегда удобно.
             Если укажем:
-                axis_y = ['demo']
-            то получим другое предстваление DataFrame:
+                axis_y = ['demo'],
+            то получим другое представление DataFrame:
 
                 prj_name | attrtitle_demo | attrval_demo  | ...
                 ------------------------------------------------
@@ -989,7 +981,7 @@ class ResponsumTask:
         Returns
         -------
         data : DataFrame
-            DataFrame с результатом
+            DataFrame с результатом.
         """
         if data is None:
             return None
@@ -1018,22 +1010,22 @@ class ResponsumTask:
 
     def result2hierarchy(self, data, project_name=None):
         """
-        Преобразует результат из JSON в DataFrame
+        Преобразует результат из JSON в DataFrame.
 
         Parameters
         ----------
 
         data : dict
-            Результат расчета задачи в виде JSON объекта
+            Результат расчета задачи в виде JSON объекта.
 
         project_name : str
             Название проекта в итоговом DataFrame.
-            Если указано, то в DataFrame добавляется в поле "prj_name" и названием project_name в данных.
+            Если указано, то в DataFrame добавляется в поле "prj_name" с названием project_name в данных.
 
         Returns
         -------
         data : DataFrame
-            DataFrame с результатом
+            DataFrame с результатом.
         """
         if data is None:
             return None
@@ -1108,30 +1100,31 @@ class ResponsumTask:
     @staticmethod
     def rename_reachn_columns(reach_n, df):
         """
-        Переименовывает название столбцов для статистик ReachN+ в соотвтетвии с списком диапазонов.
+        Переименовывает название столбцов для статистик ReachN+ в соответствии со списком диапазонов.
 
-        При расчете статистик типа ReachN+, Респонсум возвращает результат в формате:
+        При расчете статистик типа ReachN+, API возвращает результат в формате:
             reach_1, reach_2, ..., reach_n
-        где 1-n номер диапазона заданного в задании на расчет. Данный метод преобразует названия статистик
-        в соответствии со списком заданным в задании.
+        где 1-n - номер диапазона, заданного в задании на расчет. Данный метод преобразует названия статистик
+        в соответствии со списком, заданным в задании.
 
         Parameters
         ----------
 
         reach_n : list
-            Список диапазонов для ReachN
+            Список диапазонов для ReachN.
             Например:
-                [{"from": 1, "to": 2},
-                 {"from": 3, "to": 4},
-                 {"from": 5, "to": 255}]
+            reach_n = [{"from": 1, "to": 2},
+                       {"from": 3, "to": 4},
+                       {"from": 5, "to": 255}
+                      ]
 
         df : DataFrame
-            DataFrame с результами расчета
+            DataFrame с результами расчета.
 
         Returns
         -------
         data : DataFrame
-            DataFrame с результатом
+            DataFrame с результатом.
         """
         if reach_n is None:
             return
@@ -1253,25 +1246,25 @@ class ResponsumTask:
 
     def calc_row_col(self, df_project, df_total_project, df_total_demo):
         """
-        Вычисляет значения Row% Col% для отчетов с разбивкой по демографии и проектам.
+        Вычисляет значения Row% и Col% для отчетов с разбивкой по демографии и проектам.
 
           Parameters
         ----------
 
         df_project : DataFrame
-            Данные по проектам с разбивкой по демографии
+            Данные по проектам с разбивкой по демографии.
 
         df_total_project : DataFrame
-            Данные по проектам без разбивки по демографии
+            Данные по проектам без разбивки по демографии.
 
         df_total_demo : DataFrame
-            Данные с разбивкой по демографии без фильтрации по проектам (TotalInternet за период с разбивкой по демо.)
+            Данные с разбивкой по демографии без фильтрации по проектам (Total Internet с разбивкой по демо).
 
 
         Returns
         -------
         data : DataFrame
-            DataFrame с результатом
+            DataFrame с результатом.
         """
         df_prj = pd.concat([df_project, df_total_project]).fillna('total')
         #df_total_uni = pd.concat([df_total_demo, df_universe]).fillna('total')
@@ -1293,43 +1286,43 @@ class ResponsumTask:
 
     def calc_duplication_row_col(self, df_project, df_total_project, df_total):
         """
-        Вычисляет значения Row% Col% для отчетов типа Duplication .
+        Вычисляет значения Row% и Col% для отчетов типа Duplication.
 
           Parameters
         ----------
 
         df_project : DataFrame
-            Данные по пересчению аудитории проектов. Т.е. в DataFrame ожидается разбивка (поля)
+            Данные по пересечению аудитории проектов. Т.е. в DataFrame ожидается разбивка (поля)
             по media_объектам и duplication_объектам, например:
                 - media_site,
                 - duplication_site
 
         df_total_project : DataFrame
-            Данные по аудитории проектов без учета пересечений
+            Данные по аудитории проектов без учета пересечений.
 
         df_total : DataFrame
-            Аудитория TotalInternet для расчитываемого периода/географии
+            Аудитория Total Internet для рассчитываемого периода/географии.
 
         Returns
         -------
         data : DataFrame
-            DataFrame с результатом
+            DataFrame с результатом.
 
         Examples
         -------
-            Расчитываем Reach для пересекающейся адитории сайтов Facebook и VK, тогда:
-            В df_project ожидаем данные:
+            Рассчитываем Reach для пересекающейся аудитории проектов Facebook.com и Vk.com. 
+            Тогда в df_project ожидаем данные:
 
-                media_site | duplication_site | reach
+                media_site     | duplication_site | reach
                 -------------------------------------
-                Facebook   | VK.com           | 1234.56
+                Facebook.com   | Vk.com           | 1234.56
 
             В df_total_project ожидаем данные:
 
-                media_site | reach
+                media_site     | reach
                 -------------------------------------
-                Facebook   | 5678.90
-                VK.com     | 12340.56
+                Facebook.com   | 5678.90
+                Vk.com         | 12340.56
 
             В df_universe ожидаем данные:
 
@@ -1420,21 +1413,21 @@ class ResponsumTask:
 
     def calc_percents(self, df_project, df_total, row_prefix):
         """
-        Вычисляет значения Row% Col%
+        Вычисляет значения Row% и Col%.
 
           Parameters
         ----------
 
         df_project : DataFrame
-            Данные по проектам с разбивокй по media и демографии
+            Данные по проектам с разбивкой по media и демографии.
 
         df_total_project : DataFrame
-            Данные по аудитории проектов без учета демографии
+            Данные по аудитории проектов без учета демографии.
 
         Returns
         -------
         data : DataFrame
-            DataFrame с результатом
+            DataFrame с результатом.
         """
         # получим список полей для связок и полей статистик
         link_cols = []
@@ -1476,7 +1469,7 @@ class ResponsumTask:
     def save_report_info(self, facility=None, date_from=None, date_to=None, usetype_filter=None,
                          population_filter=None, ages_filter=None):
         """
-        Сохраняет общую информацию о заданиях. Использует при сохранении отчета в Excel
+        Сохраняет общую информацию о заданиях. Используется при сохранении отчета в Excel.
 
         Parameters
         ----------
@@ -1485,21 +1478,21 @@ class ResponsumTask:
             Установка : "desktop", "mobile", "desktop_pre".
 
         date_from : str
-            Начало периода для расчета, дата в формате YYYY-MM-DD
+            Начало периода для расчета, дата в формате YYYY-MM-DD.
 
         date_to : str
-            Конец периода для расчета, дата в формате YYYY-MM-DD
+            Конец периода для расчета, дата в формате YYYY-MM-DD.
 
         usetype_filter: list|None
-            Список Типов пользования Интернетом
+            Список типов пользования Интернетом.
 
         population_filter: str|None
-            Фильтр по численности населения
+            Фильтр по численности населения (не используется).
 
         ages_filter: str|None
-            Фильтр по возрастным группам
+            Фильтр по возрастным группам (не используется).
 
-            Задание в формате Responsum API
+            Задание в формате Responsum API.
 
 
         """
@@ -1533,13 +1526,13 @@ class ResponsumTask:
 
     def get_report_info(self):
         """
-        Возвращает информацию о расчитываемом отчете в виде DataFrame, которая была предварительно сохранена
-        с помощью метода save_audience_info
+        Возвращает информацию о рассчитываемом отчете в виде DataFrame, которая была предварительно сохранена
+        с помощью метода save_report_info.
 
         Returns
         -------
         DataFrame
-            Информация о расчитываемом отчете
+            Информация о рассчитываемом отчете.
         """
         data = list()
         for k, v in self.task_info.items():
@@ -1562,14 +1555,14 @@ class ResponsumTask:
     @staticmethod
     def get_excel_filename(task_name, export_path='../excel', add_date=True):
         """
-        Формирует назание Excel файла для отчета
+        Формирует назание Excel-файла для отчета.
 
         Parameters
         ----------
         task_name : str
-            Название отчета/задания
+            Название отчета/задания.
         export_path: : str
-            Путь к файл
+            Путь к файл.
         add_date: str
 
         Returns

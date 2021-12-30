@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] -[1.1.1] - 2021-12-30
+
+### Added
+- Added methods for work with CrossWeb API
+- Added module for error handling
+
+### Updated
+- In the Responsum modules, updated text in comments and docstrings
+
 ## [1.0.5] - 2021-06-29
 
 ### Updated

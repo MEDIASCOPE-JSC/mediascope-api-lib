@@ -2,6 +2,7 @@ import requests
 import datetime
 import time
 import re
+from . import errors
 from . import utils
 from . import cache
 
@@ -140,6 +141,103 @@ class MediascopeApiNetwork:
         else:
             self._raise_error(req)
             return None
+
+    def send_request_lo(self, method, endpoint, data=None, use_cache=False, limit=1000):
+        """
+        Отправляет запрос в Mediascope-API
+
+        Parameters
+        ----------
+
+        method : str
+            HTTP метод:
+                - get
+                - post
+
+        endpoint : str
+            Путь к точке API, к которому идет обращение. Конкатенируется с основным URL
+            Пример:
+                /task/duplication
+
+        data : dict
+            Данные отправляемые в запросе к API
+
+        use_cache : bool
+            Флаг кэширования
+                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
+                        Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
+                        файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
+                - False - кэш не используется (по умолчанию).
+
+        limit : int
+            Размер порции данных получаемых за один запрос
+
+        Returns
+        -------
+
+        result : dict
+            Результат выполнения запроса
+        """
+        # Send request
+        if method not in ['post', 'get', 'delete']:
+            raise ValueError(f'Method "{method}" is not supported')
+        if data is None:
+            data = []
+
+        # Check cache
+        cache_query = f'{method}\n{endpoint}\n{data}'
+        if use_cache and method in ['post', 'get']:
+            cache_data = cache.get_cache(cache_query, self.username)
+            if cache_data is not None:
+                return cache_data
+
+        result = {'header': {'total': 0}}
+        result_data = []
+        offset = 0
+        is_reading = True
+
+        while is_reading:
+            self.refresh_token()
+
+            # No cache, request service
+            if endpoint.rfind('?') >= 0:
+                url = self.root_url + endpoint + f'&offset={offset}&limit={limit}'
+            else:
+                url = self.root_url + endpoint + f'?offset={offset}&limit={limit}'
+            headers = {'Authorization': f'Bearer {self.token["access_token"]}',
+                       'Content-Type': 'application/json'
+                       }
+            req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
+
+            if req.status_code == 200:
+                # try to save in cache for next use
+                rj = req.json()
+                if rj is None or type(rj) != dict:
+                    break
+                if 'header' not in rj or 'data' not in rj:
+                    break
+
+                header = rj['header']
+                if 'total' not in header:
+                    is_reading = False
+                    total = limit
+                total = int(header['total'])
+                result['header']['total'] = total
+                offset += limit
+                if offset >= total:
+                    is_reading = False
+
+                if type(rj['data']) == list:
+                    result_data.extend(rj['data'])
+            else:
+                self._raise_error(req)
+                break
+
+        result['data'] = result_data
+        if use_cache:
+            cache.save_cache(cache_query, result, self.username)
+        return result
+
 
     def send_raw_request(self, method, endpoint, data=None):
         """
@@ -298,8 +396,10 @@ class MediascopeApiNetwork:
         elif req.status_code == 403:
             raise Exception('Доступ запрещен', f'Code: {req.status_code}, Сообщение: "{req.text}"')
         elif req.status_code == 400:
-            raise Exception('Неверный запрос', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise errors.HTTP400Error(req.status_code, req.text)
         elif req.status_code == 429:
             raise Exception('Слишком много запросов', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+        elif req.status_code == 404:
+            raise errors.HTTP404Error(f'Code: {req.status_code}, Адрес или задача не найдена: ' + {req.text})
         else:
             raise Exception('Ошибка', f'Code: {req.status_code}, Сообщение: "{req.text}"')

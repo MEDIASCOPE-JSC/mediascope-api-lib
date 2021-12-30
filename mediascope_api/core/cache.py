@@ -60,7 +60,7 @@ def save_cache(query, jdata, login='default'):
         query : str
             запрос по которому формируются данные - задание для api
 
-        jdata : json
+        jdata : dict
             данные для кэширования
         login : str
             Логин пользователя, добавляется в имя файла для обеспечения уникальности кэша

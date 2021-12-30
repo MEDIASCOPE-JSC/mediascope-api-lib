@@ -1,5 +1,6 @@
 import json
 import os
+import datetime as dt
 
 
 def load_settings(settings_fname='settings.json'):
@@ -40,3 +41,26 @@ def load_settings(settings_fname='settings.json'):
                jd['client_secret'], \
                jd['auth_server']
 
+
+def get_excel_filename(task_name, export_path='../excel', add_date=True):
+    """
+    Формирует название Excel файла для отчета
+
+    Parameters
+    ----------
+    task_name : str
+        Название отчета/задания
+    export_path: : str
+        Путь к файл
+    add_date: str
+
+    Returns
+    -------
+    """
+    if not os.path.exists(export_path):
+        os.mkdir(export_path)
+    fname = task_name
+    if add_date:
+        fname += '-' + dt.datetime.now().strftime('%Y%m%d_%H%M%S')
+    fname += '.xlsx'
+    return os.path.join(export_path, fname)
