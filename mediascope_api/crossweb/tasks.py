@@ -443,7 +443,7 @@ class CrossWebTask:
         self._add_range_filter(tsk, date_filter)
         self._add_usetype_filter(tsk, usetype_filter)
         self._add_filter(tsk, geo_filter, 'geoFilter')
-        self._add_filter(tsk, demo_filter, 'demo_filter')
+        self._add_filter(tsk, demo_filter, 'demoFilter')
         self._add_filter(tsk, mart_filter, 'martFilter')
         self._add_slices(tsk, slices)
         self._add_scales(tsk, scales)

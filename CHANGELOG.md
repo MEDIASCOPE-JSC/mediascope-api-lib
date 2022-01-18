@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] -[1.1.1] - 2021-12-30
+## [1.1.2] - 2022-01-18
+
+### Updated
+- Fixed bug with demographic filter in the CrossWeb. (Demographic filter was skipped in the tasks) 
+
+
+## [1.1.0] - 2021-12-30
 
 ### Added
 - Added methods for work with CrossWeb API
