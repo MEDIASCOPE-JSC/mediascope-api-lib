@@ -5,16 +5,23 @@ from ..core import net
 
 
 class CrossWebCats:
-    _dictionary_urls = {
+    _urls = {
         'media': '/dictionary/common/media-tree',
         'theme': '/dictionary/common/theme',
         'holding': '/dictionary/common/holding',
         'product': '/dictionary/common/product',
         'resource': '/dictionary/common/resource',
-        'agency': '/dictionary/common/advertisement-agency',
+        'agency': '/dictionary/common/profile-agency',
         'brand': '/dictionary/common/brand',
-        'campaign': '/dictionary/common/advertisement-campaign',
-        'ad': '/dictionary/common/advertisement-tree'
+        'campaign': '/dictionary/common/profile-campaign',
+        'ad': '/dictionary/common/profile-tree',
+        'property': '/dictionary/common/property/full',
+        'media_property': '/dictionary/media/property/full',
+        'media_unit': '/unit/media',
+        'ad_unit': '/unit/profile',
+        'total_unit': '/unit/media-total',
+        'usetype':'/dictionary/common/use-type',
+        'date_range': '/dictionary/common/availability'
     }
 
     def __new__(cls, facility_id=None, settings_filename=None, cache_path=None, *args, **kwargs):
@@ -38,7 +45,6 @@ class CrossWebCats:
         self.units_total = self.get_media_total_unit()
         self.units_ad = self.get_ad_unit()
 
-
     def load_property(self):
         """
         Загрузить список переменных: все, по id или поиском по названию
@@ -49,7 +55,7 @@ class CrossWebCats:
 
             DataFrame с демографическими переменными
         """
-        data = self.msapi_network.send_request_lo('get', '/dictionary/common/property/full', use_cache=True, limit=1000)
+        data = self.msapi_network.send_request_lo('get', self._urls['property'], use_cache=True, limit=1000)
         res = {}
         if data is None or type(data) != dict:
             return None
@@ -84,7 +90,7 @@ class CrossWebCats:
 
             DataFrame с демографическими переменными
         """
-        data = self.msapi_network.send_request_lo('get', '/dictionary/media/property/full', use_cache=True, limit=1000)
+        data = self.msapi_network.send_request_lo('get', self._urls['media_property'], use_cache=True, limit=1000)
         res = {}
         if data is None or type(data) != dict:
             return None
@@ -230,7 +236,7 @@ class CrossWebCats:
         total = header["total"]
         print(f'Запрошены записи: {offset} - {offset + limit}\nВсего найдено записей: {total}\n')
 
-    def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None):
+    def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None, use_cache=True):
         """
         Получить словарь из API
 
@@ -258,10 +264,10 @@ class CrossWebCats:
 
             DataFrame с объектами словаря
         """
-        if self._dictionary_urls.get(entity_name) is None:
+        if self._urls.get(entity_name) is None:
             return None
 
-        url = self._dictionary_urls[entity_name]
+        url = self._urls[entity_name]
         query_dict = search_params
         if offset is not None and limit is not None:
             query_dict['offset'] = offset
@@ -273,7 +279,7 @@ class CrossWebCats:
 
         post_data = self._get_post_data(body_params)
 
-        data = self.msapi_network.send_request_lo('post', url, data=post_data, use_cache=True)
+        data = self.msapi_network.send_request_lo('post', url, data=post_data, use_cache=use_cache)
         if data is None or type(data) != dict:
             return None
 
@@ -295,7 +301,7 @@ class CrossWebCats:
 
     def get_media(self, product=None, holding=None, theme=None, resource=None,
                   product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                  offset=None, limit=None):
+                  offset=None, limit=None, use_cache=True):
         """
         Получить список объектов Медиа-дерева
 
@@ -332,6 +338,13 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         media : DataFrame
@@ -351,11 +364,11 @@ class CrossWebCats:
             'themeIds': theme_ids
         }
 
-        return self._get_dict('media', search_params, body_params, offset, limit)
+        return self._get_dict('media', search_params, body_params, offset, limit, use_cache)
 
     def get_theme(self, product=None, holding=None, theme=None, resource=None,
                   product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                  offset=None, limit=None):
+                  offset=None, limit=None, use_cache=True):
         """
         Получить список тематик
 
@@ -392,6 +405,13 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
@@ -410,11 +430,11 @@ class CrossWebCats:
             'themeIds': theme_ids
         }
 
-        return self._get_dict('theme', search_params, body_params, offset, limit)
+        return self._get_dict('theme', search_params, body_params, offset, limit, use_cache)
 
     def get_holding(self, product=None, holding=None, theme=None, resource=None,
                     product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                    offset=None, limit=None):
+                    offset=None, limit=None, use_cache=True):
         """
         Получить список холдингов
 
@@ -451,6 +471,13 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
@@ -469,11 +496,11 @@ class CrossWebCats:
             'themeIds': theme_ids
         }
 
-        return self._get_dict('holding', search_params, body_params, offset, limit)
+        return self._get_dict('holding', search_params, body_params, offset, limit, use_cache)
 
     def get_resource(self, product=None, holding=None, theme=None, resource=None,
                      product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                     offset=None, limit=None):
+                     offset=None, limit=None, use_cache=True):
         """
         Получить список ресурсов
 
@@ -510,6 +537,13 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
@@ -528,11 +562,11 @@ class CrossWebCats:
             'themeIds': theme_ids
         }
 
-        return self._get_dict('resource', search_params, body_params, offset, limit)
+        return self._get_dict('resource', search_params, body_params, offset, limit, use_cache)
 
     def get_product(self, product=None, holding=None, theme=None, resource=None,
                     product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                    offset=None, limit=None):
+                    offset=None, limit=None, use_cache=True):
         """
         Получить список продуктов
 
@@ -569,6 +603,13 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
@@ -585,11 +626,11 @@ class CrossWebCats:
             'resourceIds': resource_ids,
             'themeIds': theme_ids
         }
-        return self._get_dict('product', search_params, body_params, offset, limit)
+        return self._get_dict('product', search_params, body_params, offset, limit, use_cache)
 
     def get_ad_agency(self, agency=None, brand=None, campaign=None, ad=None,
                       agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
-                      offset=None, limit=None):
+                      offset=None, limit=None, use_cache=True):
         """
         Получить список рекламных агентств
 
@@ -626,27 +667,35 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
 
             DataFrame с продуктами
         """
-        search_params = {'agencyName': agency,
+
+        search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
-                         'campaignName': campaign,
-                         'adName': ad}
+                         'advertisementCampaignName': campaign,
+                         'advertisementName': ad}
         body_params = {
-            'agencyIds': agency_ids,
+            'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
-            'campaignIds': campaign_ids,
-            'adIds': ad_ids
+            'advertisementCampaignIds': campaign_ids,
+            'advertisementIds': ad_ids
         }
-        return self._get_dict('agency', search_params, body_params, offset, limit)
+        return self._get_dict('agency', search_params, body_params, offset, limit, use_cache)
 
     def get_brand(self, agency=None, brand=None, campaign=None, ad=None,
                   agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
-                  offset=None, limit=None):
+                  offset=None, limit=None, use_cache=True):
         """
         Получить список брендов
 
@@ -683,27 +732,35 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
 
             DataFrame с продуктами
         """
-        search_params = {'agencyName': agency,
+
+        search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
-                         'campaignName': campaign,
-                         'adName': ad}
+                         'advertisementCampaignName': campaign,
+                         'advertisementName': ad}
         body_params = {
-            'agencyIds': agency_ids,
+            'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
-            'campaignIds': campaign_ids,
-            'adIds': ad_ids
+            'advertisementCampaignIds': campaign_ids,
+            'advertisementIds': ad_ids
         }
-        return self._get_dict('brand', search_params, body_params, offset, limit)
+        return self._get_dict('brand', search_params, body_params, offset, limit, use_cache)
 
     def get_ad_campaign(self, agency=None, brand=None, campaign=None, ad=None,
                         agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
-                        offset=None, limit=None):
+                        offset=None, limit=None, use_cache=True):
         """
         Получить список рекламных кампаний
 
@@ -740,27 +797,35 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
 
             DataFrame с продуктами
         """
-        search_params = {'agencyName': agency,
+
+        search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
-                         'campaignName': campaign,
-                         'adName': ad}
+                         'advertisementCampaignName': campaign,
+                         'advertisementName': ad}
         body_params = {
-            'agencyIds': agency_ids,
+            'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
-            'campaignIds': campaign_ids,
-            'adIds': ad_ids
+            'advertisementCampaignIds': campaign_ids,
+            'advertisementIds': ad_ids
         }
-        return self._get_dict('campaign', search_params, body_params, offset, limit)
+        return self._get_dict('campaign', search_params, body_params, offset, limit, use_cache)
 
     def get_ad(self, agency=None, brand=None, campaign=None, ad=None,
                agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
-               offset=None, limit=None):
+               offset=None, limit=None, use_cache=True):
         """
         Получить список рекламных позиций
 
@@ -797,23 +862,31 @@ class CrossWebCats:
         limit : int
             Количество записей в возвращаемом наборе данных
 
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
         Returns
         -------
         products : DataFrame
 
             DataFrame с продуктами
         """
-        search_params = {'agencyName': agency,
+
+        search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
-                         'campaignName': campaign,
-                         'adName': ad}
+                         'advertisementCampaignName': campaign,
+                         'advertisementName': ad}
         body_params = {
-            'agencyIds': agency_ids,
+            'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
-            'campaignIds': campaign_ids,
-            'adIds': ad_ids
+            'advertisementCampaignIds': campaign_ids,
+            'advertisementIds': ad_ids
         }
-        return self._get_dict('ad', search_params, body_params, offset, limit)
+        return self._get_dict('ad', search_params, body_params, offset, limit, use_cache)
 
     def get_media_unit(self):
         """
@@ -841,7 +914,7 @@ class CrossWebCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.msapi_network.send_request('get', '/unit/advertisement', use_cache=False)
+        return self.msapi_network.send_request('get', self._urls['ad_unit'], use_cache=False)
 
     def get_media_total_unit(self):
         """
@@ -855,7 +928,7 @@ class CrossWebCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.msapi_network.send_request('get', '/unit/media-total', use_cache=False)
+        return self.msapi_network.send_request('get', self._urls['total_unit'], use_cache=False)
 
     def get_usetype(self):
         """
@@ -869,7 +942,7 @@ class CrossWebCats:
         info : dict
             Словарь с доступными списками
         """
-        data = self.msapi_network.send_request_lo('get', '/dictionary/common/use-type', use_cache=True)
+        data = self.msapi_network.send_request_lo('get', self._urls['usetype'], use_cache=True)
         res = {}
         if data is None or type(data) != dict:
             return None
@@ -897,7 +970,7 @@ class CrossWebCats:
         info : dict
             Словарь с доступными периодами
         """
-        data = self.msapi_network.send_request_lo('get', '/dictionary/common/availability', use_cache=True)
+        data = self.msapi_network.send_request_lo('get', self._urls['date_range'], use_cache=True)
         res = {}
         if data is None or type(data) != dict:
             return None

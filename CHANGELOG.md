@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.3] - [1.1.4] - 2022-01-24
+
+### Updated
+- Updated urls for CrossWeb API: advertisement -> profile, because some browsers block urls with "advertisement" word.
+- Added "task_type" in the CrossWeb task and updated send_tasks methods, now they use "task_type" for select API endpoins
+- Added checks for available "units" in the Cross Web task
+
 ## [1.1.2] - 2022-01-18
 
 ### Updated
@@ -21,6 +28,7 @@ All notable changes to this project will be documented in this file.
 
 ### Updated
 - Fixed the facility name for prefact (desktop-pre -> desktop_pre)
+
 
 ## [1.0.4] - 2021-06-23
 

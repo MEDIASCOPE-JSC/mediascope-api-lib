@@ -30,9 +30,9 @@ from pyparsing import (
 class CrossWebTask:
 
     task_urls = {
-        'audience': '/task/media',
+        'media': '/task/media',
         'total': '/task/media-total',
-        'ad': '/task/advertisiment'
+        'ad': '/task/profile'
     }
 
     def __new__(cls, settings_filename=None, cache_path=None, *args, **kwargs):
@@ -230,7 +230,6 @@ class CrossWebTask:
 
         sql_obj = self.sql_parser.parseString(sql_text)
 
-        #sql_obj.pprint()
         s = sql_obj.asList()[0]
         prep_points = self._find_points(s)
         return self._parse_expr(prep_points)
@@ -279,11 +278,6 @@ class CrossWebTask:
 
         return pd.DataFrame(res)
 
-    def _check_units_in_task(self, statistics, slices, filters):
-        if type(statistics) == list:
-            # self.units
-            return None
-
     def _add_filter(self, tsk, filter_obj, filter_name):
         if filter_obj is not None:
             if type(filter_obj) == dict:
@@ -292,7 +286,8 @@ class CrossWebTask:
                 tsk['filter'][filter_name] = self._sql_to_json(filter_obj)
         return tsk
 
-    def _add_range_filter(self, tsk, date_filter):
+    @staticmethod
+    def _add_range_filter(tsk, date_filter):
         # Добавляем фильтр по диапазонам
         if date_filter is not None and type(date_filter) == list and len(date_filter) > 0:
             date_ranges = {
@@ -436,6 +431,7 @@ class CrossWebTask:
 
         # Собираем JSON
         tsk = {
+            "task_type": task_type,
             "statistics": statistics,
             "filter": {}
         }
@@ -448,9 +444,13 @@ class CrossWebTask:
         self._add_slices(tsk, slices)
         self._add_scales(tsk, scales)
 
+        if not self.checks_module.check_units_in_task(task_type, tsk):
+            return
+
         # Сохраняем информацию о задании, для последующего сохранения в Excel
         tinfo = {
             'task_name': task_name,
+            'task_type': task_type,
             'date_filter': date_filter,
             'usetype_filter': usetype_filter,
             'geo_filter': geo_filter,
@@ -464,18 +464,24 @@ class CrossWebTask:
         # Возвращаем JSON
         return json.dumps(tsk)
 
-    def send_task(self, task_type, data):
+    def _send_task(self, task_type, data):
+        if data is None:
+            return
+
+        if task_type not in self.task_urls.keys():
+            return
+
+        try:
+            return self.rnet.send_request('post', self.task_urls[task_type], data)
+        except errors.HTTP400Error as e:
+            print(f"Ошибка: {e}")
+
+    def send_task(self, data):
         """
         Отправить задание на расчет
 
         Parameters
         ----------
-
-        task_type: str
-            Тип задания
-                - audience - задание на расчет аудитории по media
-                - total - задание на расчет аудитори по total-media
-                - ad - задание на расчет аудитории по рекламе
 
         data : str
             Текст задания в JSON формате
@@ -487,14 +493,14 @@ class CrossWebTask:
 
         """
         if data is None:
+            print('Задание пустое')
             return
+        task_type = json.loads(data)['task_type']
         if task_type not in self.task_urls.keys():
+            print(f'Не верно указать тип задания, допустимые значения: {self.task_urls.keys().join(",")}')
             return
 
-        try:
-            return self.rnet.send_request('post', self.task_urls[task_type], data)
-        except errors.HTTP400Error as e:
-            print(f"Ошибка: {e}")
+        return self._send_task(task_type, data)
 
     def send_audience_task(self, data):
         """
@@ -513,7 +519,7 @@ class CrossWebTask:
             Ответ сервера, содержит taskid, который необходим для получения результата
 
         """
-        return self.send_task('audience', data)
+        return self._send_task('media', data)
 
     def send_total_audience_task(self, data):
         """
@@ -532,7 +538,7 @@ class CrossWebTask:
             Ответ сервера, содержит taskid, который необходим для получения результата
 
         """
-        return self.send_task('total', data)
+        return self._send_task('total', data)
 
     def send_advertisement_task(self, data):
         """
@@ -551,7 +557,7 @@ class CrossWebTask:
             Ответ сервера, содержит taskid, который необходим для получения результата
 
         """
-        return self.send_task('ad', data)
+        return self._send_task('ad', data)
 
     def wait_task(self, tsk):
         """

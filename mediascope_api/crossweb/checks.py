@@ -1,19 +1,22 @@
 import json
+from . import catalogs
 
 class CrossWebChecker:
 
-    def __new__(cls, cats, *args, **kwargs):
+    def __new__(cls, cats: catalogs.CrossWebCats, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(CrossWebChecker, cls).__new__(cls, *args)
         return cls.instance
 
-    def __init__(self, cats, *args, **kwargs):
+    def __init__(self, cats: catalogs.CrossWebCats, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cats = cats
-        self.task_types = ['media', 'total', 'ad']
+        self.task_types = {'media': self.cats.get_media_unit(),
+                           'total': self.cats.get_media_total_unit(),
+                           'ad': self.cats.get_ad_unit()}
         self.check_list = {
             'task_type': {'types': [list], 'msg': 'Не верно задан тип задачи\n' +
-                                                  f'Допустимые варианты: "{", ".join(self.task_types)}"'
+                                                  f'Допустимые варианты: "{", ".join(self.task_types.keys())}"'
                           },
             'date_filter': {'types': [list], 'msg': 'Период должен быть задан, формат: ' +
                                                     '[("YYYY-MM-DD", "YYYY-MM-DD")]\n'},
@@ -43,7 +46,7 @@ class CrossWebChecker:
                    demo_filter, mart_filter, slices, statistics, scales):
         error_text = ''
         if self._check_filter('task_type', task_type, error_text):
-            if task_type not in self.task_types:
+            if task_type not in self.task_types.keys():
                 error_text += self.check_list['task_type']['msg']
 
         if self._check_filter('date_filter', date_filter, error_text):
@@ -74,9 +77,6 @@ class CrossWebChecker:
                     if type(s) is not str:
                         error_text += f'Не верно задан срез (slices): {s}.\n'
 
-        # Проверяем по доступным медиа-юнитами
-        # self._check_units_in_task(statistics, slices, fil)
-
         if len(error_text) > 0:
             print('Ошибка при формировании задания')
             print(error_text)
@@ -103,3 +103,58 @@ class CrossWebChecker:
                                 error_text += f'4 шкала для статистики "{scale_stat} задана не верно,".\n'
                                 error_text += f'формат: "{scale_stat}":[(F, T), ...].\n'
         return error_text
+
+    def check_units_in_task(self, task_type, tsk):
+        error_text = ''
+
+        if type(tsk['statistics']) == list:
+
+            for s in tsk['statistics']:
+                if s not in self.task_types[task_type]['statistics']:
+                    error_text += f'Не известная  статистика "{s}".\n'
+        if type(tsk['filter']) == dict:
+            for filter_name, filter_val in tsk['filter'].items():
+                filter_name = filter_name.replace('Filter', '')
+                units = []
+                self.get_units(units, filter_val)
+                self.check_units(f'фильтрах {filter_name}', units,
+                                 self.task_types[task_type]['filters'][filter_name],
+                                 error_text)
+        if type(tsk['slices']) == list:
+            avl_slices = self.get_avl_slices(task_type)
+            for slice_name in tsk['slices']:
+                if slice_name not in avl_slices:
+                    error_text += f'Не допустимое название среза: "{slice_name}"'
+        if len(error_text) > 0:
+            print('Ошибка при формировании задания')
+            print(error_text)
+            return False
+        else:
+            return True
+
+    def get_units(self, units, obj):
+        if type(obj) == dict:
+            for k, v in obj.items():
+                if type(v) in [dict, list]:
+                    self.get_units(units, v)
+                elif type(v) == str:
+                    if str(k) == 'unit':
+                        units.append(v)
+        elif type(obj) == list:
+            for v in obj:
+                self.get_units(units, v)
+
+    @staticmethod
+    def check_units(task_item_name, task_units, avl_units, error_text):
+        for unit in task_units:
+            if unit not in avl_units:
+                error_text += f'Не допустимое название атрибута: "{unit}" в {task_item_name}'
+
+    def get_avl_slices(self, task_type):
+        slices = []
+        for slice, vals in self.task_types[task_type]['slices'].items():
+            for v in vals:
+                slices.append(v)
+        return slices
+
+

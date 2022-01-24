@@ -238,7 +238,6 @@ class MediascopeApiNetwork:
             cache.save_cache(cache_query, result, self.username)
         return result
 
-
     def send_raw_request(self, method, endpoint, data=None):
         """
         Отправляет запрос в Mediascope-API, и получает результат в сыром виде (как есть - в тексте)
@@ -400,6 +399,6 @@ class MediascopeApiNetwork:
         elif req.status_code == 429:
             raise Exception('Слишком много запросов', f'Code: {req.status_code}, Сообщение: "{req.text}"')
         elif req.status_code == 404:
-            raise errors.HTTP404Error(f'Code: {req.status_code}, Адрес или задача не найдена: ' + {req.text})
+            raise errors.HTTP404Error(f'Code: {req.status_code}, Адрес или задача не найдена: "{req.text}"')
         else:
             raise Exception('Ошибка', f'Code: {req.status_code}, Сообщение: "{req.text}"')
