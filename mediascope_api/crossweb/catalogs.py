@@ -8,6 +8,7 @@ class CrossWebCats:
     _urls = {
         'media': '/dictionary/common/media-tree',
         'theme': '/dictionary/common/theme',
+        'resource_theme': '/dictionary/common/resource-theme',
         'holding': '/dictionary/common/holding',
         'product': '/dictionary/common/product',
         'resource': '/dictionary/common/resource',
@@ -38,6 +39,7 @@ class CrossWebCats:
         self.demo_attribs = self.load_property()
         self.media_attribs = self.load_media_property()
         self.themes = self.get_theme()
+        self.resource_themes = self.get_resource_theme()
         self.holdings = self.get_holding()
         self.resources = self.get_resource()
         self.products = self.get_product()
@@ -299,9 +301,9 @@ class CrossWebCats:
             self._print_header(data['header'], 0, data['header']['total'])
         return pd.DataFrame(res)
 
-    def get_media(self, product=None, holding=None, theme=None, resource=None,
+    def get_media(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
                   product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                  offset=None, limit=None, use_cache=True):
+                  resource_theme_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить список объектов Медиа-дерева
 
@@ -320,6 +322,9 @@ class CrossWebCats:
         resource : str
             Поиск по названию ресурса. Допускается задавать часть названия.
 
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
         product_ids : list
             Поиск по списку идентификаторов продуктов.
 
@@ -331,6 +336,9 @@ class CrossWebCats:
 
         theme_ids : list
             Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -355,20 +363,22 @@ class CrossWebCats:
         search_params = {'productName': product,
                          'holdingName': holding,
                          'resourceName': resource,
-                         'themeName': theme}
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
 
         body_params = {
             'productIds': product_ids,
             'holdingIds': holding_ids,
             'resourceIds': resource_ids,
-            'themeIds': theme_ids
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
         }
 
         return self._get_dict('media', search_params, body_params, offset, limit, use_cache)
 
-    def get_theme(self, product=None, holding=None, theme=None, resource=None,
+    def get_theme(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
                   product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                  offset=None, limit=None, use_cache=True):
+                  resource_theme_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить список тематик
 
@@ -387,6 +397,9 @@ class CrossWebCats:
         resource : str
             Поиск по названию ресурса. Допускается задавать часть названия.
 
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
         product_ids : list
             Поиск по списку идентификаторов продуктов.
 
@@ -398,6 +411,9 @@ class CrossWebCats:
 
         theme_ids : list
             Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -421,20 +437,96 @@ class CrossWebCats:
         search_params = {'productName': product,
                          'holdingName': holding,
                          'resourceName': resource,
-                         'themeName': theme}
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
 
         body_params = {
             'productIds': product_ids,
             'holdingIds': holding_ids,
             'resourceIds': resource_ids,
-            'themeIds': theme_ids
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
         }
 
         return self._get_dict('theme', search_params, body_params, offset, limit, use_cache)
 
-    def get_holding(self, product=None, holding=None, theme=None, resource=None,
+    def get_resource_theme(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                           product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
+                           resource_theme_ids=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список тематик для ресурсов
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с Тематиками ресурсов
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
+        body_params = {
+            'productIds': product_ids,
+            'holdingIds': holding_ids,
+            'resourceIds': resource_ids,
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
+        }
+
+        return self._get_dict('resource_theme', search_params, body_params, offset, limit, use_cache)
+
+    def get_holding(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
                     product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                    offset=None, limit=None, use_cache=True):
+                    resource_theme_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить список холдингов
 
@@ -453,6 +545,9 @@ class CrossWebCats:
         resource : str
             Поиск по названию ресурса. Допускается задавать часть названия.
 
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
         product_ids : list
             Поиск по списку идентификаторов продуктов.
 
@@ -464,6 +559,9 @@ class CrossWebCats:
 
         theme_ids : list
             Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -487,20 +585,22 @@ class CrossWebCats:
         search_params = {'productName': product,
                          'holdingName': holding,
                          'resourceName': resource,
-                         'themeName': theme}
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
 
         body_params = {
             'productIds': product_ids,
             'holdingIds': holding_ids,
             'resourceIds': resource_ids,
-            'themeIds': theme_ids
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
         }
 
         return self._get_dict('holding', search_params, body_params, offset, limit, use_cache)
 
-    def get_resource(self, product=None, holding=None, theme=None, resource=None,
+    def get_resource(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
                      product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                     offset=None, limit=None, use_cache=True):
+                     resource_theme_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить список ресурсов
 
@@ -519,6 +619,9 @@ class CrossWebCats:
         resource : str
             Поиск по названию ресурса. Допускается задавать часть названия.
 
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
         product_ids : list
             Поиск по списку идентификаторов продуктов.
 
@@ -530,6 +633,9 @@ class CrossWebCats:
 
         theme_ids : list
             Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -553,20 +659,22 @@ class CrossWebCats:
         search_params = {'productName': product,
                          'holdingName': holding,
                          'resourceName': resource,
-                         'themeName': theme}
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
 
         body_params = {
             'productIds': product_ids,
             'holdingIds': holding_ids,
             'resourceIds': resource_ids,
-            'themeIds': theme_ids
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
         }
 
         return self._get_dict('resource', search_params, body_params, offset, limit, use_cache)
 
-    def get_product(self, product=None, holding=None, theme=None, resource=None,
+    def get_product(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
                     product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
-                    offset=None, limit=None, use_cache=True):
+                    resource_theme_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить список продуктов
 
@@ -585,6 +693,9 @@ class CrossWebCats:
         resource : str
             Поиск по названию ресурса. Допускается задавать часть названия.
 
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
         product_ids : list
             Поиск по списку идентификаторов продуктов.
 
@@ -596,6 +707,9 @@ class CrossWebCats:
 
         theme_ids : list
             Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -619,12 +733,15 @@ class CrossWebCats:
         search_params = {'productName': product,
                          'holdingName': holding,
                          'resourceName': resource,
-                         'themeName': theme}
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
         body_params = {
             'productIds': product_ids,
             'holdingIds': holding_ids,
             'resourceIds': resource_ids,
-            'themeIds': theme_ids
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
         }
         return self._get_dict('product', search_params, body_params, offset, limit, use_cache)
 
@@ -680,7 +797,6 @@ class CrossWebCats:
 
             DataFrame с продуктами
         """
-
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
@@ -745,7 +861,6 @@ class CrossWebCats:
 
             DataFrame с продуктами
         """
-
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
@@ -810,7 +925,6 @@ class CrossWebCats:
 
             DataFrame с продуктами
         """
-
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
@@ -875,7 +989,6 @@ class CrossWebCats:
 
             DataFrame с продуктами
         """
-
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
@@ -900,7 +1013,7 @@ class CrossWebCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.msapi_network.send_request('get', '/unit/media', use_cache=False)
+        return self.msapi_network.send_request('get', self._urls['media_unit'], use_cache=False)
 
     def get_ad_unit(self):
         """

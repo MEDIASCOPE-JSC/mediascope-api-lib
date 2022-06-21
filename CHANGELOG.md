@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.5] - 2022-06-21
+
+### Added
+
+Added attribute: Thematics of resources.
+- Added method for work with dictionary Thematics of resources.
+- Added ability use thematics of resources in filters and slices.
+
 ## [1.1.3] - [1.1.4] - 2022-01-24
 
 ### Updated
