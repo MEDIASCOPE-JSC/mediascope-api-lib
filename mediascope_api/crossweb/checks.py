@@ -1,11 +1,12 @@
 import json
 from . import catalogs
 
-class CrossWebChecker:
+
+class CrossWebTaskChecker:
 
     def __new__(cls, cats: catalogs.CrossWebCats, *args, **kwargs):
         if not hasattr(cls, 'instance'):
-            cls.instance = super(CrossWebChecker, cls).__new__(cls, *args)
+            cls.instance = super(CrossWebTaskChecker, cls).__new__(cls, *args)
         return cls.instance
 
     def __init__(self, cats: catalogs.CrossWebCats, *args, **kwargs):

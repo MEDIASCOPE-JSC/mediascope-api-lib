@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.6] - 2022-09-06
+
+### Added
+- Added module for work with Counter API (Calculate hits and uniques statistics on Counter data)
+
+### Updated
+- Duplicated functionality moved from specific modules to common module
+
 ## [1.1.5] - 2022-06-21
 
 ### Added

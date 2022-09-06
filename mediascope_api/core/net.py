@@ -128,9 +128,9 @@ class MediascopeApiNetwork:
         # No cache, request service
         url = self.root_url + endpoint
         headers = {'Authorization': f'Bearer {self.token["access_token"]}',
-                   'Content-Type': 'application/json'
+                   'Content-Type': 'application/json; charset=utf-8'
                    }
-        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
+        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}'.encode('utf-8'))
 
         if req.status_code == 200:
             # try to save in cache for next use
