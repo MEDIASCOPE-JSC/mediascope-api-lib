@@ -38,15 +38,20 @@ class ResponsumTask:
     DURATION_STAT = ["ATT", "ADDperU", "ADDperP", "ADDperUTotal", "ADDperPTotal", "DATT"]
     USETYPES_DICT = {1: "desktop", 2: "mobile-web", 3: "mobile-app-online", 4: "mobile-app-offline", 34: "mobile-app"}
 
-    def __new__(cls, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __new__(cls, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(ResponsumTask, cls).__new__(cls, *args)
         return cls.instance
 
-    def __init__(self, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __init__(self, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         ParserElement.enablePackrat()
-        self.rnet = net.MediascopeApiNetwork(settings_filename, cache_path)
+        self.rnet = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw, root_url,
+                                             client_id, client_secret, keycloak_url)
         self.rcats = catalogs.ResponsumCats(facility_id, settings_filename, cache_path)
         self.demo_attr = self.rcats.get_demo()
         self.demo_dict = self.rcats.get_demo_dict(self.demo_attr)

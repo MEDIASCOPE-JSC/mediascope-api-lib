@@ -3,14 +3,14 @@ import os
 import datetime as dt
 
 
-def load_settings(settings_fname='settings.json'):
+def load_settings(settings_filename: str = 'settings.json'):
     """
         Загрузить настройки из файла
 
         Parameters
         ----------
 
-        settings_fname : str
+        settings_filename : str
             Имя файла с настройками, по умолчанию имя файла: settings.json
         Returns
         -------
@@ -29,10 +29,10 @@ def load_settings(settings_fname='settings.json'):
             URL к серверу авторизации
     """
 
-    if settings_fname is None:
-        settings_fname = 'settings.json'
+    if settings_filename is None:
+        settings_filename = 'settings.json'
 
-    with open(settings_fname) as datafile:
+    with open(settings_filename) as datafile:
         jd = json.load(datafile)
         return jd['username'], \
                jd['passw'], \
@@ -42,7 +42,7 @@ def load_settings(settings_fname='settings.json'):
                jd['auth_server']
 
 
-def get_excel_filename(task_name, export_path='../excel', add_date=True):
+def get_excel_filename(task_name: str, export_path: str = '../excel', add_date: bool = True) -> str:
     """
     Формирует название Excel файла для отчета
 

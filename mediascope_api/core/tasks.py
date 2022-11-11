@@ -14,10 +14,9 @@ class TaskBuilder:
         super().__init__(*args, **kwargs)
         self.task_info = dict()
         self.task_info['task'] = dict()
-        self.sql_builder = sql.SqlBuilder()
 
     @staticmethod
-    def get_excel_filename(task_name, export_path='../excel', add_dates=True):
+    def get_excel_filename(task_name: str, export_path: str = '../excel', add_dates: bool = True) -> str:
         """
         Получить имя excel файла
 
@@ -40,7 +39,7 @@ class TaskBuilder:
         """
         return utils.get_excel_filename(task_name, export_path, add_dates)
 
-    def save_report_info(self, tinfo):
+    def save_report_info(self, tinfo: dict):
         """
         Сохраняет общую информацию о заданиях. Использует при сохранении отчета в Excel
 
@@ -67,7 +66,7 @@ class TaskBuilder:
         return pd.DataFrame(data)
 
     @staticmethod
-    def add_range_filter(tsk, date_filter):
+    def add_range_filter(tsk: dict, date_filter):
         # Добавляем фильтр по диапазонам
         if date_filter is not None and type(date_filter) == list and len(date_filter) > 0:
             date_ranges = {
@@ -92,12 +91,13 @@ class TaskBuilder:
                 })
             tsk['filter']['dateFilter'] = date_ranges
 
-    def add_filter(self, tsk, filter_obj, filter_name):
+    @staticmethod
+    def add_filter(tsk: dict, filter_obj, filter_name):
         if filter_obj is not None:
             if type(filter_obj) == dict:
                 tsk['filter'][filter_name] = filter
             elif type(filter_obj) == str:
-                tsk['filter'][filter_name] = self.sql_builder.sql_to_json(filter_obj)
+                tsk['filter'][filter_name] = sql.sql_to_json(filter_obj)
 
     @staticmethod
     def add_list_filter(tsk, filter_name, filter_obj_name, filter_obj):

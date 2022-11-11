@@ -1,31 +1,33 @@
 import json
 import pandas as pd
 import numpy as np
-import datetime as dt
 from pandas import DataFrame
 from ..core import net
-from ..core import sql
 from ..core import tasks
 from ..core import errors
-from ..core import utils
 
 
 class CounterTask:
-    def __new__(cls, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
-            # print("Creating Instance")
-            #cls.instance = super(CounterTask, cls).__new__(cls, args, kwargs)
             cls.instance = super().__new__(cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # load holdings
-        self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path)
+        self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
+                                                      root_url, client_id, client_secret, keycloak_url)
         self.task_builder = tasks.TaskBuilder()
 
-    def build_task(self, task_name='', date_filter=None, area_type_filter=None, partner_filter=None, tmsec_filter=None,
-                   geo_filter=None, device_type_filter=None, slices=None, statistics=None, sampling=42):
+    def build_task(self, task_name: str = '', date_filter: list = None, area_type_filter: list = None,
+                   partner_filter: list = None, tmsec_filter: list = None, geo_filter: str = None,
+                   device_type_filter: list = None, slices: list = None, statistics: list = None,
+                   sampling: int = 42) -> dict:
         """
         Формирует текст задания для расчета статистик
 
@@ -131,7 +133,7 @@ class CounterTask:
         self.task_builder.add_list_filter(tsk, 'areaTypeFilter', 'areaType', area_type_filter)
         self.task_builder.add_list_filter(tsk, 'partnerNameFilter', 'partnerName', partner_filter)
         self.task_builder.add_list_filter(tsk, 'tmsecFilter', 'tmsec', tmsec_filter)
-        self.task_builder.add_list_filter(tsk, 'deviceTypeFilter', 'deviceTypeName', device_type_filter)
+        self.task_builder.add_filter(tsk, device_type_filter, 'deviceTypeFilter')
         self.task_builder.add_filter(tsk, geo_filter, 'geoFilter')
 
         self.task_builder.add_slices(tsk, slices)
@@ -158,7 +160,7 @@ class CounterTask:
         return json.dumps(tsk)
         #return tsk
 
-    def send_task(self, task):
+    def send_task(self, task: dict):
         """
         Отправить задание на расчет
 
@@ -176,14 +178,14 @@ class CounterTask:
         """
         if task is None:
             print('Задание пустое')
-            return
+            return None
         try:
             return self.msapi_network.send_request('post', '/daily-task', task)
         except errors.HTTP400Error as e:
             print(f"Ошибка: {e}")
 
     @staticmethod
-    def result2table(data, project_name=None):
+    def result2table(data: dict, project_name: str = None):
         """
         Получить результат выполнения задания по его ID
 
@@ -251,5 +253,4 @@ class CounterTask:
         df.replace(to_replace=[None], value=np.nan, inplace=True)
         if project_name is not None:
             df.insert(0, 'prj_name', project_name)
-        # df['date'] = pd.to_datetime(df['date'])
         return df

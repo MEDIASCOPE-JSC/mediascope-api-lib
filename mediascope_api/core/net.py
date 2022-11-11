@@ -2,6 +2,7 @@ import requests
 import datetime
 import time
 import re
+import os
 from . import errors
 from . import utils
 from . import cache
@@ -9,22 +10,50 @@ from . import cache
 
 class MediascopeApiNetwork:
 
-    def __new__(cls, settings_filename=None, cache_path=None, *args, **kwargs):
+    DEFAULT_SETTINGS_FILENAME = 'settings.json'
+
+    def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(MediascopeApiNetwork, cls).__new__(cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if cache_path is not None:
+        if cache_path is not None and cache_enabled:
             cache.cache_path = cache_path
+        elif not cache_enabled:
+            cache.cache_path = None
 
-        self.username, self.passw, self.root_url, self.client_id, \
-        self.client_secret, self.keycloak_url = utils.load_settings(settings_filename)
+        if username is not None and passw is not None and root_url is not None and client_id is not None \
+                and client_secret is not None and keycloak_url is not None:
+            self.username = username
+            self.passw = passw
+            self.root_url = root_url
+            self.client_id = client_id
+            self.client_secret = client_secret
+            self.keycloak_url = keycloak_url
+        else:
+            if settings_filename is None:
+                if os.path.exists(self.DEFAULT_SETTINGS_FILENAME):
+                    settings_filename = self.DEFAULT_SETTINGS_FILENAME
+                else:
+                    raise Exception('Не указаны настройки для подключения к Mediascope-API')
+
+            self.username, self.passw, self.root_url, self.client_id, \
+            self.client_secret, self.keycloak_url = utils.load_settings(settings_filename)
+
+        if self.username is None or self.passw is None or self.root_url is None and \
+                self.client_id is None or self.client_secret is None or self.keycloak_url is None:
+            raise Exception('Не указаны настройки для подключения к Mediascope-API')
+
         self.token = {}
 
-    def get_token(self, username, passw):
+    def get_token(self, username: str, passw: str) -> dict:
         """
         Получить токен по имени пользователя и паролю
 
@@ -51,7 +80,7 @@ class MediascopeApiNetwork:
                 'username': username,
                 'password': passw,
                 'grant_type': 'password'
-                },
+            },
             headers={'Content-Type': 'application/x-www-form-urlencoded'})
         if my_tocken_req.status_code == 200:
             t = my_tocken_req.json()
@@ -78,7 +107,7 @@ class MediascopeApiNetwork:
         else:
             self.token = self.get_token(self.username, self.passw)
 
-    def send_request(self, method, endpoint, data=None, use_cache=False):
+    def send_request(self, method: str, endpoint: str, data: dict = None, use_cache: bool = False):
         """
         Отправляет запрос в Mediascope-API
 
@@ -142,7 +171,8 @@ class MediascopeApiNetwork:
             self._raise_error(req)
             return None
 
-    def send_request_lo(self, method, endpoint, data=None, use_cache=False, limit=1000):
+    def send_request_lo(self, method: str, endpoint: str, data: dict = None,
+                        use_cache: bool = False, limit: int = 1000):
         """
         Отправляет запрос в Mediascope-API
 
@@ -238,7 +268,7 @@ class MediascopeApiNetwork:
             cache.save_cache(cache_query, result, self.username)
         return result
 
-    def send_raw_request(self, method, endpoint, data=None):
+    def send_raw_request(self, method: str, endpoint: str, data: dict = None):
         """
         Отправляет запрос в Mediascope-API, и получает результат в сыром виде (как есть - в тексте)
 
@@ -285,7 +315,7 @@ class MediascopeApiNetwork:
             self._raise_error(req)
             return None
 
-    def send_crossweb_request(self, method, endpoint, data=None):
+    def send_crossweb_request(self, method: str, endpoint: str, data: dict = None):
         """
         Отправляет запрос в Mediascope-API для проект CrossWeb
 
@@ -338,7 +368,7 @@ class MediascopeApiNetwork:
             self._raise_error(req)
             return None
 
-    def get_curl_request(self, method, endpoint, data=None):
+    def get_curl_request(self, method: str, endpoint: str, data: dict = None) -> str:
         """
         Формирует запрос к Mediascope-API в в CURL формате.
         Можно вставлять в консоль и обратиться к API прямо из консоли.

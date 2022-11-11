@@ -14,19 +14,23 @@ class CrossWebTaskChecker:
         self.cats = cats
         self.task_types = {'media': self.cats.get_media_unit(),
                            'total': self.cats.get_media_total_unit(),
-                           'ad': self.cats.get_ad_unit()}
+                           'ad': self.cats.get_ad_unit(),
+                           'monitoring': self.cats.get_monitoring_unit(),
+                           'media-duplication': self.cats.get_media_duplication_unit()}
         self.check_list = {
-            'task_type': {'types': [list], 'msg': 'Не верно задан тип задачи\n' +
+            'task_type': {'types': [list], 'msg': 'Неверно задан тип задачи\n' +
                                                   f'Допустимые варианты: "{", ".join(self.task_types.keys())}"'
                           },
             'date_filter': {'types': [list], 'msg': 'Период должен быть задан, формат: ' +
                                                     '[("YYYY-MM-DD", "YYYY-MM-DD")]\n'},
             'date_filter_item': {'types': [tuple], 'msg': 'Диапазон дат внутри периода должен быть задан как tuple,' +
                                                           'формат: [("YYYY-MM-DD", "YYYY-MM-DD")] \n'},
-            'mart_filter': {'types': [str, dict], 'msg': 'Не верно задан фильтр по медиа.\n'},
-            'demo_filter': {'types': [str, dict], 'msg': 'Не верно задан фильтр по демографии.\n'},
-            'geo_filter': {'types': [str, dict], 'msg': 'Не верно задан фильтр по географии.\n'},
-            'usetype_filter': {'types': [list], 'msg': 'не верно задан usetype_filter,\n' +
+            'mart_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по медиа.\n'},
+            'demo_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по демографии.\n'},
+            'geo_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по географии.\n'},
+            'ad_description_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по рекламе.\n'},
+            'event_description_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по событиям.\n'},
+            'usetype_filter': {'types': [list], 'msg': 'неверно задан usetype_filter,\n' +
                                                        'формат: usetype_filter = [1,2,3].\n'},
             'statistics': {'types': [list], 'msg': 'Не заданы статистики для задания.\n'},
         }
@@ -44,7 +48,8 @@ class CrossWebTaskChecker:
         return True
 
     def check_task(self, task_type, date_filter, usetype_filter, geo_filter,
-                   demo_filter, mart_filter, slices, statistics, scales):
+                   demo_filter, mart_filter, duplication_mart_filter,
+                   ad_description_filter, event_description_filter, slices, statistics, scales):
         error_text = ''
         if self._check_filter('task_type', task_type, error_text):
             if task_type not in self.task_types.keys():
@@ -58,6 +63,9 @@ class CrossWebTaskChecker:
         self._check_filter('mart_filter', mart_filter, error_text)
         self._check_filter('demo_filter', demo_filter, error_text)
         self._check_filter('geo_filter', geo_filter, error_text)
+        self._check_filter('mart_filter', duplication_mart_filter, error_text)
+        self._check_filter('ad_description_filter', ad_description_filter, error_text)
+        self._check_filter('event_description_filter', event_description_filter, error_text)
 
         if self._check_filter('usetype_filter', mart_filter, error_text):
             ut_err = False
@@ -72,11 +80,11 @@ class CrossWebTaskChecker:
 
         if slices is not None:
             if type(slices) is not list:
-                error_text += f'Не верно заданы срезы (slices).\n'
+                error_text += f'Неверно заданы срезы (slices).\n'
             else:
                 for s in slices:
                     if type(s) is not str:
-                        error_text += f'Не верно задан срез (slices): {s}.\n'
+                        error_text += f'Неверно задан срез (slices): {s}.\n'
 
         if len(error_text) > 0:
             print('Ошибка при формировании задания')
@@ -112,11 +120,13 @@ class CrossWebTaskChecker:
 
             for s in tsk['statistics']:
                 if s not in self.task_types[task_type]['statistics']:
-                    error_text += f'Не известная  статистика "{s}".\n'
+                    error_text += f'Неизвестная статистика "{s}".\n'
         if type(tsk['filter']) == dict:
             for filter_name, filter_val in tsk['filter'].items():
                 filter_name = filter_name.replace('Filter', '')
-                units = []
+                units = []                
+                if filter_name == "duplicationMart":
+                    filter_name = "mart"
                 self.get_units(units, filter_val)
                 self.check_units(f'фильтрах {filter_name}', units,
                                  self.task_types[task_type]['filters'][filter_name],
@@ -125,7 +135,7 @@ class CrossWebTaskChecker:
             avl_slices = self.get_avl_slices(task_type)
             for slice_name in tsk['slices']:
                 if slice_name not in avl_slices:
-                    error_text += f'Не допустимое название среза: "{slice_name}"'
+                    error_text += f'Недопустимое название среза: "{slice_name}"'
         if len(error_text) > 0:
             print('Ошибка при формировании задания')
             print(error_text)

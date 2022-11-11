@@ -1,15 +1,14 @@
-import json
-import pandas as pd
-import numpy as np
-import time
 import datetime as dt
+import json
+import numpy as np
+import pandas as pd
+import time
 from pandas import DataFrame
-from ..core import net
-from ..core import sql
 from . import catalogs
-from ..core import errors
-from ..core import tasks
 from . import checks
+from ..core import errors
+from ..core import net
+from ..core import tasks
 
 
 class CrossWebTask:
@@ -17,17 +16,24 @@ class CrossWebTask:
     task_urls = {
         'media': '/task/media',
         'total': '/task/media-total',
-        'ad': '/task/profile'
+        'ad': '/task/profile',
+        'monitoring': '/task/monitoring',
+        'media-duplication': '/task/media-duplication'
     }
 
-    def __new__(cls, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(CrossWebTask, cls).__new__(cls, *args)
         return cls.instance
 
-    def __init__(self, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.network_module = net.MediascopeApiNetwork(settings_filename, cache_path)
+        self.network_module = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
+                                                       root_url, client_id, client_secret, keycloak_url)
         self.task_builder = tasks.TaskBuilder()
         self.usetypes = self.get_usetype()
         self.cats = catalogs.CrossWebCats()
@@ -68,10 +74,61 @@ class CrossWebTask:
 
         return pd.DataFrame(res)
 
+    def _build_task(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
+                   demo_filter=None, mart_filter=None, duplication_mart_filter=None, ad_description_filter=None,
+                   event_description_filter=None, slices=None, statistics=None, scales=None):
+        
+        if not self.task_checker.check_task(task_type, date_filter, usetype_filter, geo_filter,
+                                            demo_filter, mart_filter, duplication_mart_filter, 
+                                            ad_description_filter, event_description_filter, slices, statistics, scales):
+            return
+
+        # Собираем JSON
+        tsk = {
+            "task_type": task_type,
+            "statistics": statistics,
+            "filter": {}
+        }
+        # Добавляем фильтры
+        self.task_builder.add_range_filter(tsk, date_filter)
+        self.task_builder.add_usetype_filter(tsk, usetype_filter)
+        self.task_builder.add_filter(tsk, geo_filter, 'geoFilter')
+        self.task_builder.add_filter(tsk, demo_filter, 'demoFilter')
+        self.task_builder.add_filter(tsk, mart_filter, 'martFilter')
+        self.task_builder.add_filter(tsk, duplication_mart_filter, 'duplicationMartFilter')
+        self.task_builder.add_filter(tsk, ad_description_filter, 'adDescriptionFilter')
+        self.task_builder.add_filter(tsk, event_description_filter, 'eventDescriptionFilter')
+        self.task_builder.add_slices(tsk, slices)
+        self.task_builder.add_scales(tsk, scales)
+
+        if not self.task_checker.check_units_in_task(task_type, tsk):
+            return
+
+        # Сохраняем информацию о задании, для последующего сохранения в Excel
+        tinfo = {
+            'task_name': task_name,
+            'task_type': task_type,
+            'date_filter': date_filter,
+            'usetype_filter': usetype_filter,
+            'geo_filter': geo_filter,
+            'demo_filter': demo_filter,
+            'mart_filter': mart_filter,
+            'duplication_mart_filter': duplication_mart_filter,
+            'ad_description_filter': ad_description_filter,
+            'event_description_filter': event_description_filter,
+            'slices': slices,
+            'statistics': statistics,
+            'scales': scales
+        }
+        self.task_builder.save_report_info(tinfo)
+        # Возвращаем JSON
+        return json.dumps(tsk)
+
+
     def build_task(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
                    demo_filter=None, mart_filter=None, slices=None, statistics=None, scales=None):
         """
-        Формирует текст задания для расчета статистик
+        Формирует текст заданий total, media и ad для расчета статистик
 
         Parameters
         ----------
@@ -122,7 +179,6 @@ class CrossWebTask:
             Список допустимых атрибутов можно получить через метод `get_media_unit` модуля catalogs:
             >>> cats.get_media_unit()['filters']['mart']
 
-
         slices: list
             Порядок разбивки результата расчета, задается в виде списка
             Пример:
@@ -153,44 +209,216 @@ class CrossWebTask:
             Задание в формате CrossWeb API
         """
 
-        if not self.task_checker.check_task(task_type, date_filter, usetype_filter, geo_filter,
-                                            demo_filter, mart_filter, slices, statistics, scales):
-            return
+        
+        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter, 
+                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter, 
+                                duplication_mart_filter=None, ad_description_filter=None, event_description_filter=None, 
+                                slices=slices, statistics=statistics, scales=scales)
+    
+    def build_task_monitoring(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
+                              demo_filter=None, mart_filter=None, ad_description_filter=None, event_description_filter=None,
+                              slices=None, statistics=None, scales=None):
+        """
+        Формирует текст задания мониторинга для расчета статистик
 
-        # Собираем JSON
-        tsk = {
-            "task_type": task_type,
-            "statistics": statistics,
-            "filter": {}
-        }
-        # Добавляем фильтры
-        self.task_builder.add_range_filter(tsk, date_filter)
-        self.task_builder.add_usetype_filter(tsk, usetype_filter)
-        self.task_builder.add_filter(tsk, geo_filter, 'geoFilter')
-        self.task_builder.add_filter(tsk, demo_filter, 'demoFilter')
-        self.task_builder.add_filter(tsk, mart_filter, 'martFilter')
-        self.task_builder.add_slices(tsk, slices)
-        self.task_builder.add_scales(tsk, scales)
+        Parameters
+        ----------
 
-        if not self.task_checker.check_units_in_task(task_type, tsk):
-            return
+        task_type : str
+            Тип задания, возможные варианты:
+            - media
 
-        # Сохраняем информацию о задании, для последующего сохранения в Excel
-        tinfo = {
-            'task_name': task_name,
-            'task_type': task_type,
-            'date_filter': date_filter,
-            'usetype_filter': usetype_filter,
-            'geo_filter': geo_filter,
-            'demo_filter': demo_filter,
-            'mart_filter': mart_filter,
-            'slices': slices,
-            'statistics': statistics,
-            'scales': scales
-        }
-        self.task_builder.save_report_info(tinfo)
-        # Возвращаем JSON
-        return json.dumps(tsk)
+        task_name : str
+            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+
+        date_filter : list
+            Список периодов, период задается списком пар - (начало, конец):
+            Пример:
+                date_filter = [
+                               ('2021-07-05', '2021-07-18'),
+                               ('2021-09-06', '2021-09-26'),
+                               ('2021-10-18', '2021-10-31')
+                              ]
+
+        usetype_filter: list|None
+            Список Типов пользования Интернетом
+            Пример:
+                usetype_filter = [1, 2, 3]
+
+        geo_filter: list|None
+            Условия фильтрации по географии
+            Возможные варианты можно получить через метод `find_property` модуля catalogs:
+            >>> cats.find_property('CityPop', expand=True)
+            >>> cats.find_property('CityPop100', expand=True)
+            >>> cats.find_property('FederalOkrug', expand=True)
+
+
+        demo_filter: str|None
+            Условия фильтрации по демографическим атрибутам
+            Пример:
+                demo_filter = "sex = 1 AND occupation = 1"
+
+            Список допустимых атрибутов можно получить через метод `get_monitoring_unit` модуля catalogs:
+            >>> cats.get_monitoring_unit()['filters']['demo']
+
+
+        mart_filter: str|None
+            Условия фильтрации по медиа-объектам
+            Пример:
+                mart_filter = "crossMediaResourceId = 1150 OR crossMediaResourceId = 1093"
+
+            Список допустимых атрибутов можно получить через метод `get_monitoring_unit` модуля catalogs:
+            >>> cats.get_monitoring_unit()['filters']['mart']
+     
+        ad_description_filter: str|None
+            Условия фильтрации по описанию рекламы
+            Пример:
+                ad_description_filter = "crossMediaResourceId = 1150 OR crossMediaResourceId = 1093"
+
+            Список допустимых атрибутов можно получить через метод `get_monitoring_unit` модуля catalogs:
+            >>> cats.get_monitoring_unit()['filters']['adDescription']
+            
+        event_description_filter: str|None
+            Условия фильтрации по описанию событий рекламы
+            Пример:
+                event_description_filter = "crossMediaResourceId = 1150 OR crossMediaResourceId = 1093"
+
+            Список допустимых атрибутов можно получить через метод `get_monitoring_unit` модуля catalogs:
+            >>> cats.get_monitoring_unit()['filters']['eventDescription']
+
+        slices: list
+            Порядок разбивки результата расчета, задается в виде списка
+            Пример:
+                slices = ["useTypeName", "researchWeek", "crossMediaResourceId"]
+
+            Список допустимых атрибутов можно получить через метод `get_monitoring_unit` модуля catalogs:
+            >>> cats.get_monitoring_unit()['slices']
+
+        statistics : list
+            Список статистик, которые необходимо расчитать.
+            Пример:
+                statistics = ['reach', 'reachPer', 'dr']
+
+            Список допустимых названий атрибутов можно получить через метод `get_media_unit` модуля catalogs:
+            >>> cats.get_media_unit()['statistics']
+
+        scales : dict|None
+            Шкалы для статистик "drfd" и "reachN".
+            Пример:
+                scales = {
+                            'drfd':[(1, 5), (10, 20)],
+                            'reachN':[(2, 10), (20, 255)]
+                        }
+
+        Returns
+        -------
+        text : json
+            Задание в формате CrossWeb API
+        """
+        
+        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter, 
+                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter, 
+                                duplication_mart_filter=None, ad_description_filter=ad_description_filter, 
+                                event_description_filter=event_description_filter, slices=slices, statistics=statistics, 
+                                scales=scales)
+    
+    def build_task_media_duplication(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
+                              demo_filter=None, mart_filter=None, duplication_mart_filter=None, slices=None, statistics=None, scales=None):
+        """
+        Формирует текст задания пересечения для расчета статистик
+
+        Parameters
+        ----------
+
+        task_type : str
+            Тип задания, возможные варианты:
+            - media
+
+        task_name : str
+            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+
+        date_filter : list
+            Список периодов, период задается списком пар - (начало, конец):
+            Пример:
+                date_filter = [
+                               ('2021-07-05', '2021-07-18'),
+                               ('2021-09-06', '2021-09-26'),
+                               ('2021-10-18', '2021-10-31')
+                              ]
+
+        usetype_filter: list|None
+            Список Типов пользования Интернетом
+            Пример:
+                usetype_filter = [1, 2, 3]
+
+        geo_filter: list|None
+            Условия фильтрации по географии
+            Возможные варианты можно получить через метод `find_property` модуля catalogs:
+            >>> cats.find_property('CityPop', expand=True)
+            >>> cats.find_property('CityPop100', expand=True)
+            >>> cats.find_property('FederalOkrug', expand=True)
+
+
+        demo_filter: str|None
+            Условия фильтрации по демографическим атрибутам
+            Пример:
+                demo_filter = "sex = 1 AND occupation = 1"
+
+            Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['filters']['demo']
+
+
+        mart_filter: str|None
+            Условия фильтрации по медиа-объектам
+            Пример:
+                mart_filter = "crossMediaResourceId = 1150 OR crossMediaResourceId = 1093"
+
+            Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['filters']['mart']
+        
+        duplication_mart_filter: str|None
+            Условия фильтрации по медиа-объектам для пересечения
+            Пример:
+                duplication_mart_filter = "crossMediaResourceId = 1150 OR crossMediaResourceId = 1093"
+
+            Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['filters']['mart']
+
+        slices: list
+            Порядок разбивки результата расчета, задается в виде списка
+            Пример:
+                slices = ["useTypeName", "researchWeek", "crossMediaResourceId"]
+
+            Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['slices']
+
+        statistics : list
+            Список статистик, которые необходимо расчитать.
+            Пример:
+                statistics = ['reach', 'reachPer', 'dr']
+
+            Список допустимых названий атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['statistics']
+
+        scales : dict|None
+            Шкалы для статистик "drfd" и "reachN".
+            Пример:
+                scales = {
+                            'drfd':[(1, 5), (10, 20)],
+                            'reachN':[(2, 10), (20, 255)]
+                        }
+
+        Returns
+        -------
+        text : json
+            Задание в формате CrossWeb API
+        """
+        
+        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter, 
+                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter, 
+                                duplication_mart_filter=duplication_mart_filter, ad_description_filter=None, 
+                                event_description_filter=None, slices=slices, statistics=statistics, 
+                                scales=scales)
 
     def _send_task(self, task_type, data):
         if data is None:
@@ -285,6 +513,44 @@ class CrossWebTask:
 
         """
         return self._send_task('ad', data)
+
+    def send_monitoring_task(self, data):
+        """
+        Отправить задание на расчет аудиторных статистик по мониторингу
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('monitoring', data)
+    
+    def send_media_duplication_task(self, data):
+        """
+        Отправить задание на расчет аудиторных статистик по пересечению ресурсов
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('media-duplication', data)
 
     def wait_task(self, tsk):
         """
@@ -523,6 +789,8 @@ class CrossWebTask:
         df = self._get_text_name_for(df, 'demo',  with_id)
         df = self._get_text_name_for(df, 'geo', with_id)
         df = self._get_text_name_for_mart(df)
+        df = self._get_text_name_for_ad_description(df)
+        df = self._get_text_name_for_event_description(df)
         return df
 
     def _get_text_name_for(self, df: pd.DataFrame, entity_name: str, with_id=True):
@@ -534,7 +802,7 @@ class CrossWebTask:
 
         geo_attributes = self.cats.get_slices(entity_name)
         for col in df.columns:
-            if col not in geo_attributes:
+            if col not in geo_attributes or col == 'age':
                 continue
             # get cat
             _attrs = self.media_attribs[self.media_attribs['sliceUnit'] == col].copy()[['optionValue', 'optionName']]
@@ -549,20 +817,131 @@ class CrossWebTask:
         pos = 0
         for col in df.columns:
             pos += 1
-            if col not in matr_attributes:
-                continue
+
+            if "duplication" not in col: 
+                if col not in matr_attributes:
+                    continue
             _attrs = pd.DataFrame()
-            if col == 'crossMediaProductId':
+            if col == 'crossMediaProductId' or col == 'duplicationCrossMediaProductId':
                 _attrs = self.cats.products
-            elif col == 'crossMediaHoldingId':
+            elif col == 'crossMediaHoldingId' or col == 'duplicationCrossMediaHoldingId':
                 _attrs = self.cats.holdings
-            elif col == 'crossMediaResourceId':
+            elif col == 'crossMediaResourceId' or col == 'duplicationCrossMediaResourceId':
                 _attrs = self.cats.resources
-            elif col == 'crossMediaThemeId':
+            elif col == 'crossMediaThemeId' or col == 'duplicationCrossMediaThemeId':
                 _attrs = self.cats.themes
             else:
-                break
-            df[col] = df[col].astype('int64')
+                continue
+            if col[:-2] + 'Name' in df.columns:
+                continue
+            _attrs['id'] = _attrs['id'].astype('str')            
             df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])
             pos += 1
         return df
+    
+    def _get_text_name_for_ad_description(self, df: pd.DataFrame):
+        if type(df) != pd.DataFrame:
+            return
+        ad_description_attributes = self.cats.get_slices('adDescription')
+        
+        pos = 0
+        for col in df.columns:
+            pos += 1            
+            if col not in ad_description_attributes:
+                continue
+            if col[:-2] + 'Name' in df.columns:
+                continue
+            _attrs = pd.DataFrame()
+            if col == 'productBrandId':                
+                _attrs = self.cats.get_product_brand(product_brand_ids = df[col].unique().tolist())
+            elif col == 'productSubbrandId':
+                _attrs = self.cats.get_product_subbrand(product_subbrand_ids = df[col].unique().tolist())
+            elif col == 'productModelId':
+                _attrs = self.cats.get_product_model(product_model_ids = df[col].unique().tolist())
+            elif col == 'productCategoryL1Id':
+                _attrs = self.cats.get_product_category_l1(product_category_l1_ids = df[col].unique().tolist())
+            elif col == 'productCategoryL2Id':
+                _attrs = self.cats.get_product_category_l2(product_category_l2_ids = df[col].unique().tolist())
+            elif col == 'productCategoryL3Id':
+                _attrs = self.cats.get_product_category_l3(product_category_l3_ids = df[col].unique().tolist())
+            elif col == 'productCategoryL4Id':
+                _attrs = self.cats.get_product_category_l4(product_category_l4_ids = df[col].unique().tolist())
+            else:
+                continue
+            if col[:-2] + 'Name' in df.columns:
+                continue
+            _attrs['id'] = _attrs['id'].astype('str')
+            df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])
+            pos += 1
+        return df
+
+    def _get_text_name_for_event_description(self, df: pd.DataFrame):
+        if type(df) != pd.DataFrame:
+            return
+        event_description_attributes = self.cats.get_slices('eventDescription')
+        
+        pos = 0
+        for col in df.columns:
+            pos += 1            
+            if col not in event_description_attributes:
+                continue            
+            if col[:-2] + 'Name' in df.columns:
+                continue            
+            _attrs = pd.DataFrame()
+            if col == 'adSourceTypeId':
+                _attrs = self.cats.ad_source_type
+            elif col == 'adNetworkId':
+                _attrs = self.cats.ad_network
+            elif col == 'adServerId':
+                _attrs = self.cats.ad_server
+            elif col == 'adPlayerId':
+                _attrs = self.cats.ad_player
+            elif col == 'adVideoUtilityId':
+                _attrs = self.cats.ad_video_utility
+            elif col == 'adPlacementId':
+                _attrs = self.cats.ad_placement
+            else:
+                continue
+            if col[:-2] + 'Name' in df.columns:
+                continue
+            _attrs['id'] = _attrs['id'].astype('str')
+            df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])
+            pos += 1
+        return df
+    
+    def get_excel_filename(self, task_name, export_path='../excel', add_dates=True):
+        """
+        Получить имя excel файла
+
+        Parameters
+        ----------
+
+        task_name : str
+            Название задания
+
+        export_path : str
+            Путь к папке с excel файлами
+
+        add_dates : bool
+            Флаг - добавлять в имя файла дату или нет, по умолчанию = True
+
+        Returns
+        -------
+        filename : str
+            Путь и имя excel файла
+        """
+        return self.task_builder.get_excel_filename(task_name, export_path, add_dates)
+    
+    def get_report_info(self):
+        """
+        Возвращает информацию о расчитываемом отчете в виде DataFrame, которая была предварительно сохранена
+        
+        Returns
+        -------
+        result: DataFrame
+            Информация о расчитываемом отчете
+        """
+        
+        return self.task_builder.get_report_info()
+
+

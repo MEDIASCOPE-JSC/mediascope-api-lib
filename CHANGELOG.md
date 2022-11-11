@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.7] - 2022-11-11
+
+### Added
+- Added methods for calculate Media duplication reports into Crossweb API
+- Added methods for calculate Monitoring reports into Crossweb API
+- Added methods getting trees (monitoring-link-tree and procuct-category-tree)
+- Added method get_product_advertiser in the Monitoring Crossweb API
+
+### Updated
+- Fixed transform to int columns with uni ("-" symbol appears)
+
 ## [1.1.6] - 2022-09-06
 
 ### Added
@@ -22,8 +33,9 @@ Added attribute: Thematics of resources.
 
 ### Updated
 - Updated urls for CrossWeb API: advertisement -> profile, because some browsers block urls with "advertisement" word.
-- Added "task_type" in the CrossWeb task and updated send_tasks methods, now they use "task_type" for select API endpoins
+- Added "task_type" in the CrossWeb task and updated send_tasks methods, now they use "task_type" for select API endpoints
 - Added checks for available "units" in the Cross Web task
+
 
 ## [1.1.2] - 2022-01-18
 

@@ -6,16 +6,21 @@ from ..core import net
 class ResponsumCats:
     facility_id = None
 
-    def __new__(cls, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __new__(cls, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             # print("Creating Instance")
             cls.instance = super(ResponsumCats, cls).__new__(cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, facility_id, settings_filename=None, cache_path=None, *args, **kwargs):
+    def __init__(self, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
+                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # load holdings
-        self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path)
+        self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
+                                                      root_url, client_id, client_secret, keycloak_url)
         if facility_id != self.facility_id or not hasattr(self, 'demattr') or not hasattr(self, 'holdings'):
             self.facility_id = facility_id
             self.demattr = self.get_demo()
