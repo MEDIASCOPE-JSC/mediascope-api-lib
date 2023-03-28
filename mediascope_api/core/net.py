@@ -29,6 +29,8 @@ class MediascopeApiNetwork:
         elif not cache_enabled:
             cache.cache_path = None
 
+        proxy_server = None
+
         if username is not None and passw is not None and root_url is not None and client_id is not None \
                 and client_secret is not None and keycloak_url is not None:
             self.username = username
@@ -45,13 +47,21 @@ class MediascopeApiNetwork:
                     raise Exception('Не указаны настройки для подключения к Mediascope-API')
 
             self.username, self.passw, self.root_url, self.client_id, \
-            self.client_secret, self.keycloak_url = utils.load_settings(settings_filename)
+            self.client_secret, self.keycloak_url, proxy_server = utils.load_settings(settings_filename)
 
         if self.username is None or self.passw is None or self.root_url is None and \
                 self.client_id is None or self.client_secret is None or self.keycloak_url is None:
             raise Exception('Не указаны настройки для подключения к Mediascope-API')
 
         self.token = {}
+
+        self.proxies = None
+        if proxy_server is not None:
+            self.proxies = {"https": proxy_server}
+            print(f"Подсоединение через прокси {self.proxies}")
+        else:
+            self.proxies = {"https": ""}
+
 
     def get_token(self, username: str, passw: str) -> dict:
         """
@@ -81,7 +91,9 @@ class MediascopeApiNetwork:
                 'password': passw,
                 'grant_type': 'password'
             },
-            headers={'Content-Type': 'application/x-www-form-urlencoded'})
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            proxies=self.proxies
+        )
         if my_tocken_req.status_code == 200:
             t = my_tocken_req.json()
             t['now'] = datetime.datetime.now()
@@ -159,7 +171,7 @@ class MediascopeApiNetwork:
         headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                    'Content-Type': 'application/json; charset=utf-8'
                    }
-        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}'.encode('utf-8'))
+        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}'.encode('utf-8'), proxies=self.proxies)
 
         if req.status_code == 200:
             # try to save in cache for next use
@@ -237,7 +249,7 @@ class MediascopeApiNetwork:
             headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                        'Content-Type': 'application/json'
                        }
-            req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
+            req = getattr(requests, method)(url=url, headers=headers, data=f'{data}', proxies=self.proxies)
 
             if req.status_code == 200:
                 # try to save in cache for next use
@@ -308,7 +320,7 @@ class MediascopeApiNetwork:
         headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                    'Content-Type': 'application/json'
                    }
-        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
+        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}', proxies=self.proxies)
         if req.status_code == 200:
             return req.text
         else:
@@ -357,7 +369,7 @@ class MediascopeApiNetwork:
         headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                    'Content-Type': 'application/json'
                    }
-        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}')
+        req = getattr(requests, method)(url=url, headers=headers, data=f'{data}', proxies=self.proxies)
         if req is not None and req.status_code == 200:
             mh = rx.match(req.text)
             if mh is not None:

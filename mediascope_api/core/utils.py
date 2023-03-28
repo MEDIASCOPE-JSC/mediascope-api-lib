@@ -39,7 +39,8 @@ def load_settings(settings_filename: str = 'settings.json'):
                jd['root_url'], \
                jd['client_id'], \
                jd['client_secret'], \
-               jd['auth_server']
+               jd['auth_server'], \
+               jd['proxy_server'] if 'proxy_server' in jd else None
 
 
 def get_excel_filename(task_name: str, export_path: str = '../excel', add_date: bool = True) -> str:

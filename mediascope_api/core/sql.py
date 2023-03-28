@@ -17,6 +17,7 @@ from pyparsing import (
     pyparsing_common as ppc
 )
 
+
 def _prepare_sql_parser():
     """
     Подготовка SQL-like парсера для разбора условий в фильтрах.
@@ -202,7 +203,39 @@ def sql_to_json(sql_text):
 
     s = sql_obj.asList()[0]
     prep_points = _find_points(s)
+    
     return _parse_expr(prep_points)
+
+def sql_to_units(sql_text):
+    """
+    Преобразует условие фильтрации записанное в SQL нотации, в список элементов фильтров для проверки правильности
+
+    Parameters
+    ----------
+
+    sql_text : str
+        Текст условия в SQL формате
+
+
+    Returns
+    -------
+    obj : list
+        Список элементов фильтров
+
+    """
+    sql_parser = _prepare_sql_parser()
+    sql_obj = sql_parser.parseString(sql_text)
+
+    s = sql_obj.asList()[0]
+    prep_points = _find_points(s)
+    
+    result = []
+    
+    if type(prep_points) == list:
+        result = [i['unit'] for i in prep_points if type(i) == dict]
+    else:
+        result = [prep_points['unit']]
+    return result
 
 
 def _get_sql_from_list(obj_name, obj_data, oper):
@@ -216,4 +249,3 @@ def _get_sql_from_list(obj_name, obj_data, oper):
         elif type(obj_data) == str:
             result_text = f"{obj_name} = { obj_data}"
     return result_text
-

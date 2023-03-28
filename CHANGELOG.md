@@ -1,6 +1,21 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.1.8] - 2023-03-28
+
+### Added
+
+- Added module for work with TV-Index data (Mediavortex API)
+
+### Updated
+
+- Updated Network module: added ability to use proxy for requests
+- Updated CrossWeb catalog module: added method for getting available date ranges for data
+- Updated Counter module: added methods:
+  - for getting available tmsecs
+  - for getting available partners
+  - for getting report by tmsecs
+  - for getting report by partners
 
 ## [1.1.7] - 2022-11-11
 

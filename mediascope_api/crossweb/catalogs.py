@@ -53,7 +53,6 @@ class CrossWebCats:
             cls.instance = super(CrossWebCats, cls).__new__(cls, *args, **kwargs)
         return cls.instance
 
-
     def __init__(self, facility_id=None, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                  username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
                  client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
@@ -1233,7 +1232,7 @@ class CrossWebCats:
 
         return pd.DataFrame(res)
 
-    def get_date_range(self):
+    def get_date_range(self, ids=None, name=None):
         """
         Получить списки доступных периодов данных
 
@@ -1256,16 +1255,20 @@ class CrossWebCats:
         res['to'] = []
 
         for item in data['data']:
-            if str(item['name']).lower() != 'media':
-                continue
-            # print(item)
-            # print(type(item))
             res['id'].append(item['id'])
             res['name'].append(item['name'])
             res['from'].append(item['periodFrom'])
             res['to'].append(item['periodTo'])
 
-        return pd.DataFrame(res)
+        df = pd.DataFrame(res)
+
+        if ids is not None:
+            df = df[df['id'].isin(ids)]
+
+        if name is not None:
+            df = df[df['name'].str.contains(name, case=False)]
+
+        return df
 
     def get_product_brand(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
@@ -2772,3 +2775,39 @@ class CrossWebCats:
         }
 
         return self._get_dict('product-category-tree', search_params, body_params, offset, limit, use_cache)
+
+    def get_availability(self, ids=None, name=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список периодов доступных данных
+
+        Parameters
+        ----------
+
+        ids : str
+            Поиск по списку идентификаторов периодов
+
+        name : str
+            Параметр для поиска в имени сущности по like
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        availability : DataFrame
+
+            DataFrame с периодами доступности данных
+        """
+
+        return self.msapi_network.send_request('get', self._urls['availability'], use_cache=False)
+

@@ -208,7 +208,6 @@ class CrossWebTask:
         text : json
             Задание в формате CrossWeb API
         """
-
         
         return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter, 
                                 geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter, 
@@ -817,7 +816,6 @@ class CrossWebTask:
         pos = 0
         for col in df.columns:
             pos += 1
-
             if "duplication" not in col: 
                 if col not in matr_attributes:
                     continue
