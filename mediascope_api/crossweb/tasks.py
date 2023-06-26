@@ -178,7 +178,7 @@ class CrossWebTask:
 
             Список допустимых атрибутов можно получить через метод `get_media_unit` модуля catalogs:
             >>> cats.get_media_unit()['filters']['mart']
-
+        
         slices: list
             Порядок разбивки результата расчета, задается в виде списка
             Пример:
@@ -512,7 +512,7 @@ class CrossWebTask:
 
         """
         return self._send_task('ad', data)
-
+    
     def send_monitoring_task(self, data):
         """
         Отправить задание на расчет аудиторных статистик по мониторингу

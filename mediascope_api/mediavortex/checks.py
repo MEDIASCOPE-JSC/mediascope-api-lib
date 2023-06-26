@@ -1,9 +1,9 @@
 from . import catalogs
 from ..core import sql
+import difflib as dl
 
 
 class MediaVortexTaskChecker:
-
     def __new__(cls, cats: catalogs.MediaVortexCats, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(MediaVortexTaskChecker, cls).__new__(cls, *args)
@@ -15,12 +15,15 @@ class MediaVortexTaskChecker:
         self.task_types = {
             'timeband': self.cats.get_timeband_unit(),
             'simple': self.cats.get_simple_unit(),
-            'crosstab': self.cats.get_crosstab_unit()
+            'crosstab': self.cats.get_crosstab_unit(),
+            'consumption-target': self.cats.get_consumption_target_unit(),
+            'duplication-timeband': self.cats.get_duplication_timeband_unit()
             }
         self.check_list = {
-            'task_type': {'types': [str], 'msg': 'Неверно задан тип задачи\n' +
-                                                  f'Допустимые варианты: "{", ".join(self.task_types.keys())}\n"'
-                          },
+            'task_type': {
+                'types': [str], 'msg': 'Неверно задан тип задачи\n' +
+                f'Допустимые варианты: "{", ".join(self.task_types.keys())}\n"'
+                },
             'date_filter': {'types': [list], 'msg': 'Период должен быть задан, формат: ' +
                                                     '[("YYYY-MM-DD", "YYYY-MM-DD")]\n'},
             'date_filter_item': {'types': [tuple], 'msg': 'Диапазон дат внутри периода должен быть задан как tuple,' +
@@ -38,6 +41,8 @@ class MediaVortexTaskChecker:
             'ad_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по рекламе.\n'},
             'subject_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по теме.\n'},
             'duration_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по длительности.\n'},
+            'duplication_company_filter': {'types': [str, dict], 'msg': 'Неверно задан duplication company фильтр.\n'},
+            'duplication_time_filter': {'types': [str, dict], 'msg': 'Неверно задан duplication time фильтр.\n'},
             'statistics': {'types': [list], 'msg': 'Не заданы статистики для задания.\n'},
         }        
         self.error_text = ''
@@ -61,13 +66,18 @@ class MediaVortexTaskChecker:
             for u in units:
                 if u not in self.task_types[task_type]['filters']:
                     result = False
-                    self.error_text += f'Неизвестная переменная "{u}" в фильтре "{name}".\n'
+                    self.error_text += f'Неизвестная переменная "{u}" в фильтре "{name}". '
+                    probably_matches = dl.get_close_matches(u, self.task_types[task_type]['filters'], n=3)
+                    if len(probably_matches) > 0:
+                        matches = '" или "'.join(probably_matches)
+                        self.error_text += f'Возможно соответствует "{matches}".\n'
         return result
 
     def check_task(self, task_type, date_filter, weekdate_filter, daytype_filter,
                    company_filter, region_filter, time_filter, location_filter,
                    basedemo_filter, targetdemo_filter, program_filter, break_filter,
-                   ad_filter, subject_filter, duration_filter, slices, statistics, scales):
+                   ad_filter, subject_filter, duration_filter, duplication_company_filter,
+                   duplication_time_filter, slices, statistics, scales):
         self.error_text = ''
         
         self._check_filter('task_type', task_type)
@@ -78,7 +88,7 @@ class MediaVortexTaskChecker:
 
         self._check_scales(statistics, scales)
         if self._check_filter('weekdate_filter', weekdate_filter):
-           self._check_filter_units(task_type, 'weekdate_filter', weekdate_filter)
+            self._check_filter_units(task_type, 'weekdate_filter', weekdate_filter)
         
         if self._check_filter('daytype_filter', daytype_filter):
             self._check_filter_units(task_type, 'daytype_filter', daytype_filter)
@@ -115,6 +125,12 @@ class MediaVortexTaskChecker:
         
         if self._check_filter('duration_filter', duration_filter):
             self._check_filter_units(task_type, 'duration_filter', duration_filter)
+
+        if self._check_filter('duplication_company_filter', duplication_company_filter):
+            self._check_filter_units(task_type, 'duplication_company_filter', duplication_company_filter)
+
+        if self._check_filter('duplication_time_filter', duplication_time_filter):
+            self._check_filter_units(task_type, 'duplication_time_filter', duplication_time_filter)
         
         if slices is not None:
             if type(slices) is not list:
@@ -155,17 +171,26 @@ class MediaVortexTaskChecker:
         if type(tsk['statistics']) == list:
             for s in tsk['statistics']:
                 if s not in self.task_types[task_type]['statistics']:
-                    error_text += f'Неизвестная  статистика "{s}".\n'
+                    error_text += f'Неизвестная статистика "{s}". '
+                    probably_matches = dl.get_close_matches(s, self.task_types[task_type]['statistics'], n=3)
+                    if len(probably_matches) > 0:
+                        matches = '" или "'.join(probably_matches)
+                        error_text += f'Возможно соответствует "{matches}".\n'
         if type(tsk['filter']) == list:
             for filter_name in tsk['filter']:                
                 self.check_units(f'фильтрах {filter_name}', filter_name,
                                  self.task_types[task_type]['filters'],
                                  error_text)
-        if type(tsk['slices']) == list:
-            avl_slices = self.get_avl_slices(task_type)
-            for slice_name in tsk['slices']:
-                if slice_name not in avl_slices:
-                    error_text += f'Недопустимое название среза: "{slice_name}"'
+        if task_type != 'consumption-target':
+            if type(tsk['slices']) == list:
+                avl_slices = self.get_avl_slices(task_type)
+                for slice_name in tsk['slices']:
+                    if slice_name not in avl_slices:
+                        error_text += f'Недопустимое название среза: "{slice_name}". '
+                        probably_matches = dl.get_close_matches(slice_name, avl_slices, n=3)
+                        if len(probably_matches) > 0:
+                            matches = '" или "'.join(probably_matches)
+                            error_text += f'Возможно соответствует "{matches}".\n'
         if len(error_text) > 0:
             print('Ошибка при формировании задания')
             print(error_text)
@@ -193,10 +218,3 @@ class MediaVortexTaskChecker:
 
     def get_avl_slices(self, task_type):        
         return self.task_types[task_type]['slices']
-
-
-
-
-
-
-

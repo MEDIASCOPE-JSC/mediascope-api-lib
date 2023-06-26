@@ -1,6 +1,21 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.1.9] - 2023-06-26
+
+### Added
+
+#### CrossWeb
+- Added ability to use English names and notes for get items from catalogs in the CrossWeb API
+
+#### TV-Index (Mediavortex API)
+
+- Added 18 catalogs
+- Added reports:
+  - consumption-target
+  - duplication-timeband
+- Added methods for restart and cancel tasks
+
 ## [1.1.8] - 2023-03-28
 
 ### Added

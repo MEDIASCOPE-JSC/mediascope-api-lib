@@ -48,7 +48,7 @@ class CrossWebTaskChecker:
         return True
 
     def check_task(self, task_type, date_filter, usetype_filter, geo_filter,
-                   demo_filter, mart_filter, duplication_mart_filter,
+                   demo_filter, mart_filter, duplication_mart_filter, 
                    ad_description_filter, event_description_filter, slices, statistics, scales):
         error_text = ''
         if self._check_filter('task_type', task_type, error_text):
@@ -167,5 +167,10 @@ class CrossWebTaskChecker:
             for v in vals:
                 slices.append(v)
         return slices
+
+
+
+
+
 
 

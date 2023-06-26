@@ -15,7 +15,9 @@ class MediaVortexTask:
     task_urls = {
         'timeband': '/task/timeband',
         'simple': '/task/simple',
-        'crosstab': '/task/crosstab'
+        'crosstab': '/task/crosstab',
+        'consumption-target': '/task/consumption-target',
+        'duplication-timeband': '/task/duplication-timeband'
     }
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -32,15 +34,19 @@ class MediaVortexTask:
         self.network_module = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
                                                        root_url, client_id, client_secret, keycloak_url)
         self.task_builder = tasks.TaskBuilder()
-        self.cats = catalogs.MediaVortexCats()
-
+        self.cats = catalogs.MediaVortexCats(0, settings_filename, cache_path, cache_enabled, username, passw,
+                                             root_url, client_id, client_secret, keycloak_url)
         self.task_checker = checks.MediaVortexTaskChecker(self.cats)
 
     def build_task(self, task_type, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
                    company_filter=None, region_filter=None, time_filter=None, location_filter=None,
                    basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
-                   ad_filter=None, subject_filter=None, duration_filter=None, slices=None, statistics=None,
-                   scales=None, options=None, reach_conditions=None):
+                   ad_filter=None, subject_filter=None, duration_filter=None, duplication_company_filter=None,
+                   duplication_time_filter=None, respondent_filter=None, slices=None,
+                   statistics=None, scales=None, options=None, reach_conditions=None, custom_demo_variable_id=None,
+                   custom_company_variable_id=None, custom_respondent_variable_id=None, custom_time_variable_id=None,
+                   custom_duplication_time_variable_id=None, custom_duplication_company_variable_id=None,
+                   consumption_target_options=None, frequency_dist_conditions=None):
         """
         Формирует текст задания для расчета статистик
 
@@ -96,6 +102,15 @@ class MediaVortexTask:
         duration_filter : str
             Фильтр продолжительности
 
+        respondent_filter : str
+            Фильтр респондентов
+
+        duplication_company_filter : str
+            Фильтр компаний
+
+        duplication_time_filter : str
+            Фильтр времени
+
         slices : list
             Список срезов
 
@@ -111,6 +126,30 @@ class MediaVortexTask:
         reach_conditions : dict
             Словарь условий reach
 
+        custom_demo_variable_id : str
+            Id кастомной demo переменной
+
+        custom_company_variable_id : str
+            Id кастомной company переменной
+
+        custom_respondent_variable_id : str
+            Id кастомной respondent переменной
+
+        custom_time_variable_id : str
+            Id кастомной time переменной
+
+        custom_duplication_time_variable_id : str
+            Id кастомной time переменной
+
+        custom_duplication_company_variable_id : str
+            Id кастомной company переменной
+
+        consumption_target_options : dict
+            Словарь условий consumption_target
+
+        frequency_dist_conditions : dict
+            Словарь условия для FrequencyDist статистик
+
         Returns
         -------
         text : json
@@ -120,7 +159,8 @@ class MediaVortexTask:
         if not self.task_checker.check_task(task_type, date_filter, weekday_filter, daytype_filter,
                                             company_filter, region_filter, time_filter, location_filter,
                                             basedemo_filter, targetdemo_filter, program_filter, break_filter,
-                                            ad_filter, subject_filter, duration_filter, slices, statistics, scales):
+                                            ad_filter, subject_filter, duration_filter, duplication_company_filter,
+                                            duplication_time_filter, slices, statistics, scales):
             return
 
         # Собираем JSON
@@ -144,6 +184,20 @@ class MediaVortexTask:
         self.task_builder.add_filter(tsk, ad_filter, 'adFilter')
         self.task_builder.add_filter(tsk, subject_filter, 'subjectFilter')
         self.task_builder.add_filter(tsk, duration_filter, 'durationFilter')
+        self.task_builder.add_filter(tsk, duplication_company_filter, 'duplicationCompanyFilter')
+        self.task_builder.add_filter(tsk, duplication_time_filter, 'duplicationTimeFilter')
+        if respondent_filter is not None:
+            resp_filter = {
+                "operand": "AND",
+                "elements": [
+                    {
+                        "unit": 'respondentId',
+                        "relation": "IN",
+                        "value": respondent_filter
+                    }
+                ]
+            }
+            tsk['filter']['respondentFilter'] = resp_filter
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
 
@@ -154,6 +208,32 @@ class MediaVortexTask:
         # добавляем reach conditions таска
         if reach_conditions is not None:
             tsk['reachConditions'] = reach_conditions
+
+        # добавляем блок consumption target таска
+        if custom_demo_variable_id is not None:
+            tsk["customDemoVariableId"] = custom_demo_variable_id
+
+        if custom_company_variable_id is not None:
+            tsk["customCompanyVariableId"] = custom_company_variable_id
+
+        if custom_respondent_variable_id is not None:
+            tsk["customRespondentVariableId"] = custom_respondent_variable_id
+
+        if consumption_target_options is not None:
+            tsk["consumptionTargetOptions"] = consumption_target_options
+
+        if frequency_dist_conditions is not None:
+            tsk["frequencyDistConditions"] = frequency_dist_conditions
+
+        # add duplication-timeband params
+        if custom_time_variable_id is not None:
+            tsk["customTimeVariableId"] = custom_time_variable_id
+
+        if custom_duplication_time_variable_id is not None:
+            tsk["customDuplicationTimeVariableId"] = custom_duplication_time_variable_id
+
+        if custom_duplication_company_variable_id is not None:
+            tsk["customDuplicationCompanyVariableId"] = custom_duplication_company_variable_id
 
         if not self.task_checker.check_units_in_task(task_type, tsk):
             return
@@ -176,11 +256,22 @@ class MediaVortexTask:
             'ad_filter': ad_filter,
             'subject_filter': subject_filter,
             'duration_filter': duration_filter,
+            'respondent_filter': respondent_filter,
+            'duplication_company_filter': duplication_company_filter,
+            'duplication_time_filter': duplication_time_filter,
             'slices': slices,
             'statistics': statistics,
             'scales': scales,
             'options': options,
-            'reachConditions': reach_conditions
+            'reachConditions': reach_conditions,
+            'customDemoVariableId': custom_demo_variable_id,
+            'customCompanyVariableId': custom_company_variable_id,
+            'customRespondentVariableId': custom_respondent_variable_id,
+            'customTimeVariableId': custom_time_variable_id,
+            'customDuplicationTimeVariableId': custom_duplication_time_variable_id,
+            'customDuplicationCompanyVariableId': custom_duplication_company_variable_id,
+            'consumptionTargetOptions': consumption_target_options,
+            'frequencyDistConditions': frequency_dist_conditions
         }
         self.task_builder.save_report_info(tinfo)
         # Возвращаем JSON
@@ -188,8 +279,12 @@ class MediaVortexTask:
 
     def build_timeband_task(self, task_name='', date_filter=None, weekday_filter=None,
                             daytype_filter=None, company_filter=None, region_filter=None, time_filter=None,
-                            location_filter=None, basedemo_filter=None, targetdemo_filter=None, slices=None,
-                            statistics=None, scales=None, options=None, reach_conditions=None):
+                            location_filter=None, basedemo_filter=None, targetdemo_filter=None,
+                            respondent_filter=None, slices=None,
+                            statistics=None, scales=None, options=None, reach_conditions=None,
+                            custom_demo_variable_id=None,
+                            custom_company_variable_id=None, custom_respondent_variable_id=None,
+                            custom_time_variable_id=None):
         """
         Формирует текст задания timeband для расчета статистик
 
@@ -226,6 +321,9 @@ class MediaVortexTask:
         targetdemo_filter : str
             Фильтр целевой аудитории
 
+        respondent_filter : str
+            Фильтр респондентов
+
         slices : list
             Список срезов
 
@@ -241,6 +339,18 @@ class MediaVortexTask:
         reach_conditions : dict
             Словарь условий reach
 
+        custom_demo_variable_id : str
+            Id кастомной demo переменной
+
+        custom_company_variable_id : str
+            Id кастомной company переменной
+
+        custom_respondent_variable_id : str
+            Id кастомной respondent переменной
+
+        custom_time_variable_id : str
+            Id кастомной time переменной
+
         Returns
         -------
         text : json
@@ -251,14 +361,22 @@ class MediaVortexTask:
                                company_filter=company_filter, region_filter=region_filter,
                                time_filter=time_filter, location_filter=location_filter,
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
+                               respondent_filter=respondent_filter,
                                slices=slices, statistics=statistics, scales=scales, options=options,
-                               reach_conditions=reach_conditions)
+                               reach_conditions=reach_conditions,
+                               custom_company_variable_id=custom_company_variable_id,
+                               custom_demo_variable_id=custom_demo_variable_id,
+                               custom_respondent_variable_id=custom_respondent_variable_id,
+                               custom_time_variable_id=custom_time_variable_id)
 
     def build_simple_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
                           company_filter=None, region_filter=None, time_filter=None, location_filter=None,
                           basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
-                          ad_filter=None, subject_filter=None, duration_filter=None, slices=None, statistics=None,
-                          scales=None, options=None, reach_conditions=None):
+                          ad_filter=None, subject_filter=None, duration_filter=None, respondent_filter=None,
+                          slices=None, statistics=None, scales=None, options=None, reach_conditions=None,
+                          custom_demo_variable_id=None, custom_company_variable_id=None,
+                          custom_time_variable_id=None,
+                          custom_respondent_variable_id=None, frequency_dist_conditions=None):
         """
         Формирует текст задания simple для расчета статистик
 
@@ -310,6 +428,9 @@ class MediaVortexTask:
         duration_filter : str
             Фильтр продолжительности
 
+        respondent_filter : str
+            Фильтр респондентов
+
         slices : list
             Список срезов
 
@@ -325,6 +446,20 @@ class MediaVortexTask:
         reach_conditions : dict
             Словарь условий reach
 
+        custom_demo_variable_id : str
+            Id кастомной demo переменной
+
+        custom_company_variable_id : str
+            Id кастомной company переменной
+
+        custom_respondent_variable_id : str
+            Id кастомной respondent переменной
+
+        custom_time_variable_id : str
+            Id кастомной time переменной
+
+        frequency_dist_conditions : dict
+            Словарь условия для FrequencyDist статистик
 
         Returns
         -------
@@ -338,16 +473,138 @@ class MediaVortexTask:
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
-                               duration_filter=duration_filter, slices=slices, statistics=statistics,
-                               scales=scales, options=options, reach_conditions=reach_conditions)
+                               duration_filter=duration_filter, respondent_filter=respondent_filter,
+                               slices=slices, statistics=statistics,
+                               scales=scales, options=options, reach_conditions=reach_conditions,
+                               custom_company_variable_id=custom_company_variable_id,
+                               custom_demo_variable_id=custom_demo_variable_id,
+                               custom_respondent_variable_id=custom_respondent_variable_id,
+                               custom_time_variable_id=custom_time_variable_id,
+                               frequency_dist_conditions=frequency_dist_conditions)
 
     def build_crosstab_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
                             company_filter=None, region_filter=None, time_filter=None, location_filter=None,
                             basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
-                            ad_filter=None, subject_filter=None, duration_filter=None, slices=None, statistics=None,
-                            scales=None, options=None, reach_conditions=None):
+                            ad_filter=None, subject_filter=None, duration_filter=None, respondent_filter=None,
+                            slices=None, statistics=None, scales=None, options=None, reach_conditions=None,
+                            custom_demo_variable_id=None, custom_company_variable_id=None,
+                            custom_time_variable_id=None,
+                            custom_respondent_variable_id=None, frequency_dist_conditions=None):
         """
         Формирует текст задания crosstab для расчета статистик
+
+        Parameters
+        ----------
+
+        task_name : str
+            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+
+        date_filter : str
+            Фильтр дат
+
+        weekday_filter : str
+            Фильтр дней недели
+
+        daytype_filter : str
+            Фильтр типов дней
+
+        company_filter : str
+            Фильтр компаний
+
+        region_filter : str
+            Фильтр регионов
+
+        time_filter : str
+            Фильтр времени
+
+        location_filter : str
+            Фильтр локации
+
+        basedemo_filter : str
+            Фильтр базовой аудитории
+
+        targetdemo_filter : str
+            Фильтр целевой аудитории
+
+        program_filter : str
+            Фильтр программ
+
+        break_filter : str
+            Фильтр перерывов
+
+        ad_filter : str
+            Фильтр рекламы
+
+        subject_filter : str
+            Фильтр темы
+
+        duration_filter : str
+            Фильтр продолжительности
+
+        respondent_filter : str
+            Фильтр респондентов
+
+        slices : list
+            Список срезов
+
+        statistics : list
+            Список статистик
+
+        scales : list
+            Список шкал
+
+        options : dict
+            Словарь настроек
+
+        reach_conditions : dict
+            Словарь условий reach
+
+        custom_demo_variable_id : str
+            Id кастомной demo переменной
+
+        custom_company_variable_id : str
+            Id кастомной company переменной
+
+        custom_respondent_variable_id : str
+            Id кастомной respondent переменной
+
+        custom_time_variable_id : str
+            Id кастомной time переменной
+
+        frequency_dist_conditions : dict
+            Словарь условия для FrequencyDist статистик
+
+        Returns
+        -------
+        text : json
+            Задание в формате MediaVortex API
+        """
+        return self.build_task(task_type='crosstab', task_name=task_name, date_filter=date_filter,
+                               weekday_filter=weekday_filter, daytype_filter=daytype_filter,
+                               company_filter=company_filter, region_filter=region_filter,
+                               time_filter=time_filter, location_filter=location_filter,
+                               basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
+                               program_filter=program_filter, break_filter=break_filter,
+                               ad_filter=ad_filter, subject_filter=subject_filter,
+                               duration_filter=duration_filter, respondent_filter=respondent_filter,
+                               slices=slices, statistics=statistics,
+                               scales=scales, options=options, reach_conditions=reach_conditions,
+                               custom_company_variable_id=custom_company_variable_id,
+                               custom_demo_variable_id=custom_demo_variable_id,
+                               custom_respondent_variable_id=custom_respondent_variable_id,
+                               custom_time_variable_id=custom_time_variable_id,
+                               frequency_dist_conditions=frequency_dist_conditions)
+
+    def build_consumption_target_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
+                                      company_filter=None, region_filter=None, time_filter=None, location_filter=None,
+                                      basedemo_filter=None, targetdemo_filter=None, program_filter=None,
+                                      break_filter=None, ad_filter=None, subject_filter=None, duration_filter=None,
+                                      slices=None, statistics=None, scales=None, options=None, reach_conditions=None,
+                                      custom_demo_variable_id=None, custom_company_variable_id=None,
+                                      custom_time_variable_id=None,
+                                      custom_respondent_variable_id=None, consumption_target_options=None):
+        """
+        Формирует текст задания consumption target для расчета статистик
 
         Parameters
         ----------
@@ -412,12 +669,27 @@ class MediaVortexTask:
         reach_conditions : dict
             Словарь условий reach
 
+        custom_demo_variable_id : str
+            Id кастомной demo переменной
+
+        custom_company_variable_id : str
+            Id кастомной company переменной
+
+        custom_respondent_variable_id : str
+            Id кастомной respondent переменной
+
+        custom_time_variable_id : str
+            Id кастомной time переменной
+
+        consumption_target_options : dict
+            Словарь условий consumption_target
+
         Returns
         -------
         text : json
             Задание в формате MediaVortex API
         """
-        return self.build_task(task_type='crosstab', task_name=task_name, date_filter=date_filter,
+        return self.build_task(task_type='consumption-target', task_name=task_name, date_filter=date_filter,
                                weekday_filter=weekday_filter, daytype_filter=daytype_filter,
                                company_filter=company_filter, region_filter=region_filter,
                                time_filter=time_filter, location_filter=location_filter,
@@ -425,7 +697,117 @@ class MediaVortexTask:
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
                                duration_filter=duration_filter, slices=slices, statistics=statistics,
-                               scales=scales, options=options, reach_conditions=reach_conditions)
+                               scales=scales, options=options, reach_conditions=reach_conditions,
+                               custom_demo_variable_id=custom_demo_variable_id,
+                               custom_company_variable_id=custom_company_variable_id,
+                               custom_respondent_variable_id=custom_respondent_variable_id,
+                               custom_time_variable_id=custom_time_variable_id,
+                               consumption_target_options=consumption_target_options)
+
+    def build_duplication_timeband_task(self, task_name='', date_filter=None, daytype_filter=None, weekday_filter=None,
+                                        basedemo_filter=None, targetdemo_filter=None, company_filter=None,
+                                        location_filter=None, time_filter=None, duration_filter=None,
+                                        duplication_company_filter=None, duplication_time_filter=None, slices=None,
+                                        statistics=None, scales=None, options=None, reach_conditions=None,
+                                        custom_demo_variable_id=None, custom_time_variable_id=None,
+                                        custom_company_variable_id=None, custom_respondent_variable_id=None,
+                                        custom_duplication_time_variable_id=None,
+                                        custom_duplication_company_variable_id=None):
+        """
+        Формирует текст задания duplication_timeband для расчета статистик
+
+        Parameters
+        ----------
+
+        task_name : str
+            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+
+        date_filter : str
+            Фильтр дат
+
+        daytype_filter : str
+            Фильтр типов дней
+
+        weekday_filter : str
+            Фильтр дней недели
+
+        basedemo_filter : str
+            Фильтр базовой аудитории
+
+        targetdemo_filter : str
+            Фильтр целевой аудитории
+
+        company_filter : str
+            Фильтр компаний
+
+        location_filter : str
+            Фильтр локации
+
+        time_filter : str
+            Фильтр времени
+
+        duration_filter : str
+            Фильтр продолжительности
+
+        duplication_company_filter : str
+            Фильтр компаний
+
+        duplication_time_filter : str
+            Фильтр времени
+
+        slices : list
+            Список срезов
+
+        statistics : list
+            Список статистик
+
+        scales : list
+            Список шкал
+
+        options : dict
+            Словарь настроек
+
+        reach_conditions : dict
+            Словарь условий reach
+
+        custom_demo_variable_id : str
+            Id кастомной demo переменной
+
+        custom_time_variable_id : str
+            Id кастомной time переменной
+
+        custom_company_variable_id : str
+            Id кастомной company переменной
+
+        custom_respondent_variable_id : str
+            Id кастомной respondent переменной
+
+        custom_duplication_time_variable_id : str
+            Id кастомной time переменной
+
+        custom_duplication_company_variable_id : str
+            Id кастомной company переменной
+
+        Returns
+        -------
+        text : json
+            Задание в формате MediaVortex API
+        """
+        return self.build_task(task_type='duplication-timeband', task_name=task_name, date_filter=date_filter,
+                               weekday_filter=weekday_filter, daytype_filter=daytype_filter,
+                               company_filter=company_filter,
+                               time_filter=time_filter, location_filter=location_filter,
+                               basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
+                               duration_filter=duration_filter, duplication_company_filter=duplication_company_filter,
+                               duplication_time_filter=duplication_time_filter,
+                               slices=slices, statistics=statistics, scales=scales, options=options,
+                               reach_conditions=reach_conditions,
+                               custom_company_variable_id=custom_company_variable_id,
+                               custom_demo_variable_id=custom_demo_variable_id,
+                               custom_respondent_variable_id=custom_respondent_variable_id,
+                               custom_duplication_time_variable_id=custom_duplication_time_variable_id,
+                               custom_time_variable_id=custom_time_variable_id,
+                               custom_duplication_company_variable_id=custom_duplication_company_variable_id)
 
     def _send_task(self, task_type, data):
         if data is None:
@@ -460,7 +842,7 @@ class MediaVortexTask:
             return
         task_type = json.loads(data)['task_type']
         if task_type not in self.task_urls.keys():
-            print(f'Не верно указать тип задания, допустимые значения: {self.task_urls.keys().join(",")}')
+            print(f'Не верно указать тип задания, допустимые значения: {" ,".join(self.task_urls.keys())}')
             return
         return self._send_task(task_type, data)
 
@@ -520,6 +902,44 @@ class MediaVortexTask:
 
         """
         return self._send_task('crosstab', data)
+
+    def send_consumption_target_task(self, data):
+        """
+        Отправить задание consumption target
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('consumption-target', data)
+
+    def send_duplication_timeband_task(self, data):
+        """
+        Отправить задание duplication timeband
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('duplication-timeband', data)
 
     def wait_task(self, tsk):
         """
@@ -587,6 +1007,7 @@ class MediaVortexTask:
                 e = dt.datetime.now()
                 print(f"] время расчета: {str(e - s)}")
                 if task_state == 'DONE':
+                    tsk['message'] = 'DONE'
                     return tsk
         elif type(tsk) == list:
             task_list = list()
@@ -616,6 +1037,7 @@ class MediaVortexTask:
                             or task_state == 'IDLE':
                         continue
                     elif task_state == 'DONE':
+                        t['task']['message'] = 'DONE'
                         done_count += 1
                     else:
                         errs[tid] = t
@@ -667,6 +1089,128 @@ class MediaVortexTask:
             task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
             return task_state_obj
 
+    def restart_task(self, tsk: dict):
+        """
+        Перезапустить задание.
+
+        Parameters
+        ----------
+
+        tsk : dict
+            Задание в формате
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'message': 'Задача поступила в обработку'
+                }
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        if tsk.get('taskId') is not None:
+            tid = tsk.get('taskId', None)
+            task_state_obj = self.network_module.send_request('get', '/task/state/restart/{}'.format(tid))
+            return task_state_obj
+
+    def restart_tasks(self, tsk_ids: list):
+        """
+        Перезапустить задания.
+
+        Parameters
+        ----------
+
+        tsk_ids : list
+            Список taskId заданий
+
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        post_data = {
+            "taskIds": tsk_ids
+        }
+
+        task_state_obj = self.network_module.send_request('post', '/task/state/restart', json.dumps(post_data))
+        return task_state_obj
+
+    def cancel_task(self, tsk: dict):
+        """
+        Отменить задание.
+
+        Parameters
+        ----------
+
+        tsk : dict
+            Задание в формате
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'message': 'Задача поступила в обработку'
+                }
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        if tsk.get('taskId') is not None:
+            tid = tsk.get('taskId', None)
+            task_state_obj = self.network_module.send_request('get', '/task/state/cancel/{}'.format(tid))
+            return task_state_obj
+
+    def cancel_tasks(self, tsk_ids: list):
+        """
+        Отменить задания.
+
+        Parameters
+        ----------
+
+        tsk_ids : list
+            Список taskId заданий
+
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        post_data = {
+            "taskIds": tsk_ids
+        }
+
+        task_state_obj = self.network_module.send_request('post', '/task/state/cancel', json.dumps(post_data))
+        return task_state_obj
+
     def get_result(self, tsk):
         """
         Получить результат выполнения задания по его ID
@@ -688,7 +1232,7 @@ class MediaVortexTask:
             return None
         return self.network_module.send_request('get', '/task/result/{}'.format(tsk['taskId']))
 
-    def result2table(self, data, project_name=None):
+    def result2table(self, data, project_name=None, time_separator=True):
         """
         Получить результат выполнения задания по его ID
 
@@ -752,16 +1296,17 @@ class MediaVortexTask:
                 res[k].append(v)
 
         df = pd.DataFrame(res)
-        self._get_text_names(df)
+        self._get_text_names(df, time_separator=time_separator)
         df.replace(to_replace=[None], value=np.nan, inplace=True)
         if project_name is not None:
             df.insert(0, 'prj_name', project_name)
         # df['date'] = pd.to_datetime(df['date'])
         return df
 
-    def _get_text_names(self, df, with_id=False):
+    def _get_text_names(self, df, with_id=False, time_separator=True):
         df = self._get_text_name_for(df, with_id)
-        df = self._get_time_separator_name_for(df)
+        if time_separator:
+            df = self._get_time_separator_name_for(df)
         df = self._get_text_name_for_weekday(df)
         return df
 

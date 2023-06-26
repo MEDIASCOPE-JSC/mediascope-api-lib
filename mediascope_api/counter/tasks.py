@@ -39,6 +39,7 @@ class CounterTask:
                  username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
                  client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
                                                       root_url, client_id, client_secret, keycloak_url)
         self.task_builder = tasks.TaskBuilder()

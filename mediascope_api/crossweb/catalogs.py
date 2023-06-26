@@ -160,7 +160,7 @@ class CrossWebCats:
             else:
                 res['optionName'].append('')
         return pd.DataFrame(res)
-
+    
     def load_monitoring_property(self):
         """
         Загрузить список переменных: все, по id или поиском по названию
@@ -197,7 +197,7 @@ class CrossWebCats:
             else:
                 res['optionName'].append('')
         return pd.DataFrame(res)
-
+    
     def load_media_duplication_property(self):
         """
         Загрузить список переменных: все, по id или поиском по названию
@@ -340,7 +340,7 @@ class CrossWebCats:
         if len(data) > 0:
             return json.dumps(data)
 
-    def get_slices(self, slice_name):
+    def get_slices(self, slice_name):        
         if slice_name == "adDescription" or slice_name == "eventDescription":
             if type(self.units_monitoring) != dict or \
                     self.units_monitoring.get('slices', None) is None or \
@@ -354,7 +354,7 @@ class CrossWebCats:
                     self.units_media_duplication['slices'].get(slice_name, None) is None:
                     return
                 return self.units_media_duplication['slices'][slice_name]
-            else:
+            else:            
                 if type(self.units) != dict or \
                         self.units.get('slices', None) is None or \
                         self.units['slices'].get(slice_name, None) is None:
@@ -1172,7 +1172,7 @@ class CrossWebCats:
             Словарь с доступными списками
         """
         return self.msapi_network.send_request('get', self._urls['total_unit'], use_cache=False)
-
+    
     def get_monitoring_unit(self):
         """
         Получить списки доступных для использования в заданиях для мониторинга:
@@ -1186,7 +1186,7 @@ class CrossWebCats:
             Словарь с доступными списками
         """
         return self.msapi_network.send_request('get', self._urls['monitoring_unit'], use_cache=False)
-
+    
     def get_media_duplication_unit(self):
         """
         Получить списки доступных для использования в заданиях для пересечений:
@@ -1272,7 +1272,7 @@ class CrossWebCats:
 
     def get_product_brand(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -1376,7 +1376,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1387,8 +1387,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
 
         body_params = {
@@ -1402,10 +1402,10 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_brand', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_product_category_l1(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -1509,7 +1509,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1520,8 +1520,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
 
         body_params = {
@@ -1535,10 +1535,10 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l1', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_product_category_l2(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -1642,7 +1642,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1653,8 +1653,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
 
         body_params = {
@@ -1668,10 +1668,10 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l2', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_product_category_l3(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -1775,7 +1775,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1786,8 +1786,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
 
         body_params = {
@@ -1801,10 +1801,10 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l3', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_product_category_l4(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -1908,7 +1908,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1919,8 +1919,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
 
         body_params = {
@@ -1934,10 +1934,10 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l4', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_product_model(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -2041,7 +2041,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2052,8 +2052,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
 
         body_params = {
@@ -2067,10 +2067,10 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_model', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_product_subbrand(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -2174,7 +2174,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2185,8 +2185,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
 
         body_params = {
@@ -2200,7 +2200,7 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_subbrand', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_ad_network(self):
         """
         Получить список рекламных сетей
@@ -2229,7 +2229,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-
+    
     def get_ad_placement(self):
         """
         Получить список мест размещений для рекламы в социальных сетях
@@ -2258,7 +2258,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-
+    
     def get_ad_player(self):
         """
         Получить список рекламных плееров
@@ -2287,7 +2287,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-
+    
     def get_ad_server(self):
         """
         Получить список рекламных серверов
@@ -2316,7 +2316,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-
+    
     def get_ad_source_type(self):
         """
         Получить список типов рекламы
@@ -2345,7 +2345,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-
+    
     def get_ad_video_utility(self):
         """
         Получить список принадлежности к видео
@@ -2374,10 +2374,10 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-
+    
     def get_product_advertiser(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -2481,7 +2481,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2492,10 +2492,10 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
-
+        
         body_params = {
             'advertiserIds': advertiser_ids,
             'productModelIds': product_model_ids,
@@ -2507,10 +2507,10 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('advertiser', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_monitoring(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -2614,7 +2614,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2625,10 +2625,10 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
-
+        
         body_params = {
             'advertiserIds': advertiser_ids,
             'productModelIds': product_model_ids,
@@ -2641,10 +2641,10 @@ class CrossWebCats:
         }
 
         return self._get_dict('monitoring', search_params, body_params, offset, limit, use_cache)
-
+    
     def get_product_category_tree(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
             product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
             advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
             product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
@@ -2748,7 +2748,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng,
+            'productModelEngName': product_model_eng, 
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2759,10 +2759,10 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4,
-            'productCategoryL4EngName': product_category_l4_eng
+            'productCategoryL4Name': product_category_l4, 
+            'productCategoryL4EngName': product_category_l4_eng            
         }
-
+        
         body_params = {
             'advertiserIds': advertiser_ids,
             'productModelIds': product_model_ids,

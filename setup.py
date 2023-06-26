@@ -1,13 +1,13 @@
 from setuptools import find_packages
 from setuptools import setup
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 
 setup(
     name='mediascope_api_lib',
     packages=find_packages(),
-    version='1.1.8',
+    version='1.1.9',
     description='Library for work with the Mediascope-Delivery-API',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -19,7 +19,7 @@ setup(
     requires=['pandas', 'requests', 'pyparsing'],
     install_requires=['pandas', 'requests', 'pyparsing'],
     url='https://github.com/MEDIASCOPE-JSC/mediascope-api-lib',
-    download_url='https://github.com/MEDIASCOPE-JSC/mediascope-api-lib/tarball/v1.1.8',
+    download_url='https://github.com/MEDIASCOPE-JSC/mediascope-api-lib/tarball/v1.1.9',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3.6",

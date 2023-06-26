@@ -9,7 +9,6 @@ from . import cache
 
 
 class MediascopeApiNetwork:
-
     DEFAULT_SETTINGS_FILENAME = 'settings.json'
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -47,7 +46,7 @@ class MediascopeApiNetwork:
                     raise Exception('Не указаны настройки для подключения к Mediascope-API')
 
             self.username, self.passw, self.root_url, self.client_id, \
-            self.client_secret, self.keycloak_url, proxy_server = utils.load_settings(settings_filename)
+                self.client_secret, self.keycloak_url, proxy_server = utils.load_settings(settings_filename)
 
         if self.username is None or self.passw is None or self.root_url is None and \
                 self.client_id is None or self.client_secret is None or self.keycloak_url is None:
@@ -61,7 +60,6 @@ class MediascopeApiNetwork:
             print(f"Подсоединение через прокси {self.proxies}")
         else:
             self.proxies = {"https": ""}
-
 
     def get_token(self, username: str, passw: str) -> dict:
         """
@@ -82,7 +80,7 @@ class MediascopeApiNetwork:
         token : dict
             Токен доступа к Mediascope-API
         """
-        my_tocken_req = requests.post(
+        my_token_req = requests.post(
             url=self.keycloak_url,
             data={
                 'client_id': self.client_id,
@@ -94,17 +92,17 @@ class MediascopeApiNetwork:
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             proxies=self.proxies
         )
-        if my_tocken_req.status_code == 200:
-            t = my_tocken_req.json()
+        if my_token_req.status_code == 200:
+            t = my_token_req.json()
             t['now'] = datetime.datetime.now()
             return t
-        elif my_tocken_req.status_code == 401:
+        elif my_token_req.status_code == 401:
             raise Exception(f'Ошибка авторизации!',
                             f'Не верный логин или пароль. Проверьте параметры указанные в файле: settings.json')
-        elif my_tocken_req.status_code == 403:
+        elif my_token_req.status_code == 403:
             raise Exception(f'Ошибка авторизации!', f'Доступ запрещен.')
         else:
-            raise Exception(f'Status code {my_tocken_req.status_code}', f'response: {my_tocken_req.text}')
+            raise Exception(f'Status code {my_token_req.status_code}', f'response: {my_token_req.text}')
 
     def refresh_token(self):
         """
@@ -141,7 +139,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -206,7 +204,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -263,7 +261,8 @@ class MediascopeApiNetwork:
                 if 'total' not in header:
                     is_reading = False
                     total = limit
-                total = int(header['total'])
+                else:
+                    total = int(header['total'])
                 result['header']['total'] = total
                 offset += limit
                 if offset >= total:
@@ -299,7 +298,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -329,7 +328,7 @@ class MediascopeApiNetwork:
 
     def send_crossweb_request(self, method: str, endpoint: str, data: dict = None):
         """
-        Отправляет запрос в Mediascope-API для проект CrossWeb
+        Отправляет запрос в Mediascope-API для проекта CrossWeb
 
         method : str
             HTTP метод:
@@ -346,7 +345,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
+                - True - использовать кэш. Формирует кэш для запроса, и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -382,7 +381,7 @@ class MediascopeApiNetwork:
 
     def get_curl_request(self, method: str, endpoint: str, data: dict = None) -> str:
         """
-        Формирует запрос к Mediascope-API в в CURL формате.
+        Формирует запрос к Mediascope-API в CURL формате.
         Можно вставлять в консоль и обратиться к API прямо из консоли.
         При этом используется текущий токен пользователи или получается новый.
 
@@ -401,7 +400,7 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
+                - True - использовать кэш. Формирует кэш для запроса, и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
@@ -426,7 +425,7 @@ class MediascopeApiNetwork:
         treq.append(f"--header 'Authorization: Bearer {self.token['access_token']}'")
         if len(data) > 0:
             treq.append(f"--data-raw '{data}'")
-        print(" \\\n".join(treq))
+        return " \\\n".join(treq)
 
     @staticmethod
     def _raise_error(req):

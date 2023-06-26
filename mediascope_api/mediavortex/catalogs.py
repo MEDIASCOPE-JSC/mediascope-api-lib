@@ -57,7 +57,25 @@ class MediaVortexCats:
         'tv-program-country': '/dictionary/tv/program-country',
         'tv-company-holding': '/dictionary/tv/company-holding',
         'tv-company-media-holding': '/dictionary/tv/company-media-holding',
-        'tv-company-thematic': '/dictionary/tv/thematic'
+        'tv-thematic': '/dictionary/tv/thematic',
+        'custom-respondent-variable': '/custom-variable/respondent',
+        'tv-issue-status': '/dictionary/tv/issue-status',
+        'tv-area': '/dictionary/tv/area',
+        'tv-prime-time-status': '/dictionary/tv/prime-time-status',
+        'tv-ad-position': '/dictionary/tv/ad-position',
+        'tv-breaks-style': '/dictionary/tv/breaks-style',
+        'tv-breaks-position': '/dictionary/tv/breaks-position',
+        'tv-break-distribution': '/dictionary/tv/breaks-distribution',
+        'tv-breaks-content': '/dictionary/tv/breaks-content',
+        'tv-program-producer-country': '/dictionary/tv/program-producer-country',
+        'tv-program-producer': '/dictionary/tv/program-producer',
+        'tv-program-group': '/dictionary/tv/program-group',
+        'tv-no-yes-na': '/dictionary/tv/no-yes-na',
+        'tv-language': '/dictionary/tv/language',
+        'tv-company-monitoring': '/dictionary/tv/company-monitoring',
+        'tv-company-group': '/dictionary/tv/company-group',
+        'tv-company-category': '/dictionary/tv/company-category',
+        'tv-company-status': '/dictionary/tv/company-status'
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None,
@@ -186,7 +204,8 @@ class MediaVortexCats:
         print(
             f'Запрошены записи: {offset} - {offset + limit}\nВсего найдено записей: {total}\n')
 
-    def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None, use_cache=True):
+    def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None, use_cache=True,
+                  request_type='post'):
         """
         Получить словарь из API
 
@@ -230,26 +249,26 @@ class MediaVortexCats:
         post_data = self._get_post_data(body_params)
 
         data = self.msapi_network.send_request_lo(
-            'post', url, data=post_data, use_cache=use_cache)
+            request_type, url, data=post_data, use_cache=use_cache)
 
         if data is None or type(data) != dict:
             return None
 
         if 'header' not in data or 'data' not in data:
             return None
-        
+
         # извлекаем все заголовки столбцов (их может быть разное количество, особенно для поля notes)
         res_headers = []
         for item in data['data']:
             for k, v in item.items():
                 if k not in res_headers:
-                    res_headers.append(k)        
-               
-        # инициализируем списки данных столбцов        
+                    res_headers.append(k)
+
+                    # инициализируем списки данных столбцов
         res = {}
         for h in res_headers:
             res[h] = []
-        
+
         # наполняем найденные столбцы значениями
         for item in data['data']:
             for h in res_headers:
@@ -257,7 +276,7 @@ class MediaVortexCats:
                     res[h].append(item[h])
                 else:
                     res[h].append('')
-            
+
         # print header        
         if offset is not None and limit is not None:
             self._print_header(data['header'], offset, limit)
@@ -298,9 +317,9 @@ class MediaVortexCats:
             'slices': slices,
             'filters': filters
         }
-        
+
         return result
-    
+
     def get_simple_unit(self):
         """
         Получить списки доступных для использования в заданиях для simple:
@@ -333,10 +352,10 @@ class MediaVortexCats:
             'statistics': stats,
             'slices': slices,
             'filters': filters
-        }        
+        }
 
         return result
-    
+
     def get_crosstab_unit(self):
         """
         Получить списки доступных для использования в заданиях для crosstab:
@@ -349,120 +368,101 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-        
+
+        units = self.msapi_network.send_request(
+            'get', self._urls['tv-kit'], use_cache=False)
+
+        stats = []
+        slices = []
+        filters = []
+        if len(units) > 0:
+            if 'reports' in units[0]:
+                if len(units[0]['reports']) > 2:
+                    if 'statistics' in units[0]['reports'][2]:
+                        stats = [i['name'] for i in units[0]['reports'][2]['statistics']]
+                    if 'slices' in units[0]['reports'][2]:
+                        slices = [i['name'] for i in units[0]['reports'][2]['slices']]
+                    if 'filters' in units[0]['reports'][2]:
+                        filters = [i['name'] for i in units[0]['reports'][2]['filters']]
+
         result = {
-            'statistics': ['SampleAvg', 'Universe000', 'Rtg000', 'Rtg000Avg', 'RtgPerAvg', 'Rtg000Sum', 'RtgPerSum',
-                           'TAud', 'TAudAvg', 'TAudSum', 'ShareAvg', 'DurationAvg', 'DurationSum', 'Interval',
-                           'RespondentCount', 'Day', 'SummedEventWeight', 'AvReach000', 'AvReachPer', 'TgAffinPer',
-                           'TTVTAud', 'TTVRtg000Sum', 'TTVRtg000Avg', 'TTVRtgPerSum', 'TTVRtgPerAvg', 'SummedWeight',
-                           'CrossTabSummedWeight', 'Universe000Avg', 'CumReach000', 'CumReachPer', 'ATVSum', 'ATVAvg',
-                           'Quantity', 'QuantitySum', 'CostByMinSum', 'CostByGRPSum', 'ConsolidatedCostSum',
-                           'ATVReachAvg', 'ATVReachSum', 'TgAffinPerAvg', 'OTS', 'GRP'],
-            'slices': ['researchDate', 'researchWeek', 'researchMonth', 'researchQuarter', 'researchYear',
-                       'researchHalfYear', 'researchWeekDay', 'researchDayType', 'locationId', 'locationName',
-                       'locationEName', 'timeBand1', 'timeBand5', 'timeBand10', 'timeBand15', 'timeBand30',
-                       'timeBand60', 'tvCompanyId', 'tvCompanyGroupId', 'tvCompanyCategoryId', 'tvCompanyName',
-                       'tvCompanyEName', 'tvCompanyDescription', 'tvCompanyInformation', 'tvCompanyNotes',
-                       'tvThematicID', 'tvCompanyHoldingID', 'tvCompanyMediaHoldingID', 'tvChannelId', 'tvChannelName',
-                       'tvChannelEName', 'tvChannelDescription', 'tvNetId', 'tvNetName', 'tvNetEName',
-                       'tvNetDescription', 'regionId', 'regionName', 'regionEName', 'scaleRange', 'reachInterval',
-                       'geo', 'subGeo', 'sex', 'age', 'education', 'work', 'persNum', 'spendingsOnFood', 'tvNum',
-                       'ageGroup', 'incomeGroupRussia', 'housewife', 'incomeEarner', 'video', 'incLevel', 'kidsNum',
-                       'kidsAge1', 'kidsAge2', 'kidsAge3', 'kidsAge4', 'kidsAge5', 'kidsAge6', 'kidsAge7', 'status',
-                       'business', 'enterprise', 'property', 'maritalStatus', 'lifeCycle', 'computer', 'internet',
-                       'dacha', 'providerSputnik', 'providerAnalogEth', 'providerDigitalEth', 'providerAnalogCbl',
-                       'providerDigitalCbl', 'hasVm', 'kidsAgeC1', 'kidsAgeC2', 'kidsAgeC3', 'kidsAgeC4', 'occupation',
-                       'tradeIndustry', 'incomeGroup', 'federalOkrug', 'indexOkrug', 'incomeScale201401', 'equipmentV2',
-                       'availTvPort1', 'availTvPort2', 'availTvPort3', 'availTvPort4', 'availTvPort5', 'availTvPort6',
-                       'workCompIntern', 'housCompIntern', 'availAmsPort1', 'availAmsPort2', 'availAmsPort3',
-                       'availAmsPort4', 'availAmsPort5', 'availAmsPort6', 'availAmsPort7', 'zdcHholdPersCnt',
-                       'zdcIncomeGroup', 'zdcSex', 'zdcRAge18', 'zdcEducation', 'zdcWork', 'zodiacNet1View',
-                       'zodiacNet2View', 'zodiacNet4View', 'zodiacNet11View', 'zodiacNet83View', 'zodiacNet13View',
-                       'zodiacNet60View', 'zodiacNet12View', 'zodiacNet326View', 'zodiacNet206View', 'zodiacNet257View',
-                       'zodiacNet205View', 'zodiacNet204View', 'zodiacNet255View', 'zodiacNet258View',
-                       'zodiacNet259View', 'zodiacWorkPtview', 'zodiacWorkNptview', 'zodiacHolidayView',
-                       'zodiacNet84View', 'zodiacNet260View', 'zodiacNet286View', 'zodiacNet40View', 'hhSignalKind1',
-                       'hiddenFilterage1', 'hiddenFilterage18641', 'zodiacNet10View', 'zodiacNet270View',
-                       'moscowRegion', 'wghPersNum1', 'existsSmartTv', 'isPrimaryPanel', 'isSecondaryPanel',
-                       'secondPanelSeason', 'secondaryPanelMatrix', 'wghSuburbAgeGroup', 'zdcSocstat', 'wghLang',
-                       'wghDachaTvExist', 'wghDachaSex', 'wghDachaAgeGroup16', 'smartTvYesNo', 'wghVideoGameWoAge',
-                       'wghUsbTvHh', 'cubeCity', 'timezone0', 'hiddenFilterage18Zodiac', 'cube', 'cube100Plus100Minus',
-                       'sputnikTv', 'geoFrom082020', 'hasRouterMeter', 'usageSmartTv', 'hiddenFilterage18640',
-                       'rage1864', 'populationZdk', 'providerIptv', 'providerOtt', 'city', 'programStartTime',
-                       'programFinishTime', 'programRoundedStartTime', 'programRoundedFinishTime', 'programDuration',
-                       'programRoundedDuration', 'programIssueDescriptionName', 'programIssueDescriptionEName',
-                       'programSpotId', 'programId', 'programName', 'programEName', 'programTypeId', 'programTypeName',
-                       'programTypeEName', 'programCountryId', 'programCountryName', 'programCountryEName',
-                       'programCategoryId', 'programCategoryName', 'programCategoryEName', 'programSportId',
-                       'programSportName', 'programSportEName', 'programSportGroupId', 'programSportGroupName',
-                       'programSportGroupEName', 'programProducerId', 'programProducerName', 'programProducerEName',
-                       'programNotes', 'programLive', 'programNational', 'programFirstIssueDate', 'programLanguageId',
-                       'breaksStartTime', 'breaksFinishTime', 'breaksRoundedStartTime', 'breaksRoundedFinishTime',
-                       'breaksDuration', 'breaksRoundedDuration', 'breaksSpotId', 'breaksId', 'breaksName',
-                       'breaksEName', 'breaksStyleId', 'breaksDistributionType', 'breaksPositionType', 
-                       'breaksContentType', 'breaksPosition', 'GRPTypeId', 'GRPTypeName', 'GRPTypeEName', 'price',
-                       'GRPPrice', 'GRPPriceRub', 'GRPCost', 'GRPCostRub', 'adStartTime', 'adFinishTime',
-                       'adRoundedStartTime', 'adRoundedFinishTime', 'adDuration', 'adRoundedDuration', 'adSpotId',
-                       'adId', 'adName', 'adEName', 'adTypeId', 'advertiserListId', 'advertiserListName',
-                       'advertiserListEName', 'brandListId', 'brandListName', 'brandListEName', 'modelListId',
-                       'modelListName', 'modelListEName', 'articleList2Id', 'articleList2Name', 'articleList2EName', 
-                       'articleList3Id', 'articleList3Name', 'articleList3EName', 'articleList4Id', 'articleList4Name',
-                       'articleList4EName', 'adFirstIssueDate', 'subbrandListId', 'subbrandListName',
-                       'subbrandListEName', 'advertiserId', 'advertiserName', 'advertiserEName', 'brandId', 'brandName',
-                       'brandEName', 'subbrandId', 'subbrandName', 'subbrandEName', 'modelId', 'modelName',
-                       'modelEName', 'article2Id', 'article2Name', 'article2EName', 'article3Name', 'article3EName',
-                       'article4Name', 'article4EName'],
-            'filters': ['dataVersionId', 'researchDate', 'researchWeekDay', 'researchDayType', 'locationId',
-                        'timeBand1', 'timeBand5', 'timeBand10', 'timeBand15', 'timeBand30', 'timeBand60',
-                        'tvCompanyId', 'tvCompanyGroupId', 'tvCompanyCategoryId', 'tvChannelId', 'tvNetId', 'regionId',
-                        'subjectGeoType', 'geo', 'subGeo', 'sex', 'age', 'education', 'work', 'persNum',
-                        'spendingsOnFood', 'tvNum', 'ageGroup', 'incomeGroupRussia', 'housewife', 'incomeEarner',
-                        'video', 'incLevel', 'kidsNum', 'kidsAge1', 'kidsAge2', 'kidsAge3', 'kidsAge4', 'kidsAge5',
-                        'kidsAge6', 'kidsAge7', 'status', 'business', 'enterprise', 'property', 'maritalStatus',
-                        'lifeCycle', 'computer', 'internet', 'dacha', 'providerSputnik', 'providerAnalogEth',
-                        'providerDigitalEth', 'providerAnalogCbl', 'providerDigitalCbl', 'hasVm', 'kidsAgeC1',
-                        'kidsAgeC2', 'kidsAgeC3', 'kidsAgeC4', 'occupation', 'tradeIndustry', 'incomeGroup',
-                        'federalOkrug', 'indexOkrug', 'incomeScale201401', 'equipmentV2', 'availTvPort1',
-                        'availTvPort2', 'availTvPort3', 'availTvPort4', 'availTvPort5', 'availTvPort6',
-                        'workCompIntern', 'housCompIntern', 'availAmsPort1', 'availAmsPort2', 'availAmsPort3',
-                        'availAmsPort4', 'availAmsPort5', 'availAmsPort6', 'availAmsPort7', 'zdcHholdPersCnt',
-                        'zdcIncomeGroup', 'zdcSex', 'zdcRAge18', 'zdcEducation', 'zdcWork', 'zodiacNet1View',
-                        'zodiacNet2View', 'zodiacNet4View', 'zodiacNet11View', 'zodiacNet83View', 'zodiacNet13View',
-                        'zodiacNet60View', 'zodiacNet12View', 'zodiacNet326View', 'zodiacNet206View',
-                        'zodiacNet257View', 'zodiacNet205View', 'zodiacNet204View', 'zodiacNet255View',
-                        'zodiacNet258View', 'zodiacNet259View', 'zodiacWorkPtview', 'zodiacWorkNptview',
-                        'zodiacHolidayView', 'zodiacNet84View', 'zodiacNet260View', 'zodiacNet286View',
-                        'zodiacNet40View', 'hhSignalKind1', 'hiddenFilterage1', 'hiddenFilterage18641',
-                        'zodiacNet10View', 'zodiacNet270View', 'moscowRegion', 'wghPersNum1', 'existsSmartTv',
-                        'isPrimaryPanel', 'isSecondaryPanel', 'secondPanelSeason', 'secondaryPanelMatrix',
-                        'wghSuburbAgeGroup', 'zdcSocstat', 'wghLang', 'wghDachaTvExist', 'wghDachaSex',
-                        'wghDachaAgeGroup16', 'smartTvYesNo', 'wghVideoGameWoAge', 'wghUsbTvHh', 'cubeCity',
-                        'timezone0', 'hiddenFilterage18Zodiac', 'cube', 'cube100Plus100Minus', 'sputnikTv',
-                        'geoFrom082020', 'hasRouterMeter', 'usageSmartTv', 'hiddenFilterage18640', 'rage1864',
-                        'populationZdk', 'providerIptv', 'providerOtt', 'city', 'programStartTime',
-                        'programFinishTime', 'programRoundedStartTime', 'programRoundedFinishTime', 'programDuration',
-                        'programRoundedDuration', 'programSpotId', 'programId', 'programName', 'programEName',
-                        'programTypeId', 'programTypeName', 'programTypeEName', 'programCountryId',
-                        'programCountryName', 'programCountryEName', 'programCategoryId', 'programCategoryName',
-                        'programCategoryEName', 'programSportId', 'programSportName', 'programSportEName',
-                        'programSportGroupId', 'programSportGroupName', 'programSportGroupEName', 'programProducerId',
-                        'programProducerName', 'programProducerEName', 'programNotes', 'programLive', 'programNational',
-                        'programFirstIssueDate', 'programLanguageId', 'breaksStartTime', 'breaksFinishTime',
-                        'breaksRoundedStartTime', 'breaksRoundedFinishTime', 'breaksDuration', 'breaksRoundedDuration',
-                        'breaksSpotId', 'breaksId', 'breaksName', 'breaksEName', 'breaksStyleId',
-                        'breaksDistributionType', 'breaksPositionType', 'breaksContentType', 'breaksPosition',
-                        'GRPTypeId', 'GRPTypeName', 'GRPTypeEName', 'price', 'GRPPrice', 'GRPPriceRub', 'GRPCost',
-                        'GRPCostRub', 'adStartTime', 'adFinishTime', 'adRoundedStartTime', 'adRoundedFinishTime',
-                        'adDuration', 'adRoundedDuration', 'adSpotId', 'adId', 'adName', 'adEName', 'adTypeId',
-                        'advertiserListId', 'advertiserListName', 'advertiserListEName', 'brandListId', 'brandListName',
-                        'brandListEName', 'modelListId', 'modelListName', 'modelListEName', 'articleList2Id',
-                        'articleList2Name', 'articleList2EName', 'articleList3Id', 'articleList3Name',
-                        'articleList3EName', 'articleList4Id', 'articleList4Name', 'articleList4EName',
-                        'adFirstIssueDate', 'subbrandListId', 'subbrandListName', 'subbrandListEName', 'advertiserId',
-                        'advertiserName', 'advertiserEName', 'brandId', 'brandName', 'brandEName', 'subbrandId',
-                        'subbrandName', 'subbrandEName', 'modelId', 'modelName', 'modelEName', 'article2Id',
-                        'article2Name', 'article2EName', 'article3Name', 'article3EName', 'article4Name',
-                        'article4EName', 'articleId', 'article3Id', 'article4Id']
+            'statistics': stats,
+            'slices': slices,
+            'filters': filters
+        }
+
+        return result
+
+    def get_consumption_target_unit(self):
+        """
+        Получить списки доступных для использования в заданиях для consumption target:
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+
+        units = self.msapi_network.send_request(
+            'get', self._urls['tv-kit'], use_cache=False)
+
+        stats = []
+        slices = []
+        filters = []
+        if len(units) > 0:
+            if 'reports' in units[0]:
+                if len(units[0]['reports']) > 7:
+                    if 'statistics' in units[0]['reports'][7]:
+                        stats = [i['name'] for i in units[0]['reports'][7]['statistics']]
+                    if 'slices' in units[0]['reports'][7]:
+                        slices = [i['name'] for i in units[0]['reports'][7]['slices']]
+                    if 'filters' in units[0]['reports'][7]:
+                        filters = [i['name'] for i in units[0]['reports'][7]['filters']]
+
+        result = {
+            'statistics': stats,
+            'slices': slices,
+            'filters': filters
+        }
+
+        return result
+
+    def get_duplication_timeband_unit(self):
+        """
+        Получить списки доступных для использования в заданиях для duplication_timeband:
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+
+        units = self.msapi_network.send_request(
+            'get', self._urls['tv-kit'], use_cache=False)
+
+        stats = []
+        slices = []
+        filters = []
+        if len(units) > 0:
+            if 'reports' in units[0]:
+                if len(units[0]['reports']) > 8:
+                    if 'statistics' in units[0]['reports'][8]:
+                        stats = [i['name'] for i in units[0]['reports'][8]['statistics']]
+                    if 'slices' in units[0]['reports'][8]:
+                        slices = [i['name'] for i in units[0]['reports'][8]['slices']]
+                    if 'filters' in units[0]['reports'][8]:
+                        filters = [i['name'] for i in units[0]['reports'][8]['filters']]
+
+        result = {
+            'statistics': stats,
+            'slices': slices,
+            'filters': filters
         }
 
         return result
@@ -704,19 +704,14 @@ class MediaVortexCats:
 
         return self._get_dict('tv-subbrand-list', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_research_day_type(self, research_day_type=None, name=None, order_by=None, order_dir=None, offset=None,
+    def get_tv_research_day_type(self, order_by=None, order_dir=None, offset=None,
                                  limit=None, use_cache=True):
         """
         Получить типы дней
 
         Parameters
         ----------
-        research_day_type : string
-            Поиск по идентификатору типа дня
-        
-        name : string
-            Поиск по названию типа дня. Можно использовать часть названия
-        
+
         order_by : string
             Поле, по которому происходит сортировка
             
@@ -749,8 +744,9 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "researchDayType": research_day_type,
-            "name": name
+            "id": None,
+            "name": None,
+            "ename": None
         }
 
         return self._get_dict('tv-research-day-type', search_params, body_params, offset, limit, use_cache)
@@ -822,7 +818,7 @@ class MediaVortexCats:
                        sport_group_ids=None, language_ids=None, program_producer_ids=None, program_producer_reg=None,
                        program_producer_year=None, is_program_group=None, is_child=None, country_ids=None, name=None,
                        ename=None, extended_name=None, extended_ename=None, notes=None, order_by=None,
-                       order_dir=None, offset=None, limit=None, use_cache=True):
+                       order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить программы
 
@@ -847,7 +843,7 @@ class MediaVortexCats:
             Поиск по списку идентификаторов языков
         
         program_producer_ids : list
-            Поиск по списку идентификаторов продюсеров програм
+            Поиск по списку идентификаторов продюсеров программ
         
         program_producer_reg : string
             Поиск по 
@@ -955,7 +951,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1014,7 +1010,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1073,7 +1069,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1300,7 +1296,7 @@ class MediaVortexCats:
         return self._get_dict('tv-prime-time', search_params, body_params, offset, limit, use_cache)
 
     def get_tv_net(self, net_ids=None, name=None, ename=None, order_by=None,
-                   order_dir=None, offset=None, limit=None, use_cache=True):
+                   order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить сети
 
@@ -1319,7 +1315,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1353,11 +1349,7 @@ class MediaVortexCats:
         }
 
         df_net = self._get_dict('tv-net', search_params, body_params, offset, limit, use_cache)
-        try:
-            df_net.drop('notes', axis=1, inplace=True)
-        except Exception:
-            return df_net
-        
+        df_net.drop('notes', axis=1, inplace=True, errors='ignore')
         return df_net
 
     def get_tv_model(self, subbrand_ids=None, article_ids=None, ids=None, name=None, ename=None, notes=None,
@@ -1392,7 +1384,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1445,13 +1437,13 @@ class MediaVortexCats:
             Поиск по имени
         
         ename : string
-            Поиск по англоязычному имени   
+            Поиск по англоязычному имени
             
         order_by : string
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1487,7 +1479,7 @@ class MediaVortexCats:
         return self._get_dict('tv-model-list', search_params, body_params, offset, limit, use_cache)
 
     def get_tv_location(self, location_ids=None, name=None, ename=None, order_by=None,
-                        order_dir=None, offset=None, limit=None, use_cache=True):
+                        order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить места
 
@@ -1506,7 +1498,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1555,7 +1547,7 @@ class MediaVortexCats:
             Поиск по имени
         
         notes : string
-            Поиск по заметке   
+            Поиск по заметке
         
         expression : string
             Поиск по выражению 
@@ -1564,7 +1556,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1617,7 +1609,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1674,7 +1666,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1730,7 +1722,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1767,7 +1759,7 @@ class MediaVortexCats:
 
     def get_tv_company(self, tv_channel_ids=None, tv_net_ids=None, region_ids=None, tv_company_group_ids=None,
                        tv_company_category_ids=None, name=None, ename=None, ids=None, status=None,
-                       information=None, monitoring_type=None, order_by=None, order_dir=None, offset=None, 
+                       information=None, monitoring_type=None, order_by=None, order_dir=None, offset=None,
                        limit=None, use_cache=True):
         """
         Получить телекомпании
@@ -1853,11 +1845,7 @@ class MediaVortexCats:
         }
 
         df_comp = self._get_dict('tv-company', search_params, body_params, offset, limit, use_cache)
-        try:
-            df_comp.drop('notes', axis=1, inplace=True)
-        except Exception:
-            return df_comp
-        
+        df_comp.drop('notes', axis=1, inplace=True, errors='ignore')
         return df_comp
 
     def get_tv_company_merge(self, tv_channel_merge_ids=None, tv_company_ids=None, ids=None,
@@ -1880,7 +1868,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1932,7 +1920,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -1966,8 +1954,8 @@ class MediaVortexCats:
 
         return self._get_dict('tv-calendar', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_break(self, order_by=None, order_dir=None,
-                     offset=None, limit=None, use_cache=True):
+    def get_tv_breaks(self, order_by=None, order_dir=None,
+                      offset=None, limit=None, use_cache=True):
         """
         Получить перерывы
 
@@ -1977,7 +1965,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -2005,10 +1993,17 @@ class MediaVortexCats:
         }
 
         body_params = {
-
+            "name": None,
+            "ename": None,
+            "id": None,
+            "notes": None,
+            "positionType": None,
+            "distributionType": None,
+            "contentType": None,
+            "styleId": None
         }
 
-        return self._get_dict('tv-break', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict('tv-breaks', search_params, body_params, offset, limit, use_cache)
 
     def get_tv_brand(self, ids=None, name=None, ename=None, notes=None, tv_area_ids=None,
                      order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
@@ -2131,7 +2126,7 @@ class MediaVortexCats:
     def get_tv_article(self, parent_ids=None, levels=None, ids=None, name=None, ename=None, notes=None,
                        order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
         """
-        Получить статьи
+        Получить товарные категории
 
         Parameters
         ----------        
@@ -2176,7 +2171,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame со статьями
+            DataFrame с товарными категориями
         """
 
         search_params = {
@@ -2198,7 +2193,7 @@ class MediaVortexCats:
     def get_tv_article_list4(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
                              offset=None, limit=None, use_cache=True):
         """
-        Получить список статей 4
+        Получить список товарных категорий рекламы 4 уровня
 
         Parameters
         ----------        
@@ -2234,7 +2229,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame со списками статей 4
+            DataFrame с товарными категориями рекламы 4 уровня
         """
 
         search_params = {
@@ -2253,7 +2248,7 @@ class MediaVortexCats:
     def get_tv_article_list3(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
                              offset=None, limit=None, use_cache=True):
         """
-        Получить список статей 3
+        Получить список товарных категорий рекламы 3 уровня
 
         Parameters
         ----------        
@@ -2289,7 +2284,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame со списками статей 3
+            DataFrame с товарными категориями
         """
 
         search_params = {
@@ -2308,7 +2303,7 @@ class MediaVortexCats:
     def get_tv_article_list2(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
                              offset=None, limit=None, use_cache=True):
         """
-        Получить список статей 2
+        Получить список товарных категорий рекламы 2 уровня
 
         Parameters
         ----------        
@@ -2344,7 +2339,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame со списками статей 2
+            DataFrame с товарными категориями
         """
 
         search_params = {
@@ -2362,7 +2357,7 @@ class MediaVortexCats:
 
     def get_tv_appendix(self, tv_ad_ids=None, model_ids=None, advertiser_ids=None, article2_ids=None,
                         article3_ids=None, article4_ids=None, subbrand_ids=None, brand_ids=None,
-                        order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+                        order_by=None, order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить аппендикс
 
@@ -2557,10 +2552,10 @@ class MediaVortexCats:
     def get_tv_ad(self, tv_ad_type_ids=None, advertiser_list_ids=None, brand_list_ids=None, model_list_ids=None,
                   article_list2_ids=None, article_list3_ids=None, article_list4_ids=None, subbrand_list_ids=None,
                   ad_style_ids=None, advertiser_list_main_ids=None, brand_list_main_ids=None, model_list_main_ids=None,
-                  article_list2_main_ids=None, article_list3_main_ids=None, article_list4_main_ids=None, 
+                  article_list2_main_ids=None, article_list3_main_ids=None, article_list4_main_ids=None,
                   subbrand_list_main_ids=None, age_restriction_ids=None, tv_ad_ids=None, name=None,
-                  ename=None, notes=None, standard_durations=None, tv_area_ids=None, slogan_audio_ids=None, 
-                  slogan_video_ids=None, order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+                  ename=None, notes=None, standard_durations=None, tv_area_ids=None, slogan_audio_ids=None,
+                  slogan_video_ids=None, order_by=None, order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить телерекламу
 
@@ -2667,8 +2662,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "tvAdTypeId": tv_ad_type_ids,
             "advertiserListId": advertiser_list_ids,
@@ -2700,7 +2695,7 @@ class MediaVortexCats:
         return self._get_dict('tv-ad', search_params, body_params, offset, limit, use_cache)
 
     def get_tv_ad_type(self, tv_ad_ids=None, name=None, ename=None, notes=None, accounting_duration_type_ids=None,
-                       is_override=None, position_type=None, is_price=None, order_by=None, order_dir=None, offset=None, 
+                       is_override=None, position_type=None, is_price=None, order_by=None, order_dir=None, offset=None,
                        limit=None, use_cache=True):
         """
         Получить типы телерекламы
@@ -2760,8 +2755,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": tv_ad_ids,
             "name": name,
@@ -2881,7 +2876,7 @@ class MediaVortexCats:
 
         return self._get_dict('tv-ad-total', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_style(self, ids=None, name=None, ename=None, notes=None, order_by=None, 
+    def get_tv_ad_style(self, ids=None, name=None, ename=None, notes=None, order_by=None,
                         order_dir=None, offset=None, limit=None, use_cache=True):
         """
         Получить рекламные стили
@@ -2895,7 +2890,7 @@ class MediaVortexCats:
             Поиск по имени 
         
         ename : string
-            Поиск по англоязычному имени         
+            Поиск по англоязычному имени
         
         notes : string
             Поиск по англоязычному имени
@@ -2904,7 +2899,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -2929,8 +2924,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": ids,
             "name": name,
@@ -2954,13 +2949,13 @@ class MediaVortexCats:
             Поиск по имени 
         
         ename : string
-            Поиск по англоязычному имени         
+            Поиск по англоязычному имени
             
         order_by : string
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -2985,8 +2980,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": ids,
             "name": name,
@@ -3009,13 +3004,13 @@ class MediaVortexCats:
             Поиск по имени 
         
         ename : string
-            Поиск по англоязычному имени         
+            Поиск по англоязычному имени
             
         order_by : string
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -3040,8 +3035,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": ids,
             "name": name,
@@ -3050,7 +3045,7 @@ class MediaVortexCats:
 
         return self._get_dict('tv-ad-slogan-audio', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_month(self, tv_company_ids=None, research_month=None, ad_ids=None, from_tv_company_ids=None, 
+    def get_tv_ad_month(self, tv_company_ids=None, research_month=None, ad_ids=None, from_tv_company_ids=None,
                         from_research_month=None, volume=None, count=None, price=None, grp_price=None,
                         issue_status=None, cnd_cost=None, distribution=None, cost_rub=None, grp_cost_rub=None,
                         cnd_cost_rub=None, order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
@@ -3133,8 +3128,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "tvCompanyId": tv_company_ids,
             "researchMonth": research_month,
@@ -3185,9 +3180,9 @@ class MediaVortexCats:
         -------
         info : Dict
             Словарь с relation
-        """                
+        """
         return self.msapi_network.send_request('get', self._urls['tv-relation'], use_cache=False)
-    
+
     def get_tv_program_prreg(self):
         """
         Получить справочник видов производства программ
@@ -3233,7 +3228,7 @@ class MediaVortexCats:
         return pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-ad-iss-sbtv'], use_cache=False))
 
     def get_tv_demo_attribute(self, ids=None, value_ids=None, names=None, col_names=None, value_names=None,
-                              order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+                              order_by=None, order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить атрибуты
 
@@ -3258,7 +3253,7 @@ class MediaVortexCats:
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -3296,8 +3291,8 @@ class MediaVortexCats:
         }
 
         return self._get_dict('tv-demo-attribute', search_params, body_params, offset, limit, use_cache)
-    
-    def get_tv_program_country(self, ids=None, name=None, ename=None, notes=None, 
+
+    def get_tv_program_country(self, ids=None, name=None, ename=None, notes=None,
                                order_by=None, order_dir=None, offset=None,
                                limit=None, use_cache=True):
         """
@@ -3315,13 +3310,13 @@ class MediaVortexCats:
             Поиск по англоязычному имени
         
         notes : string
-            Поиск по заметкам         
+            Поиск по заметкам
             
         order_by : string
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -3346,8 +3341,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": ids,
             "name": name,
@@ -3357,7 +3352,7 @@ class MediaVortexCats:
 
         return self._get_dict('tv-program-country', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_company_holding(self, ids=None, name=None, ename=None, 
+    def get_tv_company_holding(self, ids=None, name=None, ename=None,
                                order_by=None, order_dir=None, offset=None,
                                limit=None, use_cache=True):
         """
@@ -3372,13 +3367,13 @@ class MediaVortexCats:
             Поиск по имени 
         
         ename : string
-            Поиск по англоязычному имени     
+            Поиск по англоязычному имени
             
         order_by : string
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -3403,8 +3398,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": ids,
             "name": name,
@@ -3428,13 +3423,13 @@ class MediaVortexCats:
             Поиск по имени 
         
         ename : string
-            Поиск по англоязычному имени     
+            Поиск по англоязычному имени
             
         order_by : string
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -3459,8 +3454,8 @@ class MediaVortexCats:
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": ids,
             "name": name,
@@ -3468,12 +3463,11 @@ class MediaVortexCats:
         }
 
         return self._get_dict('tv-company-media-holding', search_params, body_params, offset, limit, use_cache)
-    
-    def get_tv_company_thematic(self, ids=None, name=None,
-                                     ename=None, order_by=None, order_dir=None, offset=None,
-                                     limit=None, use_cache=True):
+
+    def get_tv_thematic(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
+                        offset=None, limit=None, use_cache=True):
         """
-        Получить список жанров телекомпаний
+        Получить список тематик тв рекламы
 
         Parameters
         ----------        
@@ -3484,13 +3478,13 @@ class MediaVortexCats:
             Поиск по имени 
         
         ename : string
-            Поиск по англоязычному имени     
+            Поиск по англоязычному имени
             
         order_by : string
             Поле, по которому происходит сортировка
             
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
             Смещение от начала набора отобранных данных
@@ -3509,18 +3503,1134 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с жанрами телекомпаний
+            DataFrame с тематиками тв рекламы
         """
 
         search_params = {
             'orderBy': order_by,
             'orderDir': order_dir
-        } 
-  
+        }
+
         body_params = {
             "id": ids,
             "name": name,
             "ename": ename
         }
 
-        return self._get_dict('tv-company-thematic', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict('tv-thematic', search_params, body_params, offset, limit, use_cache)
+
+    def get_custom_respondent_variable(self, ids=None, mart_type=None, name=None,
+                                       order_by=None, order_dir=None, offset=0, limit=1000, use_cache=False):
+        """
+        Получение списка кастомных respondent переменных
+
+        Parameters
+        ----------
+
+        ids : list
+            Фильтр на список значений id
+
+        mart_type : str
+            Тип витрины
+
+        name : str
+            Фильтр на имя
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame со списком кастомных respondent переменных
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir,
+            "ids": ids,
+            "mart-type": mart_type,
+            "name": name
+        }
+
+        body_params = {}
+
+        return self._get_dict('custom-respondent-variable', search_params, body_params,
+                              offset, limit, use_cache, 'get')
+
+    def add_custom_respondent_variable(self, resp, name, mart_type, is_public=True):
+        """
+        Создание кастомной respondent переменной
+
+        Parameters
+        ----------
+
+        resp : str
+            Закодированные данные пользователей
+
+        name : str
+            Имя переменной
+
+        mart_type : str
+            Тип витрины
+
+        is_public : bool
+            Флаг доступности
+
+        Returns
+        -------
+            Информация о созданной переменной
+        """
+
+        data = {
+            "value": "{\"respondent\": \"" + resp + "\"}",
+            "name": name,
+            "isPublic": is_public,
+            "martType": mart_type
+        }
+
+        return self.msapi_network.send_request('post', self._urls['custom-respondent-variable'],
+                                               data=json.dumps(data), use_cache=False)
+
+    def delete_custom_respondent_variable(self, id_value):
+        """
+        Удаление кастомной respondent переменной
+
+        Parameters
+        ----------
+
+        id_value : str
+            id переменной
+
+        Returns
+        -------
+            Информация о результатах удаления
+        """
+
+        return self.msapi_network.send_request('delete', self._urls['custom-respondent-variable'] + f"/{id_value}",
+                                               use_cache=False)
+
+    def get_tv_program_producer_country(self, country_id=None, name=None, ename=None,
+                                        order_by=None, order_dir=None, offset=None,
+                                        limit=None, use_cache=True):
+        """
+        Получить типы программ производств страны
+
+        Parameters
+        ----------
+        country_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с программ производств страны
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": country_id,
+            "name": name,
+            "ename": ename,
+            "empty": True
+        }
+
+        return self._get_dict('tv-program-producer-country', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_prime_time_status(self, status_id=None, name=None, ename=None,
+                                 order_by=None, order_dir=None, offset=None,
+                                 limit=None, use_cache=True):
+        """
+        Получить прайм-тайм статусы
+
+        Parameters
+        ----------
+        status_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с прайм-тайм статусами
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": status_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-prime-time-status', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_issue_status(self, status_id=None, name=None, ename=None,
+                            order_by=None, order_dir=None, offset=None,
+                            limit=None, use_cache=True):
+        """
+        Получить статусы выпусков
+
+        Parameters
+        ----------
+        status_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame со статусами выпусков
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": status_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-issue-status', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_breaks_style(self, style_id=None, name=None, ename=None,
+                            order_by=None, order_dir=None, offset=None,
+                            limit=None, use_cache=True):
+        """
+        Получить типы стиля перерыва
+
+        Parameters
+        ----------
+        style_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с типами стиля перерыва
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": style_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-breaks-style', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_breaks_position(self, position_id=None, name=None, ename=None,
+                               order_by=None, order_dir=None, offset=None,
+                               limit=None, use_cache=True):
+        """
+        Получить типы позиций перерыва
+
+        Parameters
+        ----------
+        position_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с типами позиций перерыва
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": position_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-breaks-position', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_breaks_distribution(self, distribution_id=None, name=None, ename=None,
+                                   order_by=None, order_dir=None, offset=None,
+                                   limit=None, use_cache=True):
+        """
+        Получить типы распределения перерыва
+
+        Parameters
+        ----------
+        distribution_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с типами распределения перерыва
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": distribution_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-breaks-distribution', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_breaks_content(self, content_id=None, name=None, ename=None,
+                              order_by=None, order_dir=None, offset=None,
+                              limit=None, use_cache=True):
+        """
+        Получить типы контента перерыва
+
+        Parameters
+        ----------
+        content_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с типами контента перерыва
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": content_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-breaks-content', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_area(self, area_id=None, name=None, ename=None,
+                    order_by=None, order_dir=None, offset=None,
+                    limit=None, use_cache=True):
+        """
+        Получить зоны компании тв рекламы
+
+        Parameters
+        ----------
+        area_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с зонами компании тв рекламы
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": area_id,
+            "name": name,
+            "ename": ename,
+            "empty": True
+        }
+
+        return self._get_dict('tv-area', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_ad_position(self, ad_position_type=None, name=None, ename=None,
+                           order_by=None, order_dir=None, offset=None,
+                           limit=None, use_cache=True):
+        """
+        Получить типы позиции клипа
+
+        Parameters
+        ----------
+        ad_position_type : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с типами позиции клипа
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "type": ad_position_type,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-ad-position', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_company_status(self, company_status_id=None, name=None, ename=None,
+                              order_by=None, order_dir=None, offset=None,
+                              limit=None, use_cache=True):
+        """
+        Получить статусы компании тв рекламы
+
+        Parameters
+        ----------
+        company_status_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame со статусами компании тв рекламы
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": company_status_id,
+            "name": name,
+            "ename": ename,
+            "empty": True
+        }
+
+        return self._get_dict('tv-company-status', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_program_producer(self, program_producer_id=None, name=None, ename=None,
+                                order_by=None, order_dir=None, offset=None,
+                                limit=None, use_cache=True):
+        """
+        Получить производителей программ
+
+        Parameters
+        ----------
+        program_producer_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с производителями программ
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": program_producer_id,
+            "name": name,
+            "ename": ename,
+            "empty": True
+        }
+
+        return self._get_dict('tv-program-producer', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_program_group(self, program_group_id=None, name=None, ename=None,
+                             order_by=None, order_dir=None, offset=None,
+                             limit=None, use_cache=True):
+        """
+        Получить групповые имена программ
+
+        Parameters
+        ----------
+        program_group_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с групповыми именами программ
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": program_group_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-program-group', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_no_yes_na(self, no_yes_na_id=None, name=None, ename=None,
+                         order_by=None, order_dir=None, offset=None,
+                         limit=None, use_cache=True):
+        """
+        Получить Да-Нет-Неизвестно флаги
+
+        Parameters
+        ----------
+        no_yes_na_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с Да-Нет-Неизвестно флагами
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": no_yes_na_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-no-yes-na', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_language(self, language_id=None, name=None, ename=None,
+                        order_by=None, order_dir=None, offset=None,
+                        limit=None, use_cache=True):
+        """
+        Получить языки рекламы
+
+        Parameters
+        ----------
+        language_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с языками рекламы
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": language_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-language', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_company_monitoring(self, company_monitoring_id=None, name=None,
+                                  order_by=None, order_dir=None, offset=None,
+                                  limit=None, use_cache=True):
+        """
+        Получить режимы продолжительности компании тв рекламы
+
+        Parameters
+        ----------
+        company_monitoring_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с режимами продолжительности компании тв рекламы
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": company_monitoring_id,
+            "name": name,
+            "empty": True
+        }
+
+        return self._get_dict('tv-company-monitoring', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_company_group(self, company_group_id=None, name=None, ename=None,
+                             order_by=None, order_dir=None, offset=None,
+                             limit=None, use_cache=True):
+        """
+        Получить группы компаний тв рекламы
+
+        Parameters
+        ----------
+        company_group_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с группами компаний тв рекламы
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": company_group_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-company-group', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_company_category(self, company_category_id=None, name=None, ename=None,
+                                order_by=None, order_dir=None, offset=None,
+                                limit=None, use_cache=True):
+        """
+        Получить категории компаний тв рекламы
+
+        Parameters
+        ----------
+        company_category_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с категориями компаний тв рекламы
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": company_category_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-company-category', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_brand_list(self, brand_list_id=None, name=None, ename=None, order_by=None,
+                          order_dir=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить списки брендов рекламы
+
+        Parameters
+        ----------
+        brand_list_id : string
+            Ид для фильтрации
+
+        name : string
+            Имя для фильтрации
+
+        ename : string
+            Английское имя для фильтрации
+
+        order_by : string
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame со списками брендов рекламы
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": brand_list_id,
+            "name": name,
+            "ename": ename
+        }
+
+        return self._get_dict('tv-brand-list', search_params, body_params, offset, limit, use_cache)
