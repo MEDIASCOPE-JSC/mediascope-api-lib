@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.1.10] - 2023-06-28
+
+### Updated
+
+- In the TV-Index fixed tv-break-distribution dict
+
 ## [1.1.9] - 2023-06-26
 
 ### Added

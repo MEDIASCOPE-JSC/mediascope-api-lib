@@ -65,7 +65,7 @@ class MediaVortexCats:
         'tv-ad-position': '/dictionary/tv/ad-position',
         'tv-breaks-style': '/dictionary/tv/breaks-style',
         'tv-breaks-position': '/dictionary/tv/breaks-position',
-        'tv-break-distribution': '/dictionary/tv/breaks-distribution',
+        'tv-breaks-distribution': '/dictionary/tv/breaks-distribution',
         'tv-breaks-content': '/dictionary/tv/breaks-content',
         'tv-program-producer-country': '/dictionary/tv/program-producer-country',
         'tv-program-producer': '/dictionary/tv/program-producer',
@@ -4579,58 +4579,3 @@ class MediaVortexCats:
         }
 
         return self._get_dict('tv-company-category', search_params, body_params, offset, limit, use_cache)
-
-    def get_tv_brand_list(self, brand_list_id=None, name=None, ename=None, order_by=None,
-                          order_dir=None, offset=None, limit=None, use_cache=True):
-        """
-        Получить списки брендов рекламы
-
-        Parameters
-        ----------
-        brand_list_id : string
-            Ид для фильтрации
-
-        name : string
-            Имя для фильтрации
-
-        ename : string
-            Английское имя для фильтрации
-
-        order_by : string
-            Поле, по которому происходит сортировка
-
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-
-        offset : int
-            Смещение от начала набора отобранных данных
-
-        limit : int
-            Количество записей в возвращаемом наборе данных
-
-        use_cache : bool
-            Использовать кэширование: True - да, False - нет
-            Если опция включена (True), метод при первом получении справочника
-            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
-            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
-            получение данных.
-
-        Returns
-        -------
-        result : DataFrame
-
-            DataFrame со списками брендов рекламы
-        """
-
-        search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
-        }
-
-        body_params = {
-            "id": brand_list_id,
-            "name": name,
-            "ename": ename
-        }
-
-        return self._get_dict('tv-brand-list', search_params, body_params, offset, limit, use_cache)
