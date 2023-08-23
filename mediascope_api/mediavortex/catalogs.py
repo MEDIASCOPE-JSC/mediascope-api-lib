@@ -6,7 +6,7 @@ from ..core import net
 class MediaVortexCats:
     _urls = {
         'tv-kit': '/kit',
-        'tv-tv-ad': '/dictionary/tv/tv-ad',
+        'tv-tv-ad': '/dictionary/tv/ad',
         'tv-subbrand': '/dictionary/tv/subbrand',
         'tv-subbrand-list': '/dictionary/tv/subbrand-list',
         'tv-research-day-type': '/dictionary/tv/research-day-type',
@@ -17,7 +17,6 @@ class MediaVortexCats:
         'tv-program-sport-group': '/dictionary/tv/program-sport-group',
         'tv-program-issue-description': '/dictionary/tv/program-issue-description',
         'tv-program-category': '/dictionary/tv/program-category',
-        'tv-prime-time': '/dictionary/tv/prime-time',
         'tv-net': '/dictionary/tv/net',
         'tv-model': '/dictionary/tv/model',
         'tv-model-list': '/dictionary/tv/model-list',
@@ -49,7 +48,6 @@ class MediaVortexCats:
         'tv-time-band': '/dictionary/tv/time-band',
         'tv-stat': '/dictionary/tv/stat',
         'tv-relation': '/dictionary/tv/relation',
-        'tv-program-prreg': '/dictionary/tv/program-prreg',
         'tv-monitoring-type': '/dictionary/tv/monitoring-type',
         'tv-db-rd-type': '/dictionary/tv/db-rd-type',
         'tv-ad-iss-sbtv': '/dictionary/tv/ad-iss-sbtv',
@@ -75,7 +73,9 @@ class MediaVortexCats:
         'tv-company-monitoring': '/dictionary/tv/company-monitoring',
         'tv-company-group': '/dictionary/tv/company-group',
         'tv-company-category': '/dictionary/tv/company-category',
-        'tv-company-status': '/dictionary/tv/company-status'
+        'tv-company-status': '/dictionary/tv/company-status',
+        'tv-age-restriction': '/dictionary/tv/age-restriction',
+        'availability-period': '/period/availability-period'
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None,
@@ -98,7 +98,7 @@ class MediaVortexCats:
 
     def load_tv_property(self):
         """
-        Загрузить список демо переменных
+        Загрузить список демографических переменных
 
         Returns
         -------
@@ -108,12 +108,12 @@ class MediaVortexCats:
         """
         data = self.get_tv_demo_attribute()
         # формируем столбец с именами срезов, относящихся к переменным (изменяем первую букву на строчную)
-        data['entityName'] = data['colName'].str[0].str.lower() + data['colName'].str[1:]
+        #data['entityName'] = data['colName'].str[0].str.lower() + data['colName'].str[1:]
         return data
 
     def find_tv_property(self, text, expand=True, with_id=False):
         """
-        Поиск по каталогу Демографических и Географических переменных
+        Поиск по каталогу демографических переменных
 
         Parameters
         ----------
@@ -204,7 +204,7 @@ class MediaVortexCats:
         print(
             f'Запрошены записи: {offset} - {offset + limit}\nВсего найдено записей: {total}\n')
 
-    def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None, use_cache=True,
+    def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None, use_cache=False,
                   request_type='post'):
         """
         Получить словарь из API
@@ -222,10 +222,13 @@ class MediaVortexCats:
             Словарь с параметрами в теле запроса
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         Returns
         -------
@@ -233,6 +236,13 @@ class MediaVortexCats:
 
             DataFrame с объектами словаря
         """
+
+        if limit is not None and offset is None:
+            raise ValueError("Необходимо указать значение параметра offset. Укажите 0, если смещение не требуется")
+        
+        if offset is not None and limit is None:
+            raise ValueError("Необходимо указать значение параметра limit")
+        
         if self._urls.get(entity_name) is None:
             return None
 
@@ -255,7 +265,7 @@ class MediaVortexCats:
             return None
 
         if 'header' not in data or 'data' not in data:
-            return None
+            return data
 
         # извлекаем все заголовки столбцов (их может быть разное количество, особенно для поля notes)
         res_headers = []
@@ -286,7 +296,7 @@ class MediaVortexCats:
 
     def get_timeband_unit(self):
         """
-        Получить списки доступных для использования в заданиях для timeband:
+        Получить списки доступных атрибутов отчета Периоды (Timeband):
         - статистик
         - срезов
         - фильтров
@@ -322,7 +332,7 @@ class MediaVortexCats:
 
     def get_simple_unit(self):
         """
-        Получить списки доступных для использования в заданиях для simple:
+        Получить списки доступных атрибутов отчета События (Simple):
         - статистик
         - срезов
         - фильтров
@@ -358,7 +368,7 @@ class MediaVortexCats:
 
     def get_crosstab_unit(self):
         """
-        Получить списки доступных для использования в заданиях для crosstab:
+        Получить списки доступных атрибутов отчета Кросс Таблица (Crosstab):
         - статистик
         - срезов
         - фильтров
@@ -395,7 +405,7 @@ class MediaVortexCats:
 
     def get_consumption_target_unit(self):
         """
-        Получить списки доступных для использования в заданиях для consumption target:
+        Получить списки доступных атрибутов отчета Consumption target:
         - статистик
         - срезов
         - фильтров
@@ -432,7 +442,7 @@ class MediaVortexCats:
 
     def get_duplication_timeband_unit(self):
         """
-        Получить списки доступных для использования в заданиях для duplication_timeband:
+        Получить списки доступных атрибутов отчета Пересечение аудитории (Duplication timeband):
         - статистик
         - срезов
         - фильтров
@@ -467,157 +477,46 @@ class MediaVortexCats:
 
         return result
 
-    def get_tv_tv_ad(self, tv_ad_type_ids=None, advertiser_list_ids=None, brand_list_ids=None, model_list_ids=None,
-                     article_list2_ids=None, article_list3_ids=None, article_list4_ids=None, subbrand_list_ids=None,
-                     slogan_audio_ids=None, slogan_video_ids=None, ad_style_ids=None, tv_ad_ids=None, name=None,
-                     ename=None, notes=None, standard_durations=None, file_type=None, order_by=None, order_dir=None,
-                     offset=None, limit=None, use_cache=True):
+    def get_tv_subbrand(self, ids=None, name=None, ename=None, brand_ids=None, tv_area_ids=None, notes=None,
+                        order_by='id', order_dir=None, offset=None, limit=None,
+                        use_cache=False):
         """
-        Получить телерекламу
+        Получить коллекцию суббрендов
 
         Parameters
         ----------
-        tv_ad_type_ids : list
-            Поиск по списку идентификаторов типов рекламы
-        
-        advertiser_list_ids : list
-            Поиск по списку идентификаторов рекламодателей
-        
-        brand_list_ids : list
-            Поиск по списку идентификаторов брендов
-        
-        model_list_ids : list
-            Поиск по списку идентификаторов моделей
-        
-        article_list2_ids : list
-            Поиск по списку идентификаторов мест
-        
-        article_list3_ids : list
-            Поиск по списку идентификаторов мест
-        
-        article_list4_ids : list
-            Поиск по списку идентификаторов мест
-        
-        subbrand_list_ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов суббрендов
         
-        slogan_audio_ids : list
-            Поиск по списку идентификаторов аудио слоганов
-        
-        slogan_video_ids : list
-            Поиск по списку идентификаторов видео слоганов
-        
-        ad_style_ids : list
-            Поиск по списку идентификаторов стилей рекламы
-        
-        tv_ad_ids : list
-            Поиск по списку идентификаторов рекламы
-            
-        name : string
-            Поиск по имени рекламы
-        
-        ename : string
-            Поиск по англоязычному имени рекламы
-        
-        standard_durations : list
-            Поиск по списку продолжительности рекламы
-            
-        notes : string
-            Поиск по заметкам 
-        
-        file_type : string
-            Поиск по типу файла
-            
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
-              
-        offset : int
-            Смещение от начала набора отобранных данных
-
-        limit : int
-            Количество записей в возвращаемом наборе данных
-
-        use_cache : bool
-            Использовать кэширование: True - да, False - нет
-            Если опция включена (True), метод при первом получении справочника
-            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
-            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
-            получение данных.
-
-        Returns
-        -------
-        media : DataFrame
-
-            DataFrame с рекламой
-        """
-
-        search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
-        }
-
-        body_params = {
-            "tvAdTypeId": tv_ad_type_ids,
-            "advertiserListId": advertiser_list_ids,
-            "brandListId": brand_list_ids,
-            "modelListId": model_list_ids,
-            "articleList2Id": article_list2_ids,
-            "articleList3Id": article_list3_ids,
-            "articleList4Id": article_list4_ids,
-            "subbrandListId": subbrand_list_ids,
-            "tvAdSloganAudioId": slogan_audio_ids,
-            "tvAdSloganVideoId": slogan_video_ids,
-            "adStyleId": ad_style_ids,
-            "id": tv_ad_ids,
-            "name": name,
-            "ename": ename,
-            "notes": notes,
-            "standardDuration": standard_durations,
-            "fileType": file_type
-        }
-
-        return self._get_dict('tv-tv-ad', search_params, body_params, offset, limit, use_cache)
-
-    def get_tv_subbrand(self, brand_ids=None, ids=None, name=None, ename=None, notes=None,
-                        tv_area_ids=None, order_by=None, order_dir=None, offset=None, limit=None,
-                        use_cache=True):
-        """
-        Получить суббренды
-
-        Parameters
-        ----------
-        brand_ids : list
-            Поиск по списку идентификаторов брендов
-        
-        ids : list
-            Поиск по списку идентификаторов суббрендов
-        
-        name : string
+        name : str or list of str
             Поиск по имени суббренда
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени суббренда
             
-        notes : string
+        brand_ids : str or list of str
+            Поиск по списку идентификаторов брендов
+
+        tv_area_ids : str or list of str
+            Поиск по списку идентификаторов областей выхода
+        
+        notes : str or list of str
             Поиск по заметкам
         
-        tv_area_ids : list
-            Поиск по списку телеплощадок
-        
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -647,35 +546,40 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        return self._get_dict('tv-subbrand', search_params, body_params, offset, limit, use_cache)
+        df_sub = self._get_dict('tv-subbrand', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_subbrand_list(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                             offset=None, limit=None, use_cache=True):
+        return df_sub.reindex(columns=['id','name','ename','brandId','tvArea','notes'],fill_value='')
+
+    def get_tv_subbrand_list(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                             offset=None, limit=None, use_cache=False):
         """
-        Получить списки суббрендов
+        Получить коллекцию списков суббрендов
 
         Parameters
         ----------
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов суббрендов
         
-        name : string
+        name : str or list of str
             Поиск по имени суббренда
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени суббренда
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -704,25 +608,28 @@ class MediaVortexCats:
 
         return self._get_dict('tv-subbrand-list', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_research_day_type(self, order_by=None, order_dir=None, offset=None,
-                                 limit=None, use_cache=True):
+    def get_tv_research_day_type(self, order_by='id', order_dir=None, offset=None,
+                                 limit=None, use_cache=False):
         """
         Получить типы дней
 
         Parameters
         ----------
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -751,39 +658,42 @@ class MediaVortexCats:
 
         return self._get_dict('tv-research-day-type', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_region(self, region_ids=None, name=None, ename=None, notes=None, monitoring_type=None, order_by=None,
-                      order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_region(self, ids=None, name=None, ename=None, notes=None, monitoring_type=None, order_by='id',
+                      order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить регионы
 
         Parameters
         ----------
-        region_ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов регионов
         
-        name : string
+        name : str or list of str
             Поиск по имени региона
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени региона
             
-        notes : string
+        notes : str or list of str
             Поиск по заметкам
         
-        monitoring_type : string
+        monitoring_type : str or list of str
             Поиск по типу мониторинга
                 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -805,7 +715,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": region_ids,
+            "id": ids,
             "name": name,
             "ename": ename,
             "notes": notes,
@@ -814,78 +724,81 @@ class MediaVortexCats:
 
         return self._get_dict('tv-region', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_program(self, program_ids=None, program_type_ids=None, program_category_ids=None, program_sport_ids=None,
-                       sport_group_ids=None, language_ids=None, program_producer_ids=None, program_producer_reg=None,
-                       program_producer_year=None, is_program_group=None, is_child=None, country_ids=None, name=None,
-                       ename=None, extended_name=None, extended_ename=None, notes=None, order_by=None,
-                       order_dir=None, offset=None, limit=None, use_cache=False):
+    def get_tv_program(self, ids=None, name=None, ename=None, extended_name=None, extended_ename=None, first_issue_date=None, 
+                       program_type_ids=None, program_category_ids=None, country_ids=None, program_sport_ids=None,
+                       sport_group_ids=None, language_ids=None, program_producer_ids=None, program_producer_year=None, 
+                       is_program_group=None, is_child=None, notes=None, order_by='id', order_dir=None, offset=None, limit=None, 
+                       use_cache=False):
         """
-        Получить программы
+        Получить коллекцию программ
 
         Parameters
         ----------
-        program_ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов программ
-        
-        program_type_ids : list
-            Поиск по списку идентификаторов типов программ
-        
-        program_category_ids : list
-            Поиск по списку идентификаторов категорий программ
-        
-        program_sport_ids : list
-            Поиск по списку идентификаторов спортивных программ
-        
-        sport_group_ids : list
-            Поиск по списку идентификаторов спортивных групп
 
-        language_ids : list
+        name : str or list of str
+            Поиск по имени программы
+        
+        ename : str or list of str
+            Поиск по англоязычному имени программы
+        
+        extended_name : str or list of str
+            Поиск по полному имени программы
+        
+        extended_ename : str or list of str
+            Поиск по полному англоязычному имени программы
+
+        first_issue_date : str or list of str
+            Поиск по дате первого выхода
+        
+        program_type_ids : str or list of str
+            Поиск по списку идентификаторов жанров программ
+        
+        program_category_ids : str or list of str
+            Поиск по списку идентификаторов категорий программ
+
+        country_ids : str or list of str
+            Поиск по списку идентификаторов стран производства
+        
+        program_sport_ids : str or list of str
+            Поиск по списку идентификаторов видов спорта
+        
+        sport_group_ids : str or list of str
+            Поиск по списку идентификаторов групп спорта
+
+        language_ids : str or list of str
             Поиск по списку идентификаторов языков
         
-        program_producer_ids : list
-            Поиск по списку идентификаторов продюсеров программ
+        program_producer_ids : str or list of str
+            Поиск по списку идентификаторов производителей программ
         
-        program_producer_reg : string
-            Поиск по 
-        
-        program_producer_year : string
+        program_producer_year : str or list of str
             Поиск по году создания
 
         is_program_group : string
-            Поиск по признаку группы программ
+            Поиск по флагу программа группа
         
         is_child : string
-            Поиск по признаку подчиненности
-        
-        country_ids : list
-            Поиск по списку идентификаторов стран
-        
-        name : string
-            Поиск по имени программы
-        
-        ename : string
-            Поиск по англоязычному имени программы
-        
-        extended_name : string
-            Поиск по расширенному имени программы
-        
-        extended_ename : string
-            Поиск по расширенному англоязычному имени программы
+            Поиск по флагу программа десткая
             
-        notes : string
+        notes : str or list of str
             Поиск по заметкам            
         
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -913,51 +826,58 @@ class MediaVortexCats:
             "sportGroupId": sport_group_ids,
             "languageId": language_ids,
             "programProducerId": program_producer_ids,
-            "programProducerReg": program_producer_reg,
             "programProducerYear": program_producer_year,
             "isProgramGroup": is_program_group,
             "isChild": is_child,
-            "id": program_ids,
+            "id": ids,
             "countryId": country_ids,
             "name": name,
             "ename": ename,
             "extendedName": extended_name,
             "extendedEname": extended_ename,
-            "notes": notes
+            "notes": notes,
+            "firstIssueDate": first_issue_date
         }
 
-        return self._get_dict('tv-program', search_params, body_params, offset, limit, use_cache)
+        df_prog =  self._get_dict('tv-program', search_params, body_params, offset, limit, use_cache)
+        
+        return df_prog.reindex(columns=['id','name','ename','extendedName','extendedEname','firstIssueDate','programTypeId',
+                           'programCategoryId','programCountryId','programSportId','programSportGroupId','languageId',
+                           'programProducerId','producerYear','isProgramGroup','isChild','notes'],fill_value='')
 
-    def get_tv_program_type(self, program_type_ids=None, name=None, ename=None, notes=None,
-                            order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_program_type(self, ids=None, name=None, ename=None, notes=None,
+                            order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить типы программ
+        Получить коллекцию жанров программ
 
         Parameters
         ----------
-        program_type_ids : list
-            Поиск по списку идентификаторов типов программ
+        ids : str or list of str
+            Поиск по списку идентификаторов жанров программ
         
-        name : string
-            Поиск по имени типа
+        name : str or list of str
+            Поиск по имени жанра
         
-        ename : string
-            Поиск по англоязычному имени типа
+        ename : str or list of str
+            Поиск по англоязычному имени жанра
             
-        notes : string
+        notes : str or list of str
             Поиск по заметкам 
                        
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -970,7 +890,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с типами программ
+            DataFrame с жанрами программ
         """
 
         search_params = {
@@ -979,7 +899,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": program_type_ids,
+            "id": ids,
             "name": name,
             "ename": ename,
             "notes": notes
@@ -987,36 +907,39 @@ class MediaVortexCats:
 
         return self._get_dict('tv-program-type', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_program_sport(self, program_sport_ids=None, name=None, ename=None, notes=None, order_by=None,
-                             order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_program_sport(self, ids=None, name=None, ename=None, notes=None, order_by='id',
+                             order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить виды спорта в программах
+        Получить коллекцию видов спорта
 
         Parameters
         ----------
-        program_sport_ids : list
-            Поиск по списку идентификаторов видов спорта в программах
+        ids : str or list of str
+            Поиск по списку идентификаторов видов спорта
         
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
             
-        notes : string
+        notes : str or list of str
             Поиск по заметкам 
                         
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1029,7 +952,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с видами спорта в программах
+            DataFrame с видами спорта
         """
 
         search_params = {
@@ -1038,7 +961,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": program_sport_ids,
+            "id": ids,
             "name": name,
             "ename": ename,
             "notes": notes
@@ -1046,36 +969,39 @@ class MediaVortexCats:
 
         return self._get_dict('tv-program-sport', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_program_sport_group(self, program_sport_group_ids=None, name=None, ename=None, notes=None, order_by=None,
-                                   order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_program_sport_group(self, ids=None, name=None, ename=None, notes=None, order_by='id',
+                                   order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить группы видов спорта в программах
+        Получить коллекцию групп спорта
 
         Parameters
         ----------
-        program_sport_group_ids : list
-            Поиск по списку идентификаторов групп видов спорта
+        ids : str or list of str
+            Поиск по списку идентификаторов групп спорта
         
-        name : string
+        name : str or list of str
             Поиск по имени группы
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени группы
             
-        notes : string
+        notes : str or list of str
             Поиск по заметкам 
                                     
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1088,7 +1014,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с группами видов спорта
+            DataFrame с группами спорта
         """
 
         search_params = {
@@ -1097,7 +1023,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": program_sport_group_ids,
+            "id": ids,
             "name": name,
             "ename": ename,
             "notes": notes
@@ -1105,33 +1031,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-program-sport-group', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_program_issue_description(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                                         offset=None, limit=None, use_cache=True):
+    def get_tv_program_issue_description(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                                         offset=None, limit=None, use_cache=False):
         """
-        Получить описания выпусков
+        Получить коллекцию описаний выходов программ
 
         Parameters
         ----------
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов описаний выпусков
         
-        name : string
-            Поиск по имени описания
+        name : str or list of str
+            Поиск по тексту описания
         
-        ename : string
-            Поиск по англоязычному имени описания
+        ename : str or list of str
+            Поиск по англоязычному тексту описания
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1144,7 +1073,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с описаниями выпусков
+            DataFrame с описаниями выходов программ
         """
 
         search_params = {
@@ -1160,49 +1089,45 @@ class MediaVortexCats:
 
         return self._get_dict('tv-program-issue-description', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_program_category(self, program_type_ids=None, program_type_category_nums=None, ids=None, name=None,
-                                ename=None, short_name=None, short_ename=None, notes=None, order_by=None,
-                                order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_program_category(self, ids=None, name=None, ename=None, short_name=None, short_ename=None, type_ids=None, 
+                                program_type_category_nums=None, notes=None, offset=None, limit=None, use_cache=False):
         """
-        Получить категорию телепрограмм
+        Получить коллекцию категорий программ
 
         Parameters
         ----------
-        program_type_ids : list
-            Поиск по списку идентификаторов типов программ
+        ids : str or list of str
+            Поиск по списку идентификаторов категорий программ
+
+        name : str or list of str
+            Поиск по имени категории
         
-        program_type_category_nums : list
-            Поиск по списку номеров категорий
+        ename : str or list of str
+            Поиск по англоязычному имени категории
+
+        short_name : str or list of str
+            Поиск по короткому имени категории
+        
+        short_ename : str or list of str
+            Поиск по короткому англоязычному имени категории
+
+        type_ids : str or list of str
+            Поиск по списку идентификаторов жанров программ
+        
+        program_type_category_nums : str or list of str
+            Поиск по порядковому номеру категории в жанре
             
-        ids : list
-            Поиск по списку идентификаторов категорий
-        
-        name : string
-            Поиск по имени
-        
-        ename : string
-            Поиск по англоязычному имени
-            
-        short_name : string
-            Поиск по имени
-        
-        short_ename : string
-            Поиск по англоязычному имени
-            
-        notes : string
+        notes : str or list of str
             Поиск по заметкам 
-            
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1219,12 +1144,12 @@ class MediaVortexCats:
         """
 
         search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
+            'orderBy': None,
+            'orderDir': None
         }
 
         body_params = {
-            "programTypeId": program_type_ids,
+            "programTypeId": type_ids,
             "programTypeCategoryNum": program_type_category_nums,
             "id": ids,
             "name": name,
@@ -1234,38 +1159,42 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        return self._get_dict('tv-program-category', search_params, body_params, offset, limit, use_cache)
+        df_pr_cat = self._get_dict('tv-program-category', search_params, body_params, offset, limit, use_cache)
+        
+        df_pr_cat = df_pr_cat.reindex(columns=['id','name','ename','shortName','shortEname','programTypeId','programTypeCategoryNum','notes'],fill_value='')
+        
+        return df_pr_cat.sort_values(by=['programTypeId','programTypeCategoryNum'])
 
-    def get_tv_prime_time(self, ids=None, name=None, ename=None, notes=None, order_by=None, order_dir=None,
-                          offset=None, limit=None, use_cache=True):
+    def get_tv_net(self, ids=None, name=None, ename=None, order_by='id',
+                   order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить прайм-тайм
+        Получить коллекцию телесетей
 
         Parameters
         ----------
-        ids : list
-            Поиск по списку идентификаторов прайм-тайма
+        ids : str or list of str
+            Поиск по списку идентификаторов сетей
         
-        name : string
-            Поиск по имени
+        name : str or list of str
+            Поиск по имени сети
         
-        ename : string
-            Поиск по англоязычному имени
+        ename : str or list of str
+            Поиск по англоязычному имени сети 
             
-        notes : string
-            Поиск по заметкам 
-            
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-
+              
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1278,7 +1207,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с категориями телепрограмм
+            DataFrame с телесетями
         """
 
         search_params = {
@@ -1289,108 +1218,55 @@ class MediaVortexCats:
         body_params = {
             "id": ids,
             "name": name,
-            "ename": ename,
-            "notes": notes
-        }
-
-        return self._get_dict('tv-prime-time', search_params, body_params, offset, limit, use_cache)
-
-    def get_tv_net(self, net_ids=None, name=None, ename=None, order_by=None,
-                   order_dir=None, offset=None, limit=None, use_cache=False):
-        """
-        Получить сети
-
-        Parameters
-        ----------
-        net_ids : list
-            Поиск по списку идентификаторов сетей
-        
-        name : string
-            Поиск по имени сети
-        
-        ename : string
-            Поиск по англоязычному имени сети 
-            
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
-        offset : int
-            Смещение от начала набора отобранных данных
-
-        limit : int
-            Количество записей в возвращаемом наборе данных
-
-        use_cache : bool
-            Использовать кэширование: True - да, False - нет
-            Если опция включена (True), метод при первом получении справочника
-            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
-            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
-            получение данных.
-
-        Returns
-        -------
-        media : DataFrame
-
-            DataFrame с сетями
-        """
-
-        search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
-        }
-
-        body_params = {
-            "id": net_ids,
-            "name": name,
             "ename": ename
         }
 
         df_net = self._get_dict('tv-net', search_params, body_params, offset, limit, use_cache)
-        df_net.drop('notes', axis=1, inplace=True, errors='ignore')
-        return df_net
+        
+        return df_net.reindex(columns=['id','name','ename'],fill_value='')
 
-    def get_tv_model(self, subbrand_ids=None, article_ids=None, ids=None, name=None, ename=None, notes=None,
-                     tv_area_ids=None, order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_model(self, ids=None, name=None, ename=None, subbrand_ids=None, article_ids=None, tv_area_ids=None, notes=None,
+                     order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить модели
+        Получить коллекцию продуктов
 
         Parameters
         ----------
-        subbrand_ids : list
-            Поиск по списку идентификаторов суббрендов
-            
-        article_ids : list
-            Поиск по списку идентификаторов статей
-        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов моделей
         
-        name : string
+        name : str or list of str
             Поиск по имени
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
+
+        subbrand_ids : str or list of str
+            Поиск по списку идентификаторов суббрендов
             
-        notes : string
+        article_ids : str or list of str
+            Поиск по списку идентификаторов статей
+
+        tv_area_ids : str or list of str
+            Поиск по списку идентификаторов областей выхода 
+            
+        notes : str or list of str
             Поиск по заметкам
-        
-        tv_area_ids : list
-            Поиск по списку идентификаторов телеплощадок 
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1403,7 +1279,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с моделями
+            DataFrame с продуктами
         """
 
         search_params = {
@@ -1421,35 +1297,40 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        return self._get_dict('tv-model', search_params, body_params, offset, limit, use_cache)
+        df_mod = self._get_dict('tv-model', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_model_list(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                          offset=None, limit=None, use_cache=True):
+        return df_mod.reindex(columns=['id','name','ename','subbrandId','articleId','tvArea','notes'],fill_value='')
+
+    def get_tv_model_list(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                          offset=None, limit=None, use_cache=False):
         """
-        Получить списки моделей
+        Получить коллекцию списков продуктов
 
         Parameters
         ----------       
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов моделей
         
-        name : string
+        name : str or list of str
             Поиск по имени
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1462,7 +1343,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с моделями
+            DataFrame со списками продуктов
         """
 
         search_params = {
@@ -1478,33 +1359,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-model-list', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_location(self, location_ids=None, name=None, ename=None, order_by=None,
+    def get_tv_location(self, ids=None, name=None, ename=None, order_by='id',
                         order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить места
+        Получить коллекцию мест просмотра
 
         Parameters
         ----------
-        location_ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов мест
 
-        name : string
+        name : str or list of str
             Поиск по имени места
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени места
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0. 
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1526,43 +1410,46 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": location_ids,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-location', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_grp_type(self, ids=None, name=None, notes=None, expression=None, order_by=None,
-                        order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_grp_type(self, ids=None, name=None, notes=None, expression=None, order_by='name',
+                        order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить типы групп
+        Получить типы баинговых аудиторий
 
         Parameters
         ----------       
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов типов групп
         
-        name : string
+        name : str or list of str
             Поиск по имени
         
-        notes : string
+        notes : str or list of str
             Поиск по заметке
         
-        expression : string
+        expression : str or list of str
             Поиск по выражению 
             
-        order_by : string
+        order_by : string, default 'name'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1575,7 +1462,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с типами групп
+            DataFrame с типами баинговых аудиторий
         """
 
         search_params = {
@@ -1592,30 +1479,33 @@ class MediaVortexCats:
 
         return self._get_dict('tv-grp-type', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_exchange_rate(self, research_date=None, rate=None, order_by=None,
-                             order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_exchange_rate(self, research_date=None, rate=None, order_by='researchDay',
+                             order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить курсы обмена
 
         Parameters
         ----------       
-        research_date : list
+        research_date : str or list of str
             Поиск по списку дней
         
-        rate : list
+        rate : str or list of str
             Поиск по списку курсов
             
-        order_by : string
+        order_by : string, default 'researchDay'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1643,92 +1533,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-exchange-rate', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_digital_broadcasting_type(self, ids=None, name=None, ename=None, notes=None, order_by=None,
-                                         order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_day_week(self, ids=None, name=None, ename=None, order_by='id',
+                        order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить типы цифрового вещания
+        Получить коллецию дней недели
 
         Parameters
         ----------
-        ids : list
-            Поиск по списку идентификаторов типов вещания
-        
-        name : string
-            Поиск по имени
-        
-        ename : string
-            Поиск по англоязычному имени
-            
-        notes : string
-            Поиск по заметкам 
-            
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
-        offset : int
-            Смещение от начала набора отобранных данных
-
-        limit : int
-            Количество записей в возвращаемом наборе данных
-
-        use_cache : bool
-            Использовать кэширование: True - да, False - нет
-            Если опция включена (True), метод при первом получении справочника
-            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
-            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
-            получение данных.
-
-        Returns
-        -------
-        media : DataFrame
-
-            DataFrame с типами цифрового вещания
-        """
-
-        search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
-        }
-
-        body_params = {
-            "id": ids,
-            "name": name,
-            "ename": ename,
-            "notes": notes
-        }
-
-        return self._get_dict('tv-digital-broadcasting-type', search_params, body_params, offset, limit, use_cache)
-
-    def get_tv_day_week(self, day_num_ids=None, day_week_name=None, day_week_ename=None, order_by=None,
-                        order_dir=None, offset=None, limit=None, use_cache=True):
-        """
-        Получить дни недели
-
-        Parameters
-        ----------
-        day_num_ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов дней недели
             
-        day_week_name : string
+        name : str or list of str
             Поиск по имени дня
         
-        day_week_ename : string
+        ename : str or list of str
             Поиск по англоязычному имени дня  
                       
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1750,66 +1584,53 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "dayNum": day_num_ids,
-            "dayWeekName": day_week_name,
-            "dayWeekEName": day_week_ename
+            "id": ids,
+            "name": name,
+            "ename": ename
         }
 
         return self._get_dict('tv-day-week', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_company(self, tv_channel_ids=None, tv_net_ids=None, region_ids=None, tv_company_group_ids=None,
-                       tv_company_category_ids=None, name=None, ename=None, ids=None, status=None,
-                       information=None, monitoring_type=None, order_by=None, order_dir=None, offset=None,
-                       limit=None, use_cache=True):
+    def get_tv_company(self, ids=None, name=None, ename=None, tv_net_ids=None, region_ids=None, tv_company_group_ids=None,
+                       tv_company_category_ids=None, information=None, offset=None,
+                       limit=None, use_cache=False):
         """
-        Получить телекомпании
+        Получить коллекцию телекомпаний
 
         Parameters
         ----------        
-        tv_channel_ids : list
-            Поиск по списку идентификаторов каналов
+        ids : str or list of str
+            Поиск по списку идентификаторов телекомпаний
+        
+        name : str or list of str
+            Поиск по имени телекомпании
+        
+        ename : str or list of str
+            Поиск по англоязычному имени телекомпании
+           
+        tv_net_ids : str or list of str
+            Поиск по списку идентификаторов телесетей
             
-        tv_net_ids : list
-            Поиск по списку идентификаторов сетей
-            
-        region_ids : list
+        region_ids : str or list of str
             Поиск по списку идентификаторов регионов
             
-        tv_company_group_ids : list
-            Поиск по списку идентификаторов групп компаний
+        tv_company_group_ids : str or list of str
+            Поиск по списку идентификаторов групп телекомпаний
             
-        tv_company_category_ids : list
-            Поиск по списку идентификаторов категорий компаний
-            
-        name : string
-            Поиск по имени
-        
-        ename : string
-            Поиск по англоязычному имени
-            
-        ids : list
-            Поиск по списку идентификаторов компаний    
-        
-        status : string
-            Поиск по статусу
-        
-        information : string
-            Поиск по информации
-        
-        monitoring_type : string
-            Поиск по типу мониторинга
-                               
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
+        tv_company_category_ids : str or list of str
+            Поиск по списку идентификаторов категорий телекомпаний
+             
+        information : str or list of str
+            Поиск по информации      
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1826,12 +1647,11 @@ class MediaVortexCats:
         """
 
         search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
+            'orderBy': None,
+            'orderDir': None
         }
 
         body_params = {
-            "tvChannelId": tv_channel_ids,
             "tvNetId": tv_net_ids,
             "regionId": region_ids,
             "tvCompanyGroupId": tv_company_group_ids,
@@ -1839,42 +1659,46 @@ class MediaVortexCats:
             "name": name,
             "ename": ename,
             "id": ids,
-            "status": status,
-            "information": information,
-            "monitoringType": monitoring_type
+            "information": information
         }
 
         df_comp = self._get_dict('tv-company', search_params, body_params, offset, limit, use_cache)
-        df_comp.drop('notes', axis=1, inplace=True, errors='ignore')
-        return df_comp
 
-    def get_tv_company_merge(self, tv_channel_merge_ids=None, tv_company_ids=None, ids=None,
-                             order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+        df_comp = df_comp.reindex(columns=['id','name','ename','tvNetId','regionId','tvCompanyHoldingId','tvCompanyMediaHoldingId','tvThematicId',
+                           'tvCompanyGroupId','tvCompanyCategoryId','tvCompanyMediaType','information'],fill_value='')
+        
+        return df_comp.sort_values(by=['regionId','id'])
+
+    def get_tv_company_merge(self, ids=None, tv_channel_merge_ids=None, tv_company_ids=None, 
+                             order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить объединенные компании
+        Получить объединенные компании в регионах
 
         Parameters
         ----------
-        tv_channel_merge_ids : list
-            Поиск по списку идентификаторов объединенных компаний
+        ids : str or list of str
+            Поиск по списку идентификаторов объединенных телекомпаний
+
+        tv_channel_merge_ids : str or list of str
+            Поиск по списку идентификаторов объединенных каналов
         
-        tv_company_ids : list
-            Поиск по списку идентификаторов компаний
-        
-        ids : list
-            Поиск по списку идентификаторов
+        tv_company_ids : str or list of str
+            Поиск по списку идентификаторов телекомпаний
                                
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1903,30 +1727,33 @@ class MediaVortexCats:
 
         return self._get_dict('tv-company-merge', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_calendar(self, research_date=None, research_day_type=None, order_by=None, order_dir=None,
-                        offset=None, limit=None, use_cache=True):
+    def get_tv_calendar(self, research_date=None, research_day_type=None, order_by='researchDate', order_dir=None,
+                        offset=None, limit=None, use_cache=False):
         """
         Получить календарь
 
         Parameters
         ----------
-        research_date : list
+        research_date : str or list of str
             Поиск по списку дат
         
-        research_day_type : list
+        research_day_type : str or list of str
             Поиск по списку типов дат 
                         
-        order_by : string
+        order_by : string, default 'researchDate'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1952,26 +1779,55 @@ class MediaVortexCats:
             "researchDayType": research_day_type
         }
 
-        return self._get_dict('tv-calendar', search_params, body_params, offset, limit, use_cache)
+        df_calendar = self._get_dict('tv-calendar', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_breaks(self, order_by=None, order_dir=None,
-                      offset=None, limit=None, use_cache=True):
+        return df_calendar.reindex(columns=['researchDate', 'researchDayTypeId'],fill_value='')
+
+    def get_tv_breaks(self, ids=None, name=None, ename=None, pos_types=None, distrib_types=None, cont_types=None,
+                      style_ids=None, notes=None, order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить перерывы
+        Получить коллекцию рекламных блоков
 
         Parameters
-        ----------                        
-        order_by : string
+        ----------   
+        ids : str or list of str
+            Поиск по списку идентификаторов блоков
+
+        name : str or list of str
+            Поиск по имени блока
+        
+        ename : str or list of str
+            Поиск по англоязычному имени блока
+           
+        pos_types : str or list of str
+            Поиск по списку идентификаторов типов блоков
+
+        distrib_types : str or list of str
+            Поиск по списку идентификаторов типов распространения блоков
+
+        cont_types : str or list of str
+            Поиск по списку идентификаторов типов содержания блоков
+
+        style_ids : str or list of str
+            Поиск по списку идентификаторов стилей блоков
+
+        notes : str or list of str
+            Поиск по заметкам 
+
+        order_by : string, default 'id
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1984,7 +1840,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с перерывами
+            DataFrame с рекламными блоками
         """
 
         search_params = {
@@ -1993,51 +1849,54 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "name": None,
-            "ename": None,
-            "id": None,
-            "notes": None,
-            "positionType": None,
-            "distributionType": None,
-            "contentType": None,
-            "styleId": None
+            "name": name,
+            "ename": ename,
+            "id": ids,
+            "notes": notes,
+            "positionType": pos_types,
+            "distributionType": distrib_types,
+            "contentType": cont_types,
+            "styleId": style_ids
         }
 
         return self._get_dict('tv-breaks', search_params, body_params, offset, limit, use_cache)
 
     def get_tv_brand(self, ids=None, name=None, ename=None, notes=None, tv_area_ids=None,
-                     order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+                     order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить бренды
+        Получить коллекцию брендов
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов брендов
         
-        name : string
+        name : str or list of str
             Поиск по имени бренда
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени бренда
             
-        notes : string
+        notes : str or list of str
             Поиск по заметкам
         
-        tv_area_ids : list
-            Поиск по списку телеплощадок
+        tv_area_ids : str or list of str
+            Поиск по списку идентификаторов областей выхода
         
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2066,35 +1925,40 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        return self._get_dict('tv-brand', search_params, body_params, offset, limit, use_cache)
+        df_brand = self._get_dict('tv-brand', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_brand_list(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                          offset=None, limit=None, use_cache=True):
+        return df_brand.reindex(columns=['id', 'name', 'ename', 'tvArea', 'notes'], fill_value='')
+
+    def get_tv_brand_list(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                          offset=None, limit=None, use_cache=False):
         """
-        Получить списки брендов
+        Получить коллекцию списков брендов
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов 
         
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2123,42 +1987,45 @@ class MediaVortexCats:
 
         return self._get_dict('tv-brand-list', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_article(self, parent_ids=None, levels=None, ids=None, name=None, ename=None, notes=None,
-                       order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+    def get_tv_article(self, ids=None, name=None, ename=None, levels=None, parent_ids=None, notes=None,
+                       order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить товарные категории
 
         Parameters
-        ----------        
-        parent_ids : list
-            Поиск по списку родительских идентификаторов
-        
-        levels : list
-            Поиск по списку уровней  
-
-        ids : list
+        ----------
+        ids : str or list of str
             Поиск по списку идентификаторов 
         
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
+
+        levels : str or list of str
+            Поиск по списку уровней  
+
+        parent_ids : str or list of str
+            Поиск по списку родительских идентификаторов
         
-        notes : string
+        notes : str or list of str
             Поиск по заметкам
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2188,35 +2055,40 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        return self._get_dict('tv-article', search_params, body_params, offset, limit, use_cache)
+        df_art = self._get_dict('tv-article', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_article_list4(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                             offset=None, limit=None, use_cache=True):
+        return df_art.reindex(columns=['id', 'name', 'ename', 'level', 'parentId', 'notes'],fill_value='')
+
+    def get_tv_article_list4(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                             offset=None, limit=None, use_cache=False):
         """
-        Получить список товарных категорий рекламы 4 уровня
+        Получить коллекцию списков товарных категорий 4 уровня
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов 
         
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2229,7 +2101,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с товарными категориями рекламы 4 уровня
+            DataFrame со списками товарных категорий 4 уровня
         """
 
         search_params = {
@@ -2245,33 +2117,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-article-list4', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_article_list3(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                             offset=None, limit=None, use_cache=True):
+    def get_tv_article_list3(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                             offset=None, limit=None, use_cache=False):
         """
-        Получить список товарных категорий рекламы 3 уровня
+        Получить коллекцию списков товарных категорий 3 уровня
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов 
         
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2284,7 +2159,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с товарными категориями
+            DataFrame со списками товарных категорий 3 уровня 
         """
 
         search_params = {
@@ -2300,33 +2175,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-article-list3', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_article_list2(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                             offset=None, limit=None, use_cache=True):
+    def get_tv_article_list2(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                             offset=None, limit=None, use_cache=False):
         """
-        Получить список товарных категорий рекламы 2 уровня
+        Получить коллекцию списков товарных категорий 2 уровня
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов 
         
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2339,7 +2217,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с товарными категориями
+            DataFrame со списками товарных категорий 2 уровня
         """
 
         search_params = {
@@ -2355,49 +2233,52 @@ class MediaVortexCats:
 
         return self._get_dict('tv-article-list2', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_appendix(self, tv_ad_ids=None, model_ids=None, advertiser_ids=None, article2_ids=None,
-                        article3_ids=None, article4_ids=None, subbrand_ids=None, brand_ids=None,
-                        order_by=None, order_dir=None, offset=None, limit=None, use_cache=False):
+    def get_tv_appendix(self, ids=None, advertiser_ids=None, brand_ids=None, subbrand_ids=None, model_ids=None,
+                        article2_ids=None, article3_ids=None, article4_ids=None, 
+                        order_by='adId', order_dir=None, offset=None, limit=None, use_cache=False):
         """
         Получить аппендикс
 
         Parameters
         ----------        
-        tv_ad_ids : list
-            Поиск по списку идентификаторов рекламы
+        ids : str or list of str
+            Поиск по списку идентификаторов роликов
+
+        advertiser_ids : str or list of str
+            Поиск по списку идентификаторов рекламодателей
+
+        brand_ids : str or list of str
+            Поиск по списку идентификаторов брендов
+
+        subbrand_ids : str or list of str
+            Поиск по списку идентификаторов суббрендов       
         
-        model_ids : list
+        model_ids : str or list of str
             Поиск по списку идентификаторов моделей
 
-        advertiser_ids : list
-            Поиск по списку идентификаторов рекламодателей
-            
-        article2_ids : list
+        article2_ids : str or list of str
             Поиск по списку идентификаторов 
             
-        article3_ids : list
+        article3_ids : str or list of str
             Поиск по списку идентификаторов 
             
-        article4_ids : list
+        article4_ids : str or list of str
             Поиск по списку идентификаторов 
             
-        subbrand_ids : list
-            Поиск по списку идентификаторов суббрендов
-            
-        brand_ids : list
-            Поиск по списку идентификаторов брендов        
-        
-        order_by : string
+        order_by : string, default 'adId'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2419,7 +2300,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "tvAdId": tv_ad_ids,
+            "adId": ids,
             "modelId": model_ids,
             "advertiserId": advertiser_ids,
             "article2Id": article2_ids,
@@ -2429,41 +2310,47 @@ class MediaVortexCats:
             "brandId": brand_ids
         }
 
-        return self._get_dict('tv-appendix', search_params, body_params, offset, limit, use_cache)
+        df_appndx = self._get_dict('tv-appendix', search_params, body_params, offset, limit, use_cache)
+
+        return df_appndx.reindex(columns=['adId','advertiserId','brandId','subbrandId','modelId','articleLevel_1Id','articleLevel_2Id',
+                               'articleLevel_3Id','articleLevel_4Id'],fill_value='')
 
     def get_tv_advertiser(self, ids=None, name=None, ename=None, notes=None, tv_area_ids=None,
-                          order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+                          order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить рекламодателей
+        Получить коллекцию рекламодателей
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
        
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
         
-        notes : string
+        notes : str or list of str
             Поиск по заметкам
             
-        tv_area_ids : list
-            Поиск по списку идентификаторов телеплощадок
+        tv_area_ids : str or list of str
+            Поиск по списку идентификаторов областей выхода
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2476,7 +2363,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame со статьями
+            DataFrame с рекламодателями
         """
 
         search_params = {
@@ -2492,35 +2379,40 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        return self._get_dict('tv-advertiser', search_params, body_params, offset, limit, use_cache)
+        df_advert = self._get_dict('tv-advertiser', search_params, body_params, offset, limit, use_cache)
+    
+        return df_advert.reindex(columns=['id', 'name', 'ename', 'tvArea', 'notes'], fill_value='')
 
     def get_tv_advertiser_list(self, ids=None, name=None, ename=None,
-                               order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
+                               order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить список рекламодателей
+        Получить коллекцию списков рекламодателей
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
        
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени 
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2533,7 +2425,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame со статьями
+            DataFrame со списками рекламодателей
         """
 
         search_params = {
@@ -2549,101 +2441,110 @@ class MediaVortexCats:
 
         return self._get_dict('tv-advertiser-list', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad(self, tv_ad_type_ids=None, advertiser_list_ids=None, brand_list_ids=None, model_list_ids=None,
-                  article_list2_ids=None, article_list3_ids=None, article_list4_ids=None, subbrand_list_ids=None,
-                  ad_style_ids=None, advertiser_list_main_ids=None, brand_list_main_ids=None, model_list_main_ids=None,
+    def get_tv_ad(self, ids=None, tv_ad_type_ids=None, name=None, ename=None, notes=None, standard_durations=None, 
+                  ad_style_ids=None, slogan_audio_ids=None, slogan_video_ids=None, first_issue_dates=None,  
+                  advertiser_list_ids=None, brand_list_ids=None, subbrand_list_ids=None, model_list_ids=None,
+                  article_list2_ids=None, article_list3_ids=None, article_list4_ids=None, 
+                  advertiser_list_main_ids=None, brand_list_main_ids=None, subbrand_list_main_ids=None, model_list_main_ids=None,
                   article_list2_main_ids=None, article_list3_main_ids=None, article_list4_main_ids=None,
-                  subbrand_list_main_ids=None, age_restriction_ids=None, tv_ad_ids=None, name=None,
-                  ename=None, notes=None, standard_durations=None, tv_area_ids=None, slogan_audio_ids=None,
-                  slogan_video_ids=None, order_by=None, order_dir=None, offset=None, limit=None, use_cache=False):
+                  age_restriction_ids=None, tv_area_ids=None, order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить телерекламу
+        Получить коллекцию рекламных роликов
 
         Parameters
         ----------
-        tv_ad_type_ids : list
-            Поиск по списку идентификаторов типов рекламы
-        
-        advertiser_list_ids : list
-            Поиск по списку идентификаторов рекламодателей
-        
-        brand_list_ids : list
-            Поиск по списку идентификаторов брендов
-        
-        model_list_ids : list
-            Поиск по списку идентификаторов моделей
-        
-        article_list2_ids : list
-            Поиск по списку идентификаторов мест
-        
-        article_list3_ids : list
-            Поиск по списку идентификаторов мест
-        
-        article_list4_ids : list
-            Поиск по списку идентификаторов мест
-        
-        subbrand_list_ids : list
-            Поиск по списку идентификаторов суббрендов
-        
-        ad_style_ids : list
-            Поиск по списку идентификаторов стилей рекламы
-        
-        advertiser_list_main_ids : list
-            Поиск по списку идентификаторов основного списка рекламодателей
-        
-        brand_list_main_ids : list
-            Поиск по списку идентификаторов основного списка брендов
-        
-        model_list_main_ids : list
-            Поиск по списку идентификаторов основного списка моделей
-            
-        article_list2_main_ids : list
-            Поиск по списку идентификаторов основного списка статей 2
-        
-        article_list3_main_ids : list
-            Поиск по списку идентификаторов основного списка статей 3
-        
-        article_list4_main_ids : list
-            Поиск по списку идентификаторов основного списка статей 4
-        
-        subbrand_list_main_ids : list
-            Поиск по списку идентификаторов основного списка суббрендов
-            
-        age_restriction_ids : list
-            Поиск по списку идентификаторов возрастных ограничений        
-        
-        tv_ad_ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов рекламы
             
-        name : string
+        tv_ad_type_ids : str or list of str
+            Поиск по списку идентификаторов типов рекламы
+
+        name : str or list of str
             Поиск по имени рекламы
         
-        ename : string
-            Поиск по англоязычному имени рекламы
-        
-        standard_durations : list
+        ename : str or list of str
+            Поиск по англоязычному имени рекламы  
+
+        notes : str or list of str
+            Поиск по заметкам
+
+        standard_durations : str or list of str
             Поиск по списку продолжительности рекламы
-            
-        notes : string
-            Поиск по заметкам 
         
-        slogan_audio_ids : list
+        ad_style_ids : str or list of str
+            Поиск по списку идентификаторов стилей рекламы
+
+        slogan_audio_ids : str or list of str
             Поиск по списку идентификаторов аудио слоганов
         
-        slogan_video_ids : list
+        slogan_video_ids : str or list of str
             Поиск по списку идентификаторов видео слоганов
+
+        first_issue_dates : str or list of str
+            Поиск по списку дат первого выхода    
+                 
+        advertiser_list_ids : str or list of str
+            Поиск по списку идентификаторов рекламодателей
+        
+        brand_list_ids : str or list of str
+            Поиск по списку идентификаторов брендов
+
+        subbrand_list_ids : str or list of str
+            Поиск по списку идентификаторов суббрендов
+        
+        model_list_ids : str or list of str
+            Поиск по списку идентификаторов моделей
+        
+        article_list2_ids : str or list of str
+            Поиск по списку идентификаторов мест
+        
+        article_list3_ids : str or list of str
+            Поиск по списку идентификаторов мест
+        
+        article_list4_ids : str or list of str
+            Поиск по списку идентификаторов мест
+        
+        advertiser_list_main_ids : str or list of str
+            Поиск по списку идентификаторов основного списка рекламодателей
+        
+        brand_list_main_ids : str or list of str
+            Поиск по списку идентификаторов основного списка брендов
+
+        subbrand_list_main_ids : str or list of str
+            Поиск по списку идентификаторов основного списка суббрендов
+        
+        model_list_main_ids : str or list of str
+            Поиск по списку идентификаторов основного списка моделей
             
-        order_by : string
+        article_list2_main_ids : str or list of str
+            Поиск по списку идентификаторов основного списка статей 2
+        
+        article_list3_main_ids : str or list of str
+            Поиск по списку идентификаторов основного списка статей 3
+        
+        article_list4_main_ids : str or list of str
+            Поиск по списку идентификаторов основного списка статей 4
+        
+        age_restriction_ids : str or list of str
+            Поиск по списку идентификаторов возрастных ограничений
+
+        tv_area_ids : str or list of str
+            Поиск по списку идентификаторов областей выхода        
+        
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2682,61 +2583,70 @@ class MediaVortexCats:
             "articleList4MainId": article_list4_main_ids,
             "subbrandListMainId": subbrand_list_main_ids,
             "ageRestrictionId": age_restriction_ids,
-            "id": tv_ad_ids,
+            "id": ids,
             "name": name,
             "ename": ename,
             "notes": notes,
             "standardDuration": standard_durations,
             "tvArea": tv_area_ids,
             "tvAdSloganAudioId": slogan_audio_ids,
-            "tvAdSloganVideoId": slogan_video_ids
+            "tvAdSloganVideoId": slogan_video_ids,
+            "firstIssueDate": first_issue_dates
         }
 
-        return self._get_dict('tv-ad', search_params, body_params, offset, limit, use_cache)
+        df_ad = self._get_dict('tv-ad', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_type(self, tv_ad_ids=None, name=None, ename=None, notes=None, accounting_duration_type_ids=None,
-                       is_override=None, position_type=None, is_price=None, order_by=None, order_dir=None, offset=None,
-                       limit=None, use_cache=True):
+        return df_ad.reindex(columns=['id','adTypeId','name','ename','notes','standardDuration','adStyleId','sloganAudioId','sloganVideoId',
+                       'firstIssueDate','advertiserListId','brandListId','subbrandListId','modelListId','articleList_2Id',
+                       'articleList_3Id','articleList_4Id','advertiserListMainId','brandListMainId','subbrandListMainId','modelListMainId',
+                       'articleList_2MainId','articleList_3MainId','articleList_4MainId','ageRestrictionId','tvArea'],fill_value='')
+
+    def get_tv_ad_type(self, ids=None, name=None, ename=None, notes=None, accounting_duration_type_ids=None,
+                       is_override=None, position_type=None, is_price=None, order_by='id', order_dir=None, offset=None,
+                       limit=None, use_cache=False):
         """
-        Получить типы телерекламы
+        Получить коллекцию типов роликов
 
         Parameters
         ----------        
-        tv_ad_ids : list
-            Поиск по списку идентификаторов рекламы
+        ids : str or list of str
+            Поиск по списку идентификаторов роликов
             
-        name : string
-            Поиск по имени рекламы
+        name : str or list of str
+            Поиск по имени роликов
         
-        ename : string
-            Поиск по англоязычному имени рекламы        
+        ename : str or list of str
+            Поиск по англоязычному имени роликов        
             
-        notes : string
+        notes : str or list of str
             Поиск по заметкам 
         
-        accounting_duration_type_ids : list
-            Поиск по списку идентификаторов типов продолжительности
+        accounting_duration_type_ids : str or list of str
+            Поиск по списку идентификаторов режима учета длительности рекламы
         
         is_override : string
-            Поиск по признаку перезаписи
+            Поиск по признаку наложения в эфире рекламы данного типа на рекламы других типов
         
-        position_type : string
-            Поиск по типу позиции
+        position_type : str or list of str
+            Поиск по списку идентификаторов положения рекламы в эфире относительно телепередач и рекламных блоков
         
         is_price : string
-            Поиск по признаку цены
+            Поиск по признаку учета стоимости рекламы данного типа
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2749,7 +2659,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с типами рекламы
+            DataFrame с типами роликов
         """
 
         search_params = {
@@ -2758,7 +2668,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": tv_ad_ids,
+            "id": ids,
             "name": name,
             "ename": ename,
             "notes": notes,
@@ -2770,142 +2680,39 @@ class MediaVortexCats:
 
         return self._get_dict('tv-ad-type', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_total(self, tv_ad_ids=None, research_month=None, tv_ad_type_ids=None, tv_company_ids=None,
-                        ad_style_ids=None, advertiser_ids=None, brand_ids=None, subbrand_ids=None,
-                        model_ids=None, region_ids=None, article1_ids=None, article2_ids=None, article3_ids=None,
-                        article4_ids=None, file_type=None, order_by=None, order_dir=None, offset=None,
-                        limit=None, use_cache=True):
+    def get_tv_ad_style(self, ids=None, name=None, ename=None, notes=None, order_by='id',
+                        order_dir=None, offset=None, limit=None, use_cache=False):
         """
-        Получить сводные данные по рекламе
-
-        Parameters
-        ----------
-        tv_ad_ids : list
-            Поиск по списку идентификаторов рекламы
-        
-        research_month : string
-            Поиск по месяцу
-            
-        tv_ad_type_ids : list
-            Поиск по списку идентификаторов типов рекламы
-        
-        tv_company_ids : list
-            Поиск по списку идентификаторов компаний
-        
-        ad_style_ids : list
-            Поиск по списку идентификаторов стилей рекламы
-        
-        advertiser_ids : list
-            Поиск по списку идентификаторов рекламодателей
-        
-        brand_ids : list
-            Поиск по списку идентификаторов брендов
-        
-        subbrand_ids : list
-            Поиск по списку идентификаторов суббрендов
-        
-        model_ids : list
-            Поиск по списку идентификаторов моделей
-        
-        region_ids : list
-            Поиск по списку идентификаторов регионов
-        
-        article1_ids : list
-            Поиск по списку идентификаторов статей 1
-        
-        article2_ids : list
-            Поиск по списку идентификаторов статей 2
-        
-        article3_ids : list
-            Поиск по списку идентификаторов статей 3
-        
-        article4_ids : list
-            Поиск по списку идентификаторов статей 4
-        
-        file_type : string
-            Поиск по типу файла
-            
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
-              
-        offset : int
-            Смещение от начала набора отобранных данных
-
-        limit : int
-            Количество записей в возвращаемом наборе данных
-
-        use_cache : bool
-            Использовать кэширование: True - да, False - нет
-            Если опция включена (True), метод при первом получении справочника
-            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
-            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
-            получение данных.
-
-        Returns
-        -------
-        media : DataFrame
-
-            DataFrame со сводными данными по рекламе
-        """
-
-        search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
-        }
-
-        body_params = {
-            "tvAdId": tv_ad_ids,
-            "researchMonth": research_month,
-            "tvAdTypeId": tv_ad_type_ids,
-            "tvCompanyId": tv_company_ids,
-            "adStyleId": ad_style_ids,
-            "advertiserId": advertiser_ids,
-            "brandId": brand_ids,
-            "subbrandId": subbrand_ids,
-            "modelId": model_ids,
-            "regionId": region_ids,
-            "article1Id": article1_ids,
-            "article2Id": article2_ids,
-            "article3Id": article3_ids,
-            "article4Id": article4_ids,
-            "fileType": file_type
-        }
-
-        return self._get_dict('tv-ad-total', search_params, body_params, offset, limit, use_cache)
-
-    def get_tv_ad_style(self, ids=None, name=None, ename=None, notes=None, order_by=None,
-                        order_dir=None, offset=None, limit=None, use_cache=True):
-        """
-        Получить рекламные стили
+        Получить коллекцию стилей роликов
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
             
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
         
-        notes : string
+        notes : str or list of str
             Поиск по англоязычному имени
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2918,7 +2725,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с рекламными стили
+            DataFrame со стилями роликов
         """
 
         search_params = {
@@ -2935,33 +2742,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-ad-style', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_slogan_video(self, ids=None, name=None, ename=None, order_by=None, order_dir=None, offset=None,
-                               limit=None, use_cache=True):
+    def get_tv_ad_slogan_video(self, ids=None, name=None, ename=None, order_by='id', order_dir=None, offset=None,
+                               limit=None, use_cache=False):
         """
-        Получить рекламные видео слоганы
+        Получить коллекцию видео слоганов
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
             
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -2974,7 +2784,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с рекламными видео слоганами
+            DataFrame с видео слоганами
         """
 
         search_params = {
@@ -2990,33 +2800,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-ad-slogan-video', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_slogan_audio(self, ids=None, name=None, ename=None, order_by=None, order_dir=None, offset=None,
-                               limit=None, use_cache=True):
+    def get_tv_ad_slogan_audio(self, ids=None, name=None, ename=None, order_by='id', order_dir=None, offset=None,
+                               limit=None, use_cache=False):
         """
-        Получить рекламные аудио слоганы
+        Получить коллекцию аудио слоганов
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
             
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3029,7 +2842,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame с рекламными аудио слоганами
+            DataFrame с аудио слоганами
         """
 
         search_params = {
@@ -3045,125 +2858,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-ad-slogan-audio', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_month(self, tv_company_ids=None, research_month=None, ad_ids=None, from_tv_company_ids=None,
-                        from_research_month=None, volume=None, count=None, price=None, grp_price=None,
-                        issue_status=None, cnd_cost=None, distribution=None, cost_rub=None, grp_cost_rub=None,
-                        cnd_cost_rub=None, order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
-        """
-        Получить месячную рекламу
-
-        Parameters
-        ----------        
-        tv_company_ids : list
-            Поиск по списку идентификаторов телекомпаний
-            
-        research_month : string
-            Поиск по месяцу 
-        
-        ad_ids : list
-            Поиск по списку идентификаторов рекламы
-        
-        from_tv_company_ids : list
-            Поиск по списку идентификаторов телекомпаний
-            
-        from_research_month : string
-            Поиск по месяцу 
-        
-        volume : integer
-            Поиск по объему
-        
-        count : integer
-            Поиск по количеству
-        
-        price : integer
-            Поиск по цене
-        
-        grp_price : integer
-            Поиск по цене
-        
-        issue_status : string
-            Поиск по статусу выхода
-        
-        cnd_cost : integer
-            Поиск по затратам
-        
-        distribution : string
-            Поиск по распространению 
-        
-        cost_rub : integer
-            Поиск по затратам 
-        
-        grp_cost_rub : integer
-            Поиск по затратам
-        
-        cnd_cost_rub : integer
-            Поиск по затратам      
-            
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
-              
-        offset : int
-            Смещение от начала набора отобранных данных
-
-        limit : int
-            Количество записей в возвращаемом наборе данных
-
-        use_cache : bool
-            Использовать кэширование: True - да, False - нет
-            Если опция включена (True), метод при первом получении справочника
-            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
-            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
-            получение данных.
-
-        Returns
-        -------
-        media : DataFrame
-
-            DataFrame с месячной рекламой
-        """
-
-        search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
-        }
-
-        body_params = {
-            "tvCompanyId": tv_company_ids,
-            "researchMonth": research_month,
-            "adId": ad_ids,
-            "fromTvCompanyId": from_tv_company_ids,
-            "fromResearchMonth": from_research_month,
-            "volume": volume,
-            "count": count,
-            "price": price,
-            "grpPrice": grp_price,
-            "issueStatus": issue_status,
-            "cndCost": cnd_cost,
-            "distribution": distribution,
-            "costRub": cost_rub,
-            "grpCostRub": grp_cost_rub,
-            "cndCostRub": cnd_cost_rub
-        }
-
-        return self._get_dict('tv-ad-month', search_params, body_params, offset, limit, use_cache)
-
     def get_tv_time_band(self):
         """
-        Получить справочник time-band
+        Получить коллекцию временных интервалов
         
         Returns
         -------
         info : DataFrame
             DataFrame с time-band
         """
-        return pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-time-band'], use_cache=False))
+        df_tb =  pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-time-band'], use_cache=False))
+        df_tb['order'] = df_tb['name']
+
+        order_dict = {
+            'timeBand1':1,
+            'timeBand5':2,
+            'timeBand10':3,
+            'timeBand15':4,
+            'timeBand30':5,
+            'timeBand60':6,
+            }
+        
+        df_tb['order'] = df_tb['order'].map(order_dict)
+        df_tb.sort_values(by=['order'], inplace=True)
+        df_tb = df_tb.reindex(columns=['value','name'],fill_value='')
+        
+        return df_tb.reset_index(drop=True)
 
     def get_tv_stat(self):
         """
-        Получить справочник stat
+        Получить справочник статусов статистик
         
         Returns
         -------
@@ -3174,7 +2898,7 @@ class MediaVortexCats:
 
     def get_tv_relation(self):
         """
-        Получить справочник relation
+        Получить справочник отношений атрибутов
         
         Returns
         -------
@@ -3182,17 +2906,6 @@ class MediaVortexCats:
             Словарь с relation
         """
         return self.msapi_network.send_request('get', self._urls['tv-relation'], use_cache=False)
-
-    def get_tv_program_prreg(self):
-        """
-        Получить справочник видов производства программ
-        
-        Returns
-        -------
-        info : DataFrame
-            DataFrame с видами производства программ
-        """
-        return pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-program-prreg'], use_cache=False))
 
     def get_tv_monitoring_type(self):
         """
@@ -3205,61 +2918,36 @@ class MediaVortexCats:
         """
         return pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-monitoring-type'], use_cache=False))
 
-    def get_tv_db_rd_type(self):
+    def get_tv_demo_attribute(self, ids=None, names=None, entity_names=None, value_ids=None, value_names=None,
+                              offset=None, limit=None, use_cache=False):
         """
-        Получить справочник db_rd_type
-        
-        Returns
-        -------
-        info : DataFrame
-            DataFrame с db_rd_type
-        """
-        return pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-db-rd-type'], use_cache=False))
-
-    def get_tv_ad_iss_sbtv(self):
-        """
-        Получить справочник ad_iss_sbtv
-        
-        Returns
-        -------
-        info : DataFrame
-            DataFrame с ad_iss_sbtv
-        """
-        return pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-ad-iss-sbtv'], use_cache=False))
-
-    def get_tv_demo_attribute(self, ids=None, value_ids=None, names=None, col_names=None, value_names=None,
-                              order_by=None, order_dir=None, offset=None, limit=None, use_cache=False):
-        """
-        Получить атрибуты
+        Получить коллекцию демографических переменных
 
         Parameters
         ----------
-        ids : list
-            Поиск по списку идентификаторов
+        ids : str or list of str
+            Поиск по списку идентификаторов переменных
+
+        names : str or list of str
+            Поиск по списку имен переменных
         
-        value_ids : list
-            Поиск по списку идентификаторов значений
+        entity_names : str or list of str
+            Поиск по списку entity имен переменных (атрибуты, которые задаются в параметры задания)
         
-        names : list
-            Поиск по списку имен
+        value_ids : str or list of str
+            Поиск по списку идентификаторов категорий переменных
         
-        col_names : list
-            Поиск по списку имен колонок
-        
-        value_names : list
-            Поиск по списку имен значений
-            
-        order_by : string
-            Поле, по которому происходит сортировка
-            
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+        value_names : str or list of str
+            Поиск по списку имен категорий переменных
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3276,53 +2964,63 @@ class MediaVortexCats:
         """
 
         search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
+            'orderBy': None,
+            'orderDir': None
         }
 
         body_params = {
             "id": ids,
             "valueId": value_ids,
             "name": names,
-            "colName": col_names,
+            "colName": entity_names,
             "valueName": value_names,
-            "demoAttributeColName": col_names,
+            "demoAttributeColName": entity_names,
             "demoAttributeValueId": value_ids
         }
 
-        return self._get_dict('tv-demo-attribute', search_params, body_params, offset, limit, use_cache)
+        df_dem = self._get_dict('tv-demo-attribute', search_params, body_params, offset, limit, use_cache)
+        
+        df_dem['entityName'] = df_dem['colName'].str[0].str.lower() + df_dem['colName'].str[1:]
+
+        df_dem = df_dem.reindex(columns=['id','name','entityName','valueId','valueName'],fill_value='')
+
+        return df_dem.sort_values(by=['id','valueId'])
+
 
     def get_tv_program_country(self, ids=None, name=None, ename=None, notes=None,
-                               order_by=None, order_dir=None, offset=None,
-                               limit=None, use_cache=True):
+                               order_by='id', order_dir=None, offset=None,
+                               limit=None, use_cache=False):
         """
-        Получить страны производства программ
+        Получить коллекцию стран производства программ
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
             
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
         
-        notes : string
+        notes : str or list of str
             Поиск по заметкам
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3353,33 +3051,36 @@ class MediaVortexCats:
         return self._get_dict('tv-program-country', search_params, body_params, offset, limit, use_cache)
 
     def get_tv_company_holding(self, ids=None, name=None, ename=None,
-                               order_by=None, order_dir=None, offset=None,
-                               limit=None, use_cache=True):
+                               order_by='id', order_dir=None, offset=None,
+                               limit=None, use_cache=False):
         """
-        Получить список холдингов телекомпаний
+        Получить коллекцию холдингов телекомпаний
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
             
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3409,33 +3110,36 @@ class MediaVortexCats:
         return self._get_dict('tv-company-holding', search_params, body_params, offset, limit, use_cache)
 
     def get_tv_company_media_holding(self, ids=None, name=None,
-                                     ename=None, order_by=None, order_dir=None, offset=None,
-                                     limit=None, use_cache=True):
+                                     ename=None, order_by='id', order_dir=None, offset=None,
+                                     limit=None, use_cache=False):
         """
-        Получить список медиа холдингов телекомпаний
+        Получить коллекцию медиа холдингов телекомпаний
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
             
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3464,33 +3168,36 @@ class MediaVortexCats:
 
         return self._get_dict('tv-company-media-holding', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_thematic(self, ids=None, name=None, ename=None, order_by=None, order_dir=None,
-                        offset=None, limit=None, use_cache=True):
+    def get_tv_thematic(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
+                        offset=None, limit=None, use_cache=False):
         """
-        Получить список тематик тв рекламы
+        Получить коллекцию жанров телекомпаний
 
         Parameters
         ----------        
-        ids : list
+        ids : str or list of str
             Поиск по списку идентификаторов
             
-        name : string
+        name : str or list of str
             Поиск по имени 
         
-        ename : string
+        ename : str or list of str
             Поиск по англоязычному имени
             
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
             
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
               
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3527,7 +3234,7 @@ class MediaVortexCats:
         Parameters
         ----------
 
-        ids : list
+        ids : str or list of str
             Фильтр на список значений id
 
         mart_type : str
@@ -3543,10 +3250,13 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3627,34 +3337,37 @@ class MediaVortexCats:
         return self.msapi_network.send_request('delete', self._urls['custom-respondent-variable'] + f"/{id_value}",
                                                use_cache=False)
 
-    def get_tv_program_producer_country(self, country_id=None, name=None, ename=None,
-                                        order_by=None, order_dir=None, offset=None,
-                                        limit=None, use_cache=True):
+    def get_tv_program_producer_country(self, ids=None, name=None, ename=None,
+                                        order_by='id', order_dir=None, offset=None,
+                                        limit=None, use_cache=False):
         """
-        Получить типы программ производств страны
+        Получить коллекцию типов производства программ
 
         Parameters
         ----------
-        country_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3667,7 +3380,7 @@ class MediaVortexCats:
         -------
         result : DataFrame
 
-            DataFrame с программ производств страны
+            DataFrame с типами производства программ
         """
 
         search_params = {
@@ -3676,7 +3389,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": country_id,
+            "id": ids,
             "name": name,
             "ename": ename,
             "empty": True
@@ -3684,34 +3397,37 @@ class MediaVortexCats:
 
         return self._get_dict('tv-program-producer-country', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_prime_time_status(self, status_id=None, name=None, ename=None,
-                                 order_by=None, order_dir=None, offset=None,
-                                 limit=None, use_cache=True):
+    def get_tv_prime_time_status(self, ids=None, name=None, ename=None,
+                                 order_by='id', order_dir=None, offset=None,
+                                 limit=None, use_cache=False):
         """
-        Получить прайм-тайм статусы
+        Получить коллекцию прайм-тайм статусов
 
         Parameters
         ----------
-        status_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3733,41 +3449,44 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": status_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-prime-time-status', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_issue_status(self, status_id=None, name=None, ename=None,
-                            order_by=None, order_dir=None, offset=None,
-                            limit=None, use_cache=True):
+    def get_tv_issue_status(self, ids=None, name=None, ename=None,
+                            order_by='id', order_dir=None, offset=None,
+                            limit=None, use_cache=False):
         """
-        Получить статусы выпусков
+        Получить коллекцию статусов выходов
 
         Parameters
         ----------
-        status_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3789,41 +3508,44 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": status_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-issue-status', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_breaks_style(self, style_id=None, name=None, ename=None,
-                            order_by=None, order_dir=None, offset=None,
-                            limit=None, use_cache=True):
+    def get_tv_breaks_style(self, ids=None, name=None, ename=None,
+                            order_by='id', order_dir='DESC', offset=None,
+                            limit=None, use_cache=False):
         """
-        Получить типы стиля перерыва
+        Получить коллекцию стилей блоков
 
         Parameters
         ----------
-        style_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
-        order_dir : string
+        order_dir : string, default 'DESC'
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3836,7 +3558,7 @@ class MediaVortexCats:
         -------
         result : DataFrame
 
-            DataFrame с типами стиля перерыва
+            DataFrame со стилями блоков
         """
 
         search_params = {
@@ -3845,28 +3567,28 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": style_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-breaks-style', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_breaks_position(self, position_id=None, name=None, ename=None,
+    def get_tv_breaks_position(self, ids=None, name=None, ename=None,
                                order_by=None, order_dir=None, offset=None,
-                               limit=None, use_cache=True):
+                               limit=None, use_cache=False):
         """
-        Получить типы позиций перерыва
+        Получить коллекцию типов блоков
 
         Parameters
         ----------
-        position_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
         order_by : string
@@ -3876,10 +3598,13 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3892,7 +3617,7 @@ class MediaVortexCats:
         -------
         result : DataFrame
 
-            DataFrame с типами позиций перерыва
+            DataFrame с типами блоков
         """
 
         search_params = {
@@ -3901,41 +3626,44 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": position_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-breaks-position', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_breaks_distribution(self, distribution_id=None, name=None, ename=None,
-                                   order_by=None, order_dir=None, offset=None,
-                                   limit=None, use_cache=True):
+    def get_tv_breaks_distribution(self, ids=None, name=None, ename=None,
+                                   order_by='type', order_dir=None, offset=None,
+                                   limit=None, use_cache=False):
         """
-        Получить типы распределения перерыва
+        Получить коллекцию типов распространения блоков
 
         Parameters
         ----------
-        distribution_id : string
-            Ид для фильтрации
+        ids : str or list of str
+            Ид типа распространения для фильтрации (L, N, O, U)
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'type'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -3948,7 +3676,7 @@ class MediaVortexCats:
         -------
         result : DataFrame
 
-            DataFrame с типами распределения перерыва
+            DataFrame с типами распространения блоков
         """
 
         search_params = {
@@ -3957,41 +3685,44 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": distribution_id,
+            "type": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-breaks-distribution', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_breaks_content(self, content_id=None, name=None, ename=None,
-                              order_by=None, order_dir=None, offset=None,
-                              limit=None, use_cache=True):
+    def get_tv_breaks_content(self, ids=None, name=None, ename=None,
+                              order_by='type', order_dir=None, offset=None,
+                              limit=None, use_cache=False):
         """
-        Получить типы контента перерыва
+        Получить коллекцию типов содержания блоков
 
         Parameters
         ----------
-        content_id : string
-            Ид для фильтрации
+        ids : str or list of str
+            Ид содержания блока для фильтрации (A, C, P, S, U)
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'type'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4004,7 +3735,7 @@ class MediaVortexCats:
         -------
         result : DataFrame
 
-            DataFrame с типами контента перерыва
+            DataFrame с типами содержания блоков
         """
 
         search_params = {
@@ -4013,41 +3744,44 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": content_id,
+            "type": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-breaks-content', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_area(self, area_id=None, name=None, ename=None,
-                    order_by=None, order_dir=None, offset=None,
-                    limit=None, use_cache=True):
+    def get_tv_area(self, ids=None, name=None, ename=None,
+                    order_by='id', order_dir=None, offset=None,
+                    limit=None, use_cache=False):
         """
-        Получить зоны компании тв рекламы
+        Получить коллекцию областей выходов
 
         Parameters
         ----------
-        area_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4069,7 +3803,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": area_id,
+            "id": ids,
             "name": name,
             "ename": ename,
             "empty": True
@@ -4077,34 +3811,37 @@ class MediaVortexCats:
 
         return self._get_dict('tv-area', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_ad_position(self, ad_position_type=None, name=None, ename=None,
-                           order_by=None, order_dir=None, offset=None,
-                           limit=None, use_cache=True):
+    def get_tv_ad_position(self, ids=None, name=None, ename=None,
+                           order_by='type', order_dir=None, offset=None,
+                           limit=None, use_cache=False):
         """
         Получить типы позиции клипа
 
         Parameters
         ----------
-        ad_position_type : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'type'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4126,28 +3863,28 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "type": ad_position_type,
+            "type": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-ad-position', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_company_status(self, company_status_id=None, name=None, ename=None,
+    def get_tv_company_status(self, ids=None, name=None, ename=None,
                               order_by=None, order_dir=None, offset=None,
-                              limit=None, use_cache=True):
+                              limit=None, use_cache=False):
         """
-        Получить статусы компании тв рекламы
+        Получить коллекцию статусов телекомпаний
 
         Parameters
         ----------
-        company_status_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
         order_by : string
@@ -4157,10 +3894,13 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4182,7 +3922,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": company_status_id,
+            "id": ids,
             "name": name,
             "ename": ename,
             "empty": True
@@ -4190,21 +3930,21 @@ class MediaVortexCats:
 
         return self._get_dict('tv-company-status', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_program_producer(self, program_producer_id=None, name=None, ename=None,
+    def get_tv_program_producer(self, ids=None, name=None, ename=None,
                                 order_by=None, order_dir=None, offset=None,
-                                limit=None, use_cache=True):
+                                limit=None, use_cache=False):
         """
-        Получить производителей программ
+        Получить коллекцию производителей программ
 
         Parameters
         ----------
-        program_producer_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
         order_by : string
@@ -4214,10 +3954,13 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4239,7 +3982,7 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": program_producer_id,
+            "id": ids,
             "name": name,
             "ename": ename,
             "empty": True
@@ -4247,34 +3990,37 @@ class MediaVortexCats:
 
         return self._get_dict('tv-program-producer', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_program_group(self, program_group_id=None, name=None, ename=None,
-                             order_by=None, order_dir=None, offset=None,
-                             limit=None, use_cache=True):
+    def get_tv_program_group(self, ids=None, name=None, ename=None,
+                             order_by='id', order_dir=None, offset=None,
+                             limit=None, use_cache=False):
         """
-        Получить групповые имена программ
+        Получить коллекцию групповых имен программ
 
         Parameters
         ----------
-        program_group_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4296,28 +4042,28 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": program_group_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-program-group', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_no_yes_na(self, no_yes_na_id=None, name=None, ename=None,
+    def get_tv_no_yes_na(self, ids=None, name=None, ename=None,
                          order_by=None, order_dir=None, offset=None,
-                         limit=None, use_cache=True):
+                         limit=None, use_cache=False):
         """
         Получить Да-Нет-Неизвестно флаги
 
         Parameters
         ----------
-        no_yes_na_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
         order_by : string
@@ -4327,10 +4073,13 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4352,41 +4101,44 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": no_yes_na_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-no-yes-na', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_language(self, language_id=None, name=None, ename=None,
-                        order_by=None, order_dir=None, offset=None,
-                        limit=None, use_cache=True):
+    def get_tv_language(self, ids=None, name=None, ename=None,
+                        order_by='id', order_dir=None, offset=None,
+                        limit=None, use_cache=False):
         """
-        Получить языки рекламы
+        Получить коллекцию языков программ
 
         Parameters
         ----------
-        language_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4399,7 +4151,7 @@ class MediaVortexCats:
         -------
         result : DataFrame
 
-            DataFrame с языками рекламы
+            DataFrame с языками программ
         """
 
         search_params = {
@@ -4408,81 +4160,28 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": language_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-language', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_company_monitoring(self, company_monitoring_id=None, name=None,
-                                  order_by=None, order_dir=None, offset=None,
-                                  limit=None, use_cache=True):
-        """
-        Получить режимы продолжительности компании тв рекламы
-
-        Parameters
-        ----------
-        company_monitoring_id : string
-            Ид для фильтрации
-
-        name : string
-            Имя для фильтрации
-
-        order_by : string
-            Поле, по которому происходит сортировка
-
-        order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-
-        offset : int
-            Смещение от начала набора отобранных данных
-
-        limit : int
-            Количество записей в возвращаемом наборе данных
-
-        use_cache : bool
-            Использовать кэширование: True - да, False - нет
-            Если опция включена (True), метод при первом получении справочника
-            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
-            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
-            получение данных.
-
-        Returns
-        -------
-        result : DataFrame
-
-            DataFrame с режимами продолжительности компании тв рекламы
-        """
-
-        search_params = {
-            'orderBy': order_by,
-            'orderDir': order_dir
-        }
-
-        body_params = {
-            "id": company_monitoring_id,
-            "name": name,
-            "empty": True
-        }
-
-        return self._get_dict('tv-company-monitoring', search_params, body_params, offset, limit, use_cache)
-
-    def get_tv_company_group(self, company_group_id=None, name=None, ename=None,
+    def get_tv_company_group(self, ids=None, name=None, ename=None,
                              order_by=None, order_dir=None, offset=None,
-                             limit=None, use_cache=True):
+                             limit=None, use_cache=False):
         """
-        Получить группы компаний тв рекламы
+        Получить типы групп телекомпаний
 
         Parameters
         ----------
-        company_group_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
         order_by : string
@@ -4492,10 +4191,13 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4508,7 +4210,7 @@ class MediaVortexCats:
         -------
         result : DataFrame
 
-            DataFrame с группами компаний тв рекламы
+            DataFrame с типами групп телекомпаний
         """
 
         search_params = {
@@ -4517,41 +4219,44 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": company_group_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-company-group', search_params, body_params, offset, limit, use_cache)
 
-    def get_tv_company_category(self, company_category_id=None, name=None, ename=None,
-                                order_by=None, order_dir=None, offset=None,
-                                limit=None, use_cache=True):
+    def get_tv_company_category(self, ids=None, name=None, ename=None,
+                                order_by='id', order_dir=None, offset=None,
+                                limit=None, use_cache=False):
         """
-        Получить категории компаний тв рекламы
+        Получить коллекцию категорий телекомпаний
 
         Parameters
         ----------
-        company_category_id : string
+        ids : str or list of str
             Ид для фильтрации
 
-        name : string
+        name : str or list of str
             Имя для фильтрации
 
-        ename : string
+        ename : str or list of str
             Английское имя для фильтрации
 
-        order_by : string
+        order_by : string, default 'id'
             Поле, по которому происходит сортировка
 
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных
+            Смещение от начала набора отобранных данных. 
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных
+            Количество записей в возвращаемом наборе данных. 
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -4573,9 +4278,140 @@ class MediaVortexCats:
         }
 
         body_params = {
-            "id": company_category_id,
+            "id": ids,
             "name": name,
             "ename": ename
         }
 
         return self._get_dict('tv-company-category', search_params, body_params, offset, limit, use_cache)
+
+    def get_tv_age_restriction(self, ids=None, name=None,
+                               order_by='id', order_dir=None, offset=None,
+                               limit=None, use_cache=False):
+        """
+        Получить коллекцию возрастных ограничений
+
+        Parameters
+        ----------
+        ids : str or list of str
+            Ид для фильтрации
+
+        name : str or list of str
+            Имя для фильтрации
+
+        order_by : string, default 'id'
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+
+        limit : int
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с коллекцией возрастных ограничений
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": ids,
+            "name": name
+        }
+
+        return self._get_dict('tv-age-restriction', search_params, body_params, offset, limit, use_cache)
+
+    def get_availability_period(self, order_by='name', order_dir=None, offset=0, limit=1000):
+        """
+        Получить доступный период
+
+        Parameters
+        ----------
+
+        order_by : string, default 'name'
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+
+        limit : int
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        Returns
+        -------
+        data : DataFrame
+
+            DataFrame с доступным периодом
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+        }
+
+        url = self._urls['availability-period']
+        query_dict = search_params
+        if offset is not None and limit is not None:
+            query_dict['offset'] = offset
+            query_dict['limit'] = limit
+
+        query = self._get_query(query_dict)
+        if query is not None or len(query) > 0:
+            url += query
+
+        post_data = self._get_post_data(body_params)
+
+        data = self.msapi_network.send_raw_request(
+            'get', url, data=post_data)
+
+        json_data = json.loads(data)
+
+        # извлекаем все заголовки столбцов
+        res_headers = []
+        for item in json_data:
+            for k, v in item.items():
+                if k not in res_headers:
+                    res_headers.append(k)
+
+        # инициализируем списки данных столбцов
+        res = {}
+        for h in res_headers:
+            res[h] = []
+
+        # наполняем найденные столбцы значениями
+        for item in json_data:
+            for h in res_headers:
+                if h in item.keys():
+                    res[h].append(item[h])
+                else:
+                    res[h].append('')
+
+        return pd.DataFrame(res)

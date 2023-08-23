@@ -77,7 +77,7 @@ class MediaVortexTaskChecker:
                    company_filter, region_filter, time_filter, location_filter,
                    basedemo_filter, targetdemo_filter, program_filter, break_filter,
                    ad_filter, subject_filter, duration_filter, duplication_company_filter,
-                   duplication_time_filter, slices, statistics, scales):
+                   duplication_time_filter, slices, statistics, scales, sortings):
         self.error_text = ''
         
         self._check_filter('task_type', task_type)
@@ -140,6 +140,10 @@ class MediaVortexTaskChecker:
                     if type(s) is not str:
                         self.error_text += f'Неверно задан срез (slices): {s}.\n'
 
+        if sortings is not None:
+            if type(sortings) != dict:
+                 self.error_text += f'Некорректный тип параметра sortings: допускается тип - dict.\n'
+
         if len(self.error_text) > 0:
             print('Ошибка при формировании задания')
             print(self.error_text)
@@ -191,6 +195,16 @@ class MediaVortexTaskChecker:
                         if len(probably_matches) > 0:
                             matches = '" или "'.join(probably_matches)
                             error_text += f'Возможно соответствует "{matches}".\n'
+        if 'sorting' in tsk.keys():
+            avl_cols = tsk['statistics'] + tsk['slices']
+            avaliable = '", "'.join(avl_cols)
+            for i in tsk["sorting"]['sortingUnits']:  
+                if i['unit'] not in avl_cols:
+                    error_text += f"Cортировка по {i['unit']} невозможна, так как этого элемента нет среди заданных срезов и статистик: {avaliable}.\n"
+                    
+                if i["direction"] not in(['ASC','DESC']):
+                    error_text += f"Недопустимое значение в параметре sortings: {i['direction']}, допустимые значения: 'ASC','DESC'.\n"        
+        
         if len(error_text) > 0:
             print('Ошибка при формировании задания')
             print(error_text)
@@ -218,3 +232,6 @@ class MediaVortexTaskChecker:
 
     def get_avl_slices(self, task_type):        
         return self.task_types[task_type]['slices']
+    
+    def get_avl_stats(self, task_type):
+        return self.task_types[task_type]['statistics']

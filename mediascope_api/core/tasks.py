@@ -146,3 +146,19 @@ class TaskBuilder:
     @staticmethod
     def add_sampling(tsk, sampling=42):
         tsk['sampling'] = {'percent': str(sampling)}
+
+    @staticmethod
+    def add_sortings(tsk, sortings):
+        if sortings is not None:
+            sort_json = {}
+            sort_list = []
+
+            for k,v in sortings.items():
+                unit = {}
+                unit["unit"] = k
+                unit["direction"] = v
+                sort_list.append(unit)
+                
+            sort_json["sortingUnits"] = sort_list
+            tsk["sorting"] = sort_json
+            

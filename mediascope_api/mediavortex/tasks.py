@@ -46,22 +46,23 @@ class MediaVortexTask:
                    statistics=None, scales=None, options=None, reach_conditions=None, custom_demo_variable_id=None,
                    custom_company_variable_id=None, custom_respondent_variable_id=None, custom_time_variable_id=None,
                    custom_duplication_time_variable_id=None, custom_duplication_company_variable_id=None,
-                   consumption_target_options=None, frequency_dist_conditions=None):
+                   consumption_target_options=None, frequency_dist_conditions=None, sortings=None):
         """
-        Формирует текст задания для расчета статистик
+        Сформировать задание в JSON формате
 
         Parameters
         ----------
 
         task_type : str
             Тип задания, возможные варианты:
-            - media
+            - timeband
+            - simple
 
         task_name : str
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
-        date_filter : str
-            Фильтр дат
+        date_filter : list of tuples
+            Фильтр периода
 
         weekday_filter : str
             Фильтр дней недели
@@ -70,16 +71,16 @@ class MediaVortexTask:
             Фильтр типов дней
 
         company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         region_filter : str
             Фильтр регионов
 
         time_filter : str
-            Фильтр времени
+            Фильтр временных интервалов
 
         location_filter : str
-            Фильтр локации
+            Фильтр места просмотра (дом/дача)
 
         basedemo_filter : str
             Фильтр базовой аудитории
@@ -91,10 +92,10 @@ class MediaVortexTask:
             Фильтр программ
 
         break_filter : str
-            Фильтр перерывов
+            Фильтр блоков
 
         ad_filter : str
-            Фильтр рекламы
+            Фильтр роликов
 
         subject_filter : str
             Фильтр темы
@@ -106,15 +107,15 @@ class MediaVortexTask:
             Фильтр респондентов
 
         duplication_company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         duplication_time_filter : str
-            Фильтр времени
+            Фильтр временных интервалов
 
-        slices : list
+        slices : list of str
             Список срезов
 
-        statistics : list
+        statistics : list of str
             Список статистик
 
         scales : list
@@ -124,7 +125,7 @@ class MediaVortexTask:
             Словарь настроек
 
         reach_conditions : dict
-            Словарь условий reach
+            Настройка условий охватов
 
         custom_demo_variable_id : str
             Id кастомной demo переменной
@@ -150,17 +151,21 @@ class MediaVortexTask:
         frequency_dist_conditions : dict
             Словарь условия для FrequencyDist статистик
 
+        sortings : dict
+            Настройки сортировки: словарь, где ключ - название столбца (тип str), значение - направление сортировки (тип str), например:
+            {"researchDate":"ASC", "RtgPer":"DESC"}
+
         Returns
         -------
         text : json
-            Задание в формате MediaVortex API
+            Задание в формате JSON
         """
 
         if not self.task_checker.check_task(task_type, date_filter, weekday_filter, daytype_filter,
                                             company_filter, region_filter, time_filter, location_filter,
                                             basedemo_filter, targetdemo_filter, program_filter, break_filter,
                                             ad_filter, subject_filter, duration_filter, duplication_company_filter,
-                                            duplication_time_filter, slices, statistics, scales):
+                                            duplication_time_filter, slices, statistics, scales, sortings):
             return
 
         # Собираем JSON
@@ -200,6 +205,9 @@ class MediaVortexTask:
             tsk['filter']['respondentFilter'] = resp_filter
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
+        
+        #Добавляем сортировку
+        self.task_builder.add_sortings(tsk, sortings)
 
         # добавляем Опции таска
         if options is not None:
@@ -238,6 +246,7 @@ class MediaVortexTask:
         if not self.task_checker.check_units_in_task(task_type, tsk):
             return
 
+
         # Сохраняем информацию о задании, для последующего сохранения в Excel
         tinfo = {
             'task_name': task_name,
@@ -271,7 +280,8 @@ class MediaVortexTask:
             'customDuplicationTimeVariableId': custom_duplication_time_variable_id,
             'customDuplicationCompanyVariableId': custom_duplication_company_variable_id,
             'consumptionTargetOptions': consumption_target_options,
-            'frequencyDistConditions': frequency_dist_conditions
+            'frequencyDistConditions': frequency_dist_conditions,
+            "sorting": sortings
         }
         self.task_builder.save_report_info(tinfo)
         # Возвращаем JSON
@@ -281,12 +291,12 @@ class MediaVortexTask:
                             daytype_filter=None, company_filter=None, region_filter=None, time_filter=None,
                             location_filter=None, basedemo_filter=None, targetdemo_filter=None,
                             respondent_filter=None, slices=None,
-                            statistics=None, scales=None, options=None, reach_conditions=None,
+                            statistics=None, sortings=None, options=None, reach_conditions=None,
                             custom_demo_variable_id=None,
                             custom_company_variable_id=None, custom_respondent_variable_id=None,
                             custom_time_variable_id=None):
         """
-        Формирует текст задания timeband для расчета статистик
+        Сформировать задание для отчета Timeband в JSON формате
 
         Parameters
         ----------
@@ -294,8 +304,8 @@ class MediaVortexTask:
         task_name : str
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
-        date_filter : str
-            Фильтр дат
+        date_filter : list of tuples
+            Фильтр периода
 
         weekday_filter : str
             Фильтр дней недели
@@ -304,16 +314,16 @@ class MediaVortexTask:
             Фильтр типов дней
 
         company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         region_filter : str
             Фильтр регионов
 
         time_filter : str
-            Фильтр времени
+            Фильтр временных интервалов
 
         location_filter : str
-            Фильтр локации
+            Фильтр места просмотра (дом/дача)
 
         basedemo_filter : str
             Фильтр базовой аудитории
@@ -330,14 +340,15 @@ class MediaVortexTask:
         statistics : list
             Список статистик
 
-        scales : list
-            Список шкал
+        sortings : dict
+            Настройки сортировки: словарь, где ключ - название столбца (тип str), значение - направление сортировки (тип str), например:
+            {"researchDate":"ASC", "RtgPer":"DESC"}
 
         options : dict
             Словарь настроек
 
         reach_conditions : dict
-            Словарь условий reach
+            Настройка условий охватов
 
         custom_demo_variable_id : str
             Id кастомной demo переменной
@@ -354,7 +365,7 @@ class MediaVortexTask:
         Returns
         -------
         text : json
-            Задание в формате MediaVortex API
+            Задание в формате JSON
         """
         return self.build_task(task_type='timeband', task_name=task_name, date_filter=date_filter,
                                weekday_filter=weekday_filter, daytype_filter=daytype_filter,
@@ -362,7 +373,7 @@ class MediaVortexTask:
                                time_filter=time_filter, location_filter=location_filter,
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
                                respondent_filter=respondent_filter,
-                               slices=slices, statistics=statistics, scales=scales, options=options,
+                               slices=slices, statistics=statistics, sortings=sortings, options=options, 
                                reach_conditions=reach_conditions,
                                custom_company_variable_id=custom_company_variable_id,
                                custom_demo_variable_id=custom_demo_variable_id,
@@ -370,15 +381,15 @@ class MediaVortexTask:
                                custom_time_variable_id=custom_time_variable_id)
 
     def build_simple_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
-                          company_filter=None, region_filter=None, time_filter=None, location_filter=None,
+                          company_filter=None, region_filter=None, location_filter=None,
                           basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
-                          ad_filter=None, subject_filter=None, duration_filter=None, respondent_filter=None,
-                          slices=None, statistics=None, scales=None, options=None, reach_conditions=None,
+                          ad_filter=None, subject_filter=None, respondent_filter=None,
+                          slices=None, statistics=None, sortings=None, options=None, reach_conditions=None,
                           custom_demo_variable_id=None, custom_company_variable_id=None,
                           custom_time_variable_id=None,
                           custom_respondent_variable_id=None, frequency_dist_conditions=None):
         """
-        Формирует текст задания simple для расчета статистик
+        Сформировать задание для отчета Simple в JSON формате
 
         Parameters
         ----------
@@ -387,7 +398,7 @@ class MediaVortexTask:
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
         date_filter : str
-            Фильтр дат
+            Фильтр периода
 
         weekday_filter : str
             Фильтр дней недели
@@ -396,16 +407,13 @@ class MediaVortexTask:
             Фильтр типов дней
 
         company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         region_filter : str
             Фильтр регионов
 
-        time_filter : str
-            Фильтр времени
-
         location_filter : str
-            Фильтр локации
+            Фильтр места просмотра (дом/дача)
 
         basedemo_filter : str
             Фильтр базовой аудитории
@@ -417,16 +425,13 @@ class MediaVortexTask:
             Фильтр программ
 
         break_filter : str
-            Фильтр перерывов
+            Фильтр блоков
 
         ad_filter : str
-            Фильтр рекламы
+            Фильтр роликов
 
         subject_filter : str
             Фильтр темы
-
-        duration_filter : str
-            Фильтр продолжительности
 
         respondent_filter : str
             Фильтр респондентов
@@ -437,14 +442,15 @@ class MediaVortexTask:
         statistics : list
             Список статистик
 
-        scales : list
-            Список шкал
+        sortings : dict
+            Настройки сортировки: словарь, где ключ - название столбца (тип str), значение - направление сортировки (тип str), например:
+            {"researchDate":"ASC", "RtgPer":"DESC"}
 
         options : dict
             Словарь настроек
 
         reach_conditions : dict
-            Словарь условий reach
+            Настройка условий охватов
 
         custom_demo_variable_id : str
             Id кастомной demo переменной
@@ -464,18 +470,18 @@ class MediaVortexTask:
         Returns
         -------
         text : json
-            Задание в формате MediaVortex API
+            Задание в формате JSON
         """
         return self.build_task(task_type='simple', task_name=task_name, date_filter=date_filter,
                                weekday_filter=weekday_filter, daytype_filter=daytype_filter,
                                company_filter=company_filter, region_filter=region_filter,
-                               time_filter=time_filter, location_filter=location_filter,
+                               location_filter=location_filter,
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
-                               duration_filter=duration_filter, respondent_filter=respondent_filter,
-                               slices=slices, statistics=statistics,
-                               scales=scales, options=options, reach_conditions=reach_conditions,
+                               respondent_filter=respondent_filter,
+                               slices=slices, statistics=statistics, sortings=sortings,
+                               options=options, reach_conditions=reach_conditions,
                                custom_company_variable_id=custom_company_variable_id,
                                custom_demo_variable_id=custom_demo_variable_id,
                                custom_respondent_variable_id=custom_respondent_variable_id,
@@ -483,15 +489,14 @@ class MediaVortexTask:
                                frequency_dist_conditions=frequency_dist_conditions)
 
     def build_crosstab_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
-                            company_filter=None, region_filter=None, time_filter=None, location_filter=None,
+                            company_filter=None, region_filter=None, location_filter=None,
                             basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
-                            ad_filter=None, subject_filter=None, duration_filter=None, respondent_filter=None,
-                            slices=None, statistics=None, scales=None, options=None, reach_conditions=None,
+                            ad_filter=None, subject_filter=None, respondent_filter=None,
+                            slices=None, statistics=None, sortings=None, options=None, reach_conditions=None,
                             custom_demo_variable_id=None, custom_company_variable_id=None,
-                            custom_time_variable_id=None,
-                            custom_respondent_variable_id=None, frequency_dist_conditions=None):
+                            custom_time_variable_id=None, custom_respondent_variable_id=None, frequency_dist_conditions=None):
         """
-        Формирует текст задания crosstab для расчета статистик
+        Сформировать задание для отчета Crosstab в JSON формате
 
         Parameters
         ----------
@@ -500,7 +505,7 @@ class MediaVortexTask:
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
         date_filter : str
-            Фильтр дат
+            Фильтр периода
 
         weekday_filter : str
             Фильтр дней недели
@@ -509,16 +514,13 @@ class MediaVortexTask:
             Фильтр типов дней
 
         company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         region_filter : str
             Фильтр регионов
 
-        time_filter : str
-            Фильтр времени
-
         location_filter : str
-            Фильтр локации
+            Фильтр места просмотра (дом/дача)
 
         basedemo_filter : str
             Фильтр базовой аудитории
@@ -530,16 +532,13 @@ class MediaVortexTask:
             Фильтр программ
 
         break_filter : str
-            Фильтр перерывов
+            Фильтр блоков
 
         ad_filter : str
-            Фильтр рекламы
+            Фильтр роликов
 
         subject_filter : str
             Фильтр темы
-
-        duration_filter : str
-            Фильтр продолжительности
 
         respondent_filter : str
             Фильтр респондентов
@@ -550,14 +549,15 @@ class MediaVortexTask:
         statistics : list
             Список статистик
 
-        scales : list
-            Список шкал
+        sortings : dict
+            Настройки сортировки: словарь, где ключ - название столбца (тип str), значение - направление сортировки (тип str), например:
+            {"researchDate":"ASC", "RtgPer":"DESC"}
 
         options : dict
             Словарь настроек
 
         reach_conditions : dict
-            Словарь условий reach
+            Настройка условий охватов
 
         custom_demo_variable_id : str
             Id кастомной demo переменной
@@ -577,18 +577,18 @@ class MediaVortexTask:
         Returns
         -------
         text : json
-            Задание в формате MediaVortex API
+            Задание в формате JSON
         """
         return self.build_task(task_type='crosstab', task_name=task_name, date_filter=date_filter,
                                weekday_filter=weekday_filter, daytype_filter=daytype_filter,
                                company_filter=company_filter, region_filter=region_filter,
-                               time_filter=time_filter, location_filter=location_filter,
+                               location_filter=location_filter,
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
-                               duration_filter=duration_filter, respondent_filter=respondent_filter,
-                               slices=slices, statistics=statistics,
-                               scales=scales, options=options, reach_conditions=reach_conditions,
+                               respondent_filter=respondent_filter,
+                               slices=slices, statistics=statistics, sortings=sortings,
+                               options=options, reach_conditions=reach_conditions,
                                custom_company_variable_id=custom_company_variable_id,
                                custom_demo_variable_id=custom_demo_variable_id,
                                custom_respondent_variable_id=custom_respondent_variable_id,
@@ -613,7 +613,7 @@ class MediaVortexTask:
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
         date_filter : str
-            Фильтр дат
+            Фильтр периода
 
         weekday_filter : str
             Фильтр дней недели
@@ -622,16 +622,16 @@ class MediaVortexTask:
             Фильтр типов дней
 
         company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         region_filter : str
             Фильтр регионов
 
         time_filter : str
-            Фильтр времени
+            Фильтр временных интервалов
 
         location_filter : str
-            Фильтр локации
+            Фильтр места просмотра (дом/дача)
 
         basedemo_filter : str
             Фильтр базовой аудитории
@@ -643,10 +643,10 @@ class MediaVortexTask:
             Фильтр программ
 
         break_filter : str
-            Фильтр перерывов
+            Фильтр блоков
 
         ad_filter : str
-            Фильтр рекламы
+            Фильтр роликов
 
         subject_filter : str
             Фильтр темы
@@ -667,7 +667,7 @@ class MediaVortexTask:
             Словарь настроек
 
         reach_conditions : dict
-            Словарь условий reach
+            Настройка условий охватов
 
         custom_demo_variable_id : str
             Id кастомной demo переменной
@@ -723,7 +723,7 @@ class MediaVortexTask:
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
 
         date_filter : str
-            Фильтр дат
+            Фильтр периода
 
         daytype_filter : str
             Фильтр типов дней
@@ -738,22 +738,22 @@ class MediaVortexTask:
             Фильтр целевой аудитории
 
         company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         location_filter : str
-            Фильтр локации
+            Фильтр места просмотра (дом/дача)
 
         time_filter : str
-            Фильтр времени
+            Фильтр временных интервалов
 
         duration_filter : str
             Фильтр продолжительности
 
         duplication_company_filter : str
-            Фильтр компаний
+            Фильтр каналов
 
         duplication_time_filter : str
-            Фильтр времени
+            Фильтр временных интервалов
 
         slices : list
             Список срезов
@@ -768,7 +768,7 @@ class MediaVortexTask:
             Словарь настроек
 
         reach_conditions : dict
-            Словарь условий reach
+            Настройка условий охватов
 
         custom_demo_variable_id : str
             Id кастомной demo переменной
@@ -1232,9 +1232,9 @@ class MediaVortexTask:
             return None
         return self.network_module.send_request('get', '/task/result/{}'.format(tsk['taskId']))
 
-    def result2table(self, data, project_name=None, time_separator=True):
+    def result2table(self, data, project_name=None, time_separator=True, to_lists=False):
         """
-        Получить результат выполнения задания по его ID
+        Преобразовать результат выполнения задания из JSON в DataFrame
 
         Parameters
         ----------
@@ -1244,6 +1244,13 @@ class MediaVortexTask:
 
         project_name : str
             Название проекта
+
+        time_separator : bool, default True
+            Настройка формата атрибутов времени (время начала, время окончания). 
+            True: значения выгружаются в виде строки ЧЧ:ММ:СС; False: в формате int без разделителей. 
+
+        to_lists : bool, default False
+            Объединить несколько значений по одному выходу ролика в список
 
         Returns
         -------
@@ -1301,7 +1308,13 @@ class MediaVortexTask:
         if project_name is not None:
             df.insert(0, 'prj_name', project_name)
         # df['date'] = pd.to_datetime(df['date'])
-        return df
+
+        if to_lists == True:
+            df_merged = self.merge_rows(df)
+            return df_merged
+
+        else: 
+            return df
 
     def _get_text_names(self, df, with_id=False, time_separator=True):
         df = self._get_text_name_for(df, with_id)
@@ -1363,3 +1376,64 @@ class MediaVortexTask:
                 df[col] = df[col].map(di)
 
         return df
+    
+    def merge_rows(self, df: pd.DataFrame):
+        """
+        Объединить разные значения по атрибутам для одного adSpotId выхода 
+
+        Parameters
+        ----------
+
+        df : pd.DataFrame
+            Результат выполнения задания в формате DataFrame
+
+        Returns
+        -------
+        result : DataFrame
+            DataFrame, где для каждого adSpotId все различающиеся атрибуты объединены в списки
+        """
+        if type(df) != pd.DataFrame:
+            return
+
+        if "adSpotId" not in df.columns:
+            return df
+
+        x = df.copy() #создаем копию df
+        x = x.groupby("adSpotId").agg("first") #удаляем дубликаты по adSpotId, оставляем одно первое значение
+
+        for col in x.columns:
+            if col in [
+                'advertiserId',
+                'advertiserName',
+                'advertiserEName',
+                'advertiserNotes',
+                'brandId',
+                'brandName',
+                'brandEName',
+                'subbrandId',
+                'subbrandName',
+                'subbrandEName',
+                'modelId',
+                'modelName',
+                'modelEName',
+                'articleLevel1Id',
+                'articleLevel1Name',
+                'articleLevel1EName',
+                'articleLevel2Id',
+                'articleLevel2Name',
+                'articleLevel2EName',
+                'articleLevel3Id',
+                'articleLevel3Name',
+                'articleLevel3EName',
+                'articleLevel4Id',
+                'articleLevel4Name',
+                'articleLevel4EName'
+            ]:
+                y = df.copy()
+                y = y[['adSpotId', col]] #делаем срез из исходного df
+                y.sort_values(by=['adSpotId', col], inplace=True) #сортируем
+                y.drop_duplicates(['adSpotId', col], keep='first', inplace=True) #удаляем дубликаты
+                y = y.groupby("adSpotId").agg({col: "; ".join}) #все осташиеся уникальные для id выхода значения объединяем в одну ячейку
+                x.update(y) #обновляем исходный df
+        x.reset_index(inplace=True)
+        return x
