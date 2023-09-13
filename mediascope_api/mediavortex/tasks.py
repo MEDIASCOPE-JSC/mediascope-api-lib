@@ -17,7 +17,8 @@ class MediaVortexTask:
         'simple': '/task/simple',
         'crosstab': '/task/crosstab',
         'consumption-target': '/task/consumption-target',
-        'duplication-timeband': '/task/duplication-timeband'
+        'duplication-timeband': '/task/duplication-timeband',
+        'respondent-analysis': '/task/respondent-analysis'
     }
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -46,7 +47,8 @@ class MediaVortexTask:
                    statistics=None, scales=None, options=None, reach_conditions=None, custom_demo_variable_id=None,
                    custom_company_variable_id=None, custom_respondent_variable_id=None, custom_time_variable_id=None,
                    custom_duplication_time_variable_id=None, custom_duplication_company_variable_id=None,
-                   consumption_target_options=None, frequency_dist_conditions=None, sortings=None):
+                   consumption_target_options=None, frequency_dist_conditions=None, sortings=None,
+                   add_city_to_demo_from_region=False):
         """
         Сформировать задание в JSON формате
 
@@ -155,11 +157,16 @@ class MediaVortexTask:
             Настройки сортировки: словарь, где ключ - название столбца (тип str), значение - направление сортировки (тип str), например:
             {"researchDate":"ASC", "RtgPer":"DESC"}
 
+        add_city_to_demo_from_region : bool
+            Включение режима автоматического добавления демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
         Returns
         -------
         text : json
             Задание в формате JSON
         """
+        if add_city_to_demo_from_region:
+            basedemo_filter = self._add_city_to_demo_from_region(region_filter, basedemo_filter)
 
         if not self.task_checker.check_task(task_type, date_filter, weekday_filter, daytype_filter,
                                             company_filter, region_filter, time_filter, location_filter,
@@ -191,18 +198,8 @@ class MediaVortexTask:
         self.task_builder.add_filter(tsk, duration_filter, 'durationFilter')
         self.task_builder.add_filter(tsk, duplication_company_filter, 'duplicationCompanyFilter')
         self.task_builder.add_filter(tsk, duplication_time_filter, 'duplicationTimeFilter')
-        if respondent_filter is not None:
-            resp_filter = {
-                "operand": "AND",
-                "elements": [
-                    {
-                        "unit": 'respondentId',
-                        "relation": "IN",
-                        "value": respondent_filter
-                    }
-                ]
-            }
-            tsk['filter']['respondentFilter'] = resp_filter
+        self.task_builder.add_filter(tsk, respondent_filter, 'respondentFilter')
+
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
         
@@ -1437,3 +1434,152 @@ class MediaVortexTask:
                 x.update(y) #обновляем исходный df
         x.reset_index(inplace=True)
         return x
+
+    def send_respondent_analysis_task(self, data):
+        """
+        Отправить задание respondent analysis
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('respondent-analysis', data)
+
+    def build_respondent_analysis_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
+                                       company_filter=None, basedemo_filter=None, targetdemo_filter=None,
+                                       program_filter=None, time_filter=None, location_filter=None,
+                                       respondent_filter=None, break_filter=None, ad_filter=None, duration_filter=None,
+                                       slices=None, statistics=None, scales=None, options=None, reach_conditions=None,
+                                       custom_demo_variable_id=None, custom_company_variable_id=None,
+                                       custom_time_variable_id=None, custom_respondent_variable_id=None,
+                                       sortings=None):
+        """
+        Формирует текст задания respondent analysis для расчета статистик
+
+        Parameters
+        ----------
+
+        task_name : str
+            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+
+        date_filter : str
+            Фильтр периода
+
+        weekday_filter : str
+            Фильтр дней недели
+
+        daytype_filter : str
+            Фильтр типов дней
+
+        company_filter : str
+            Фильтр каналов
+
+        time_filter : str
+            Фильтр временных интервалов
+
+        location_filter : str
+            Фильтр места просмотра (дом/дача)
+
+        respondent_filter : str
+            Фильтр респондентов
+
+        basedemo_filter : str
+            Фильтр базовой аудитории
+
+        targetdemo_filter : str
+            Фильтр целевой аудитории
+
+        program_filter : str
+            Фильтр программ
+
+        break_filter : str
+            Фильтр блоков
+
+        ad_filter : str
+            Фильтр роликов
+
+        duration_filter : str
+            Фильтр продолжительности
+
+        slices : list
+            Список срезов
+
+        statistics : list
+            Список статистик
+
+        scales : list
+            Список шкал
+
+        options : dict
+            Словарь настроек
+
+        reach_conditions : dict
+            Настройка условий охватов
+
+        custom_demo_variable_id : str
+            Id кастомной demo переменной
+
+        custom_company_variable_id : str
+            Id кастомной company переменной
+
+        custom_respondent_variable_id : str
+            Id кастомной respondent переменной
+
+        custom_time_variable_id : str
+            Id кастомной time переменной
+
+        sortings : dict
+            Настройки сортировки: словарь, где ключ - название столбца (тип str), значение - направление сортировки (тип str), например:
+            {"researchDate":"ASC", "RtgPer":"DESC"}
+
+        Returns
+        -------
+        text : json
+            Задание в формате MediaVortex API
+        """
+        return self.build_task(task_type='respondent-analysis', task_name=task_name, date_filter=date_filter,
+                               weekday_filter=weekday_filter, daytype_filter=daytype_filter,
+                               company_filter=company_filter,
+                               time_filter=time_filter, location_filter=location_filter,
+                               basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
+                               program_filter=program_filter, break_filter=break_filter,
+                               ad_filter=ad_filter, respondent_filter=respondent_filter,
+                               duration_filter=duration_filter, slices=slices, statistics=statistics,
+                               scales=scales, options=options, reach_conditions=reach_conditions,
+                               custom_demo_variable_id=custom_demo_variable_id,
+                               custom_company_variable_id=custom_company_variable_id,
+                               custom_respondent_variable_id=custom_respondent_variable_id,
+                               custom_time_variable_id=custom_time_variable_id,
+                               sortings=sortings)
+
+    def _add_city_to_demo_from_region(self, region_filter=None, demo_filter=None):
+        # автоматическое добавление фильтра городов по значениям региона
+
+        # если фильтр по регионам не задан, то возвращаем демо без изменений
+        if region_filter is None:
+            return demo_filter
+
+        # Собираем JSON
+        tsk = {
+            "filter": {}
+        }
+        self.task_builder.add_filter(tsk, region_filter, 'regionFilter')
+
+        for region_element in tsk['filter']['regionFilter']['elements']:
+            if region_element['unit'] == 'regionId':
+                city_ids = self.cats.get_tv_monitoring_cities(region_id=region_element['value'],
+                                                              return_city_ids_as_string=True)
+                if 'city' not in demo_filter:
+                    if demo_filter is None:
+                        return 'city IN (' + city_ids + ')'
+                    else:
+                        return demo_filter + ' AND city IN (' + city_ids + ')'

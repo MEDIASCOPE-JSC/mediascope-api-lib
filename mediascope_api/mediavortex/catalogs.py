@@ -75,7 +75,8 @@ class MediaVortexCats:
         'tv-company-category': '/dictionary/tv/company-category',
         'tv-company-status': '/dictionary/tv/company-status',
         'tv-age-restriction': '/dictionary/tv/age-restriction',
-        'availability-period': '/period/availability-period'
+        'availability-period': '/period/availability-period',
+        'monitoring-cities': '/dictionary/tv/monitoring-cities'
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None,
@@ -4415,3 +4416,121 @@ class MediaVortexCats:
                     res[h].append('')
 
         return pd.DataFrame(res)
+
+    def get_respondent_analysis_unit(self):
+        """
+        Получить списки доступных атрибутов отчета Анализ отдельных респондентов (Respondent analysis):
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+
+        units = self.msapi_network.send_request(
+            'get', self._urls['tv-kit'], use_cache=False)
+
+        stats = []
+        slices = []
+        filters = []
+        if len(units) > 0:
+            if 'reports' in units[0]:
+                if len(units[0]['reports']) > 9:
+                    if 'statistics' in units[0]['reports'][9]:
+                        stats = [i['name'] for i in units[0]['reports'][9]['statistics']]
+                    if 'slices' in units[0]['reports'][9]:
+                        slices = [i['name'] for i in units[0]['reports'][9]['slices']]
+                    if 'filters' in units[0]['reports'][9]:
+                        filters = [i['name'] for i in units[0]['reports'][9]['filters']]
+
+        result = {
+            'statistics': stats,
+            'slices': slices,
+            'filters': filters
+        }
+
+        return result
+
+    def get_tv_monitoring_cities(self, region_id=None, region_name=None, demo_attribute_value_id=None,
+                                 demo_attribute_value_name=None, demo_attribute_id=None, demo_attribute_col_name=None,
+                                 kit_id=None, order_by='regionId', order_dir=None, offset=None,
+                                 limit=None, use_cache=False, return_city_ids_as_string=False):
+        """
+        Получить коллекцию связей регион-город
+
+        Parameters
+        ----------
+        region_id : str or list of str
+            Ид региона для фильтрации
+
+        region_name : str or list of str
+            Имя региона для фильтрации
+
+        demo_attribute_value_id : str or list of str
+            Ид значения демо атрибута для фильтрации
+
+        demo_attribute_value_name : str or list of str
+            Имя значения демо атрибута для фильтрации
+
+        demo_attribute_id : str or list of str
+            Ид демо атрибута для фильтрации
+
+        demo_attribute_col_name : str or list of str
+            Имя колонки демо атрибута для фильтрации
+
+        kit_id : integer
+            Ид набора данных
+
+        order_by : string, default 'regionId'
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+
+        limit : int
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        result : DataFrame
+
+            DataFrame с коллекцией связей регион-город
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "regionId": region_id,
+            "regionName": region_name,
+            "demoAttributeValueId": demo_attribute_value_id,
+            "demoAttributeValueName": demo_attribute_value_name,
+            "demoAttributeId": demo_attribute_id,
+            "demoAttributeColName": demo_attribute_col_name,
+            "kitId": kit_id
+        }
+
+        full_dict = self._get_dict('monitoring-cities', search_params, body_params, offset, limit, use_cache)
+
+        if return_city_ids_as_string:
+            return ", ".join([str(x) for x in full_dict['demoAttributeValueId'].unique().tolist()])
+        else:
+            return full_dict

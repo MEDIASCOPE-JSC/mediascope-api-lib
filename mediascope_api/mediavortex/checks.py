@@ -17,7 +17,8 @@ class MediaVortexTaskChecker:
             'simple': self.cats.get_simple_unit(),
             'crosstab': self.cats.get_crosstab_unit(),
             'consumption-target': self.cats.get_consumption_target_unit(),
-            'duplication-timeband': self.cats.get_duplication_timeband_unit()
+            'duplication-timeband': self.cats.get_duplication_timeband_unit(),
+            'respondent-analysis': self.cats.get_respondent_analysis_unit()
             }
         self.check_list = {
             'task_type': {
@@ -182,9 +183,9 @@ class MediaVortexTaskChecker:
                         error_text += f'Возможно соответствует "{matches}".\n'
         if type(tsk['filter']) == list:
             for filter_name in tsk['filter']:                
-                self.check_units(f'фильтрах {filter_name}', filter_name,
-                                 self.task_types[task_type]['filters'],
-                                 error_text)
+                error_text = self.check_units(f'фильтрах {filter_name}', filter_name,
+                                              self.task_types[task_type]['filters'],
+                                              error_text)
         if task_type != 'consumption-target':
             if type(tsk['slices']) == list:
                 avl_slices = self.get_avl_slices(task_type)
@@ -229,6 +230,11 @@ class MediaVortexTaskChecker:
         for unit in task_units:
             if unit not in avl_units:
                 error_text += f'Недопустимое название атрибута: "{unit}" в {task_item_name}'
+                probably_matches = dl.get_close_matches(unit, avl_units, n=3)
+                if len(probably_matches) > 0:
+                    matches = '" или "'.join(probably_matches)
+                    error_text += f'Возможно соответствует "{matches}".\n'
+        return error_text
 
     def get_avl_slices(self, task_type):        
         return self.task_types[task_type]['slices']
