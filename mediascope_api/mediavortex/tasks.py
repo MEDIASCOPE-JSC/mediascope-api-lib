@@ -48,7 +48,7 @@ class MediaVortexTask:
                    custom_company_variable_id=None, custom_respondent_variable_id=None, custom_time_variable_id=None,
                    custom_duplication_time_variable_id=None, custom_duplication_company_variable_id=None,
                    consumption_target_options=None, frequency_dist_conditions=None, sortings=None,
-                   add_city_to_demo_from_region=False):
+                   add_city_to_basedemo_from_region=False, add_city_to_targetdemo_from_region=False):
         """
         Сформировать задание в JSON формате
 
@@ -157,16 +157,22 @@ class MediaVortexTask:
             Настройки сортировки: словарь, где ключ - название столбца (тип str), значение - направление сортировки (тип str), например:
             {"researchDate":"ASC", "RtgPer":"DESC"}
 
-        add_city_to_demo_from_region : bool
-            Включение режима автоматического добавления демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+        add_city_to_basedemo_from_region : bool
+            Включение режима автоматического добавления базового демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
+        add_city_to_targetdemo_from_region : bool
+            Включение режима автоматического добавления целевого демо фильтра по городам на основании фильтра по регионам. По умолчанию false
 
         Returns
         -------
         text : json
             Задание в формате JSON
         """
-        if add_city_to_demo_from_region:
-            basedemo_filter = self._add_city_to_demo_from_region(region_filter, basedemo_filter)
+        if add_city_to_basedemo_from_region:
+            basedemo_filter = self._add_city_to_demo_from_region(company_filter, basedemo_filter)
+
+        if add_city_to_targetdemo_from_region:
+            targetdemo_filter = self._add_city_to_demo_from_region(company_filter, targetdemo_filter)
 
         if not self.task_checker.check_task(task_type, date_filter, weekday_filter, daytype_filter,
                                             company_filter, region_filter, time_filter, location_filter,
@@ -291,7 +297,8 @@ class MediaVortexTask:
                             statistics=None, sortings=None, options=None, reach_conditions=None,
                             custom_demo_variable_id=None,
                             custom_company_variable_id=None, custom_respondent_variable_id=None,
-                            custom_time_variable_id=None):
+                            custom_time_variable_id=None,
+                            add_city_to_basedemo_from_region=False, add_city_to_targetdemo_from_region=False):
         """
         Сформировать задание для отчета Timeband в JSON формате
 
@@ -359,6 +366,12 @@ class MediaVortexTask:
         custom_time_variable_id : str
             Id кастомной time переменной
 
+        add_city_to_basedemo_from_region : bool
+            Включение режима автоматического добавления базового демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
+        add_city_to_targetdemo_from_region : bool
+            Включение режима автоматического добавления целевого демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
         Returns
         -------
         text : json
@@ -375,7 +388,9 @@ class MediaVortexTask:
                                custom_company_variable_id=custom_company_variable_id,
                                custom_demo_variable_id=custom_demo_variable_id,
                                custom_respondent_variable_id=custom_respondent_variable_id,
-                               custom_time_variable_id=custom_time_variable_id)
+                               custom_time_variable_id=custom_time_variable_id,
+                               add_city_to_basedemo_from_region=add_city_to_basedemo_from_region,
+                               add_city_to_targetdemo_from_region=add_city_to_targetdemo_from_region)
 
     def build_simple_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
                           company_filter=None, region_filter=None, location_filter=None,
@@ -384,7 +399,8 @@ class MediaVortexTask:
                           slices=None, statistics=None, sortings=None, options=None, reach_conditions=None,
                           custom_demo_variable_id=None, custom_company_variable_id=None,
                           custom_time_variable_id=None,
-                          custom_respondent_variable_id=None, frequency_dist_conditions=None):
+                          custom_respondent_variable_id=None, frequency_dist_conditions=None,
+                          add_city_to_basedemo_from_region=False, add_city_to_targetdemo_from_region=False):
         """
         Сформировать задание для отчета Simple в JSON формате
 
@@ -464,6 +480,12 @@ class MediaVortexTask:
         frequency_dist_conditions : dict
             Словарь условия для FrequencyDist статистик
 
+        add_city_to_basedemo_from_region : bool
+            Включение режима автоматического добавления базового демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
+        add_city_to_targetdemo_from_region : bool
+            Включение режима автоматического добавления целевого демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
         Returns
         -------
         text : json
@@ -483,7 +505,9 @@ class MediaVortexTask:
                                custom_demo_variable_id=custom_demo_variable_id,
                                custom_respondent_variable_id=custom_respondent_variable_id,
                                custom_time_variable_id=custom_time_variable_id,
-                               frequency_dist_conditions=frequency_dist_conditions)
+                               frequency_dist_conditions=frequency_dist_conditions,
+                               add_city_to_basedemo_from_region=add_city_to_basedemo_from_region,
+                               add_city_to_targetdemo_from_region=add_city_to_targetdemo_from_region)
 
     def build_crosstab_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
                             company_filter=None, region_filter=None, location_filter=None,
@@ -491,7 +515,9 @@ class MediaVortexTask:
                             ad_filter=None, subject_filter=None, respondent_filter=None,
                             slices=None, statistics=None, sortings=None, options=None, reach_conditions=None,
                             custom_demo_variable_id=None, custom_company_variable_id=None,
-                            custom_time_variable_id=None, custom_respondent_variable_id=None, frequency_dist_conditions=None):
+                            custom_time_variable_id=None, custom_respondent_variable_id=None,
+                            frequency_dist_conditions=None,
+                            add_city_to_basedemo_from_region=False, add_city_to_targetdemo_from_region=False):
         """
         Сформировать задание для отчета Crosstab в JSON формате
 
@@ -571,6 +597,12 @@ class MediaVortexTask:
         frequency_dist_conditions : dict
             Словарь условия для FrequencyDist статистик
 
+        add_city_to_basedemo_from_region : bool
+            Включение режима автоматического добавления базового демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
+        add_city_to_targetdemo_from_region : bool
+            Включение режима автоматического добавления целевого демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
         Returns
         -------
         text : json
@@ -590,7 +622,9 @@ class MediaVortexTask:
                                custom_demo_variable_id=custom_demo_variable_id,
                                custom_respondent_variable_id=custom_respondent_variable_id,
                                custom_time_variable_id=custom_time_variable_id,
-                               frequency_dist_conditions=frequency_dist_conditions)
+                               frequency_dist_conditions=frequency_dist_conditions,
+                               add_city_to_basedemo_from_region=add_city_to_basedemo_from_region,
+                               add_city_to_targetdemo_from_region=add_city_to_targetdemo_from_region)
 
     def build_consumption_target_task(self, task_name='', date_filter=None, weekday_filter=None, daytype_filter=None,
                                       company_filter=None, region_filter=None, time_filter=None, location_filter=None,
@@ -599,7 +633,8 @@ class MediaVortexTask:
                                       slices=None, statistics=None, scales=None, options=None, reach_conditions=None,
                                       custom_demo_variable_id=None, custom_company_variable_id=None,
                                       custom_time_variable_id=None,
-                                      custom_respondent_variable_id=None, consumption_target_options=None):
+                                      custom_respondent_variable_id=None, consumption_target_options=None,
+                                      add_city_to_basedemo_from_region=False, add_city_to_targetdemo_from_region=False):
         """
         Формирует текст задания consumption target для расчета статистик
 
@@ -681,6 +716,12 @@ class MediaVortexTask:
         consumption_target_options : dict
             Словарь условий consumption_target
 
+        add_city_to_basedemo_from_region : bool
+            Включение режима автоматического добавления базового демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
+        add_city_to_targetdemo_from_region : bool
+            Включение режима автоматического добавления целевого демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
         Returns
         -------
         text : json
@@ -699,7 +740,9 @@ class MediaVortexTask:
                                custom_company_variable_id=custom_company_variable_id,
                                custom_respondent_variable_id=custom_respondent_variable_id,
                                custom_time_variable_id=custom_time_variable_id,
-                               consumption_target_options=consumption_target_options)
+                               consumption_target_options=consumption_target_options,
+                               add_city_to_basedemo_from_region=add_city_to_basedemo_from_region,
+                               add_city_to_targetdemo_from_region=add_city_to_targetdemo_from_region)
 
     def build_duplication_timeband_task(self, task_name='', date_filter=None, daytype_filter=None, weekday_filter=None,
                                         basedemo_filter=None, targetdemo_filter=None, company_filter=None,
@@ -709,7 +752,9 @@ class MediaVortexTask:
                                         custom_demo_variable_id=None, custom_time_variable_id=None,
                                         custom_company_variable_id=None, custom_respondent_variable_id=None,
                                         custom_duplication_time_variable_id=None,
-                                        custom_duplication_company_variable_id=None):
+                                        custom_duplication_company_variable_id=None,
+                                        add_city_to_basedemo_from_region=False,
+                                        add_city_to_targetdemo_from_region=False):
         """
         Формирует текст задания duplication_timeband для расчета статистик
 
@@ -785,6 +830,12 @@ class MediaVortexTask:
         custom_duplication_company_variable_id : str
             Id кастомной company переменной
 
+        add_city_to_basedemo_from_region : bool
+            Включение режима автоматического добавления базового демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
+        add_city_to_targetdemo_from_region : bool
+            Включение режима автоматического добавления целевого демо фильтра по городам на основании фильтра по регионам. По умолчанию false
+
         Returns
         -------
         text : json
@@ -804,7 +855,9 @@ class MediaVortexTask:
                                custom_respondent_variable_id=custom_respondent_variable_id,
                                custom_duplication_time_variable_id=custom_duplication_time_variable_id,
                                custom_time_variable_id=custom_time_variable_id,
-                               custom_duplication_company_variable_id=custom_duplication_company_variable_id)
+                               custom_duplication_company_variable_id=custom_duplication_company_variable_id,
+                               add_city_to_basedemo_from_region=add_city_to_basedemo_from_region,
+                               add_city_to_targetdemo_from_region=add_city_to_targetdemo_from_region)
 
     def _send_task(self, task_type, data):
         if data is None:
@@ -1561,25 +1614,25 @@ class MediaVortexTask:
                                custom_time_variable_id=custom_time_variable_id,
                                sortings=sortings)
 
-    def _add_city_to_demo_from_region(self, region_filter=None, demo_filter=None):
+    def _add_city_to_demo_from_region(self, company_filter=None, demo_filter=None):
         # автоматическое добавление фильтра городов по значениям региона
 
         # если фильтр по регионам не задан, то возвращаем демо без изменений
-        if region_filter is None:
+        if company_filter is None:
             return demo_filter
 
         # Собираем JSON
         tsk = {
             "filter": {}
         }
-        self.task_builder.add_filter(tsk, region_filter, 'regionFilter')
+        self.task_builder.add_filter(tsk, company_filter, 'companyFilter')
 
-        for region_element in tsk['filter']['regionFilter']['elements']:
-            if region_element['unit'] == 'regionId':
-                city_ids = self.cats.get_tv_monitoring_cities(region_id=region_element['value'],
+        for element in tsk['filter']['companyFilter']['elements']:
+            if element['unit'] == 'regionId':
+                city_ids = self.cats.get_tv_monitoring_cities(region_id=element['value'],
                                                               return_city_ids_as_string=True)
-                if 'city' not in demo_filter:
-                    if demo_filter is None:
-                        return 'city IN (' + city_ids + ')'
-                    else:
-                        return demo_filter + ' AND city IN (' + city_ids + ')'
+                if demo_filter is None:
+                    return 'city ' + element['relation'] + ' (' + city_ids + ')'
+                else:
+                    if 'city' not in demo_filter:
+                        return demo_filter + ' AND city ' + element['relation'] + ' (' + city_ids + ')'

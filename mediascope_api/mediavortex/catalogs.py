@@ -92,10 +92,11 @@ class MediaVortexCats:
                  cache_enabled: bool = True, username: str = None, passw: str = None, root_url: str = None,
                  client_id: str = None, client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # load holdings
+
         self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
                                                       root_url, client_id, client_secret, keycloak_url)
         self.tv_demo_attribs = self.load_tv_property()
+        self.tv_units = self.get_units()
 
     def load_tv_property(self):
         """
@@ -295,9 +296,9 @@ class MediaVortexCats:
             self._print_header(data['header'], 0, data['header']['total'])
         return pd.DataFrame(res)
 
-    def get_timeband_unit(self):
+    def get_units(self):
         """
-        Получить списки доступных атрибутов отчета Периоды (Timeband):
+        Получить списки доступных атрибутов всех отчетов:
         - статистик
         - срезов
         - фильтров
@@ -310,26 +311,39 @@ class MediaVortexCats:
         units = self.msapi_network.send_request(
             'get', self._urls['tv-kit'], use_cache=False)
 
-        stats = []
-        slices = []
-        filters = []
+        result = {}
         if len(units) > 0:
             if 'reports' in units[0]:
-                if len(units[0]['reports']) > 0:
-                    if 'statistics' in units[0]['reports'][0]:
-                        stats = [i['name'] for i in units[0]['reports'][0]['statistics']]
-                    if 'slices' in units[0]['reports'][0]:
-                        slices = [i['name'] for i in units[0]['reports'][0]['slices']]
-                    if 'filters' in units[0]['reports'][0]:
-                        filters = [i['name'] for i in units[0]['reports'][0]['filters']]
-
-        result = {
-            'statistics': stats,
-            'slices': slices,
-            'filters': filters
-        }
-
+                for unit in units[0]['reports']:
+                    stats = []
+                    slices = []
+                    filters = []
+                    if 'statistics' in unit:
+                        stats = [i['name'] for i in unit['statistics']]
+                    if 'slices' in unit:
+                        slices = [i['name'] for i in unit['slices']]
+                    if 'filters' in unit:
+                        filters = [i['name'] for i in unit['filters']]
+                    result[unit['name']] = {
+                        'statistics': stats,
+                        'slices': slices,
+                        'filters': filters
+                    }
         return result
+
+    def get_timeband_unit(self):
+        """
+        Получить списки доступных атрибутов отчета Периоды (Timeband):
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+        return self.tv_units.get('TimeBand')
 
     def get_simple_unit(self):
         """
@@ -343,29 +357,7 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-        units = self.msapi_network.send_request(
-            'get', self._urls['tv-kit'], use_cache=False)
-
-        stats = []
-        slices = []
-        filters = []
-        if len(units) > 0:
-            if 'reports' in units[0]:
-                if len(units[0]['reports']) > 1:
-                    if 'statistics' in units[0]['reports'][1]:
-                        stats = [i['name'] for i in units[0]['reports'][1]['statistics']]
-                    if 'slices' in units[0]['reports'][1]:
-                        slices = [i['name'] for i in units[0]['reports'][1]['slices']]
-                    if 'filters' in units[0]['reports'][1]:
-                        filters = [i['name'] for i in units[0]['reports'][1]['filters']]
-
-        result = {
-            'statistics': stats,
-            'slices': slices,
-            'filters': filters
-        }
-
-        return result
+        return self.tv_units.get('Simple')
 
     def get_crosstab_unit(self):
         """
@@ -379,30 +371,7 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-
-        units = self.msapi_network.send_request(
-            'get', self._urls['tv-kit'], use_cache=False)
-
-        stats = []
-        slices = []
-        filters = []
-        if len(units) > 0:
-            if 'reports' in units[0]:
-                if len(units[0]['reports']) > 2:
-                    if 'statistics' in units[0]['reports'][2]:
-                        stats = [i['name'] for i in units[0]['reports'][2]['statistics']]
-                    if 'slices' in units[0]['reports'][2]:
-                        slices = [i['name'] for i in units[0]['reports'][2]['slices']]
-                    if 'filters' in units[0]['reports'][2]:
-                        filters = [i['name'] for i in units[0]['reports'][2]['filters']]
-
-        result = {
-            'statistics': stats,
-            'slices': slices,
-            'filters': filters
-        }
-
-        return result
+        return self.tv_units.get('CrossTab')
 
     def get_consumption_target_unit(self):
         """
@@ -416,30 +385,7 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-
-        units = self.msapi_network.send_request(
-            'get', self._urls['tv-kit'], use_cache=False)
-
-        stats = []
-        slices = []
-        filters = []
-        if len(units) > 0:
-            if 'reports' in units[0]:
-                if len(units[0]['reports']) > 7:
-                    if 'statistics' in units[0]['reports'][7]:
-                        stats = [i['name'] for i in units[0]['reports'][7]['statistics']]
-                    if 'slices' in units[0]['reports'][7]:
-                        slices = [i['name'] for i in units[0]['reports'][7]['slices']]
-                    if 'filters' in units[0]['reports'][7]:
-                        filters = [i['name'] for i in units[0]['reports'][7]['filters']]
-
-        result = {
-            'statistics': stats,
-            'slices': slices,
-            'filters': filters
-        }
-
-        return result
+        return self.tv_units.get('ConsumptionTarget')
 
     def get_duplication_timeband_unit(self):
         """
@@ -453,30 +399,7 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-
-        units = self.msapi_network.send_request(
-            'get', self._urls['tv-kit'], use_cache=False)
-
-        stats = []
-        slices = []
-        filters = []
-        if len(units) > 0:
-            if 'reports' in units[0]:
-                if len(units[0]['reports']) > 8:
-                    if 'statistics' in units[0]['reports'][8]:
-                        stats = [i['name'] for i in units[0]['reports'][8]['statistics']]
-                    if 'slices' in units[0]['reports'][8]:
-                        slices = [i['name'] for i in units[0]['reports'][8]['slices']]
-                    if 'filters' in units[0]['reports'][8]:
-                        filters = [i['name'] for i in units[0]['reports'][8]['filters']]
-
-        result = {
-            'statistics': stats,
-            'slices': slices,
-            'filters': filters
-        }
-
-        return result
+        return self.tv_units.get('DuplicationTimeBand')
 
     def get_tv_subbrand(self, ids=None, name=None, ename=None, brand_ids=None, tv_area_ids=None, notes=None,
                         order_by='id', order_dir=None, offset=None, limit=None,
@@ -4429,30 +4352,7 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-
-        units = self.msapi_network.send_request(
-            'get', self._urls['tv-kit'], use_cache=False)
-
-        stats = []
-        slices = []
-        filters = []
-        if len(units) > 0:
-            if 'reports' in units[0]:
-                if len(units[0]['reports']) > 9:
-                    if 'statistics' in units[0]['reports'][9]:
-                        stats = [i['name'] for i in units[0]['reports'][9]['statistics']]
-                    if 'slices' in units[0]['reports'][9]:
-                        slices = [i['name'] for i in units[0]['reports'][9]['slices']]
-                    if 'filters' in units[0]['reports'][9]:
-                        filters = [i['name'] for i in units[0]['reports'][9]['filters']]
-
-        result = {
-            'statistics': stats,
-            'slices': slices,
-            'filters': filters
-        }
-
-        return result
+        return self.tv_units.get('RespondentAnalysis')
 
     def get_tv_monitoring_cities(self, region_id=None, region_name=None, demo_attribute_value_id=None,
                                  demo_attribute_value_name=None, demo_attribute_id=None, demo_attribute_col_name=None,

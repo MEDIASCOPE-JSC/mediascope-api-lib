@@ -97,8 +97,10 @@ class MediaVortexTaskChecker:
         if self._check_filter('company_filter', company_filter):
             self._check_filter_units(task_type, 'company_filter', company_filter)
                     
-        if self._check_filter('region_filter', region_filter):
-            self._check_filter_units(task_type, 'region_filter', region_filter)
+        if region_filter is not None:
+            print("regionFilter в настоящее время не используется. Используйте companyFilter")
+        #if self._check_filter('region_filter', region_filter):
+        #    self._check_filter_units(task_type, 'region_filter', region_filter)
         
         if self._check_filter('time_filter', time_filter):
             self._check_filter_units(task_type, 'time_filter', time_filter)
