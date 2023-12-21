@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 from ..core import net
+from ..core import utils
 
 
 class MediaVortexCats:
@@ -38,6 +39,7 @@ class MediaVortexCats:
         'tv-appendix': '/dictionary/tv/appendix',
         'tv-advertiser': '/dictionary/tv/advertiser',
         'tv-advertiser-list': '/dictionary/tv/advertiser-list',
+        'tv-advertiser-tree': '/dictionary/tv/advertiser-tree',
         'tv-ad': '/dictionary/tv/ad',
         'tv-ad-type': '/dictionary/tv/ad-type',
         'tv-ad-total': '/dictionary/tv/ad-total',
@@ -2365,6 +2367,108 @@ class MediaVortexCats:
 
         return self._get_dict('tv-advertiser-list', search_params, body_params, offset, limit, use_cache)
 
+    def get_tv_advertiser_tree(self, advertiser_ids=None, brand_ids=None, subbrand_ids=None,
+                               model_ids=None, advertiser_names=None, advertiser_enames=None,
+                               brand_names=None, brand_enames=None, subbrand_names=None,
+                               subbrand_enames=None, model_names=None, model_enames=None,
+                               kit_ids=None, order_by='id', order_dir=None, offset=None, limit=None,
+                               use_cache=False):
+        """
+        Получить дерево рекламы
+
+        Parameters
+        ----------
+        advertiser_ids : str or list of str
+            Поиск по списку идентификаторов рекламодателей
+
+        brand_ids : str or list of str
+            Поиск по списку идентификаторов брендов
+
+        subbrand_ids : str or list of str
+            Поиск по списку идентификаторов суббрендов
+
+        model_ids : str or list of str
+            Поиск по списку идентификаторов моделей
+
+        advertiser_names : str or list of str
+            Поиск по списку имен рекламодателей
+
+        advertiser_enames : str or list of str
+            Поиск по списку англоязычных имен рекламодателей
+
+        brand_names : str or list of str
+            Поиск по списку имен брендов
+
+        brand_enames : str or list of str
+            Поиск по списку англоязычных имен брендов
+
+        subbrand_names : str or list of str
+            Поиск по списку имен суббрендов
+
+        subbrand_enames : str or list of str
+            Поиск по списку англоязычных имен суббрендов
+
+        model_names : str or list of str
+            Поиск по списку имен моделей
+
+        model_enames : str or list of str
+            Поиск по списку англоязычных имен моделей
+
+        kit_ids : int or list of int
+            Поиск по списку номеров поставок
+
+        order_by : string, default 'id'
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+
+        limit : int
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        media : DataFrame
+
+            DataFrame со списками рекламодателей
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "advertiserId": advertiser_ids,
+            "brandId": brand_ids,
+            "subbrandId": subbrand_ids,
+            "modelId": model_ids,
+            "advertiserName": advertiser_names,
+            "advertiserEname": advertiser_enames,
+            "brandName": brand_names,
+            "brandEname": brand_enames,
+            "subbrandName": subbrand_names,
+            "subbrandEname": subbrand_enames,
+            "modelName": model_names,
+            "modelEname": model_enames,
+            "kitId": kit_ids
+        }
+
+        return self._get_dict('tv-advertiser-tree', search_params, body_params, offset, limit, use_cache)
+
     def get_tv_ad(self, ids=None, tv_ad_type_ids=None, name=None, ename=None, notes=None, standard_durations=None, 
                   ad_style_ids=None, slogan_audio_ids=None, slogan_video_ids=None, first_issue_dates=None,  
                   advertiser_list_ids=None, brand_list_ids=None, subbrand_list_ids=None, model_list_ids=None,
@@ -3209,15 +3313,15 @@ class MediaVortexCats:
         return self._get_dict('custom-respondent-variable', search_params, body_params,
                               offset, limit, use_cache, 'get')
 
-    def add_custom_respondent_variable(self, resp, name, mart_type, is_public=True):
+    def add_custom_respondent_variable(self, resp, name, mart_type='mediavortex', is_public=True):
         """
         Создание кастомной respondent переменной
 
         Parameters
         ----------
 
-        resp : str
-            Закодированные данные пользователей
+        resp : json str или pandas dataframe
+            Закодированные данные пользователей c информацией о фильтрах. Можно указать результат consumption target
 
         name : str
             Имя переменной
@@ -3233,8 +3337,11 @@ class MediaVortexCats:
             Информация о созданной переменной
         """
 
+        if isinstance(resp, pd.DataFrame):
+            resp = json.dumps(utils.get_dict_from_dataframe(resp))
+
         data = {
-            "value": "{\"respondent\": \"" + resp + "\"}",
+            "value": resp,
             "name": name,
             "isPublic": is_public,
             "martType": mart_type
@@ -4430,7 +4537,7 @@ class MediaVortexCats:
 
         full_dict = self._get_dict('monitoring-cities', search_params, body_params, offset, limit, use_cache)
 
-        if return_city_ids_as_string:
+        if return_city_ids_as_string and not full_dict.empty:
             return ", ".join([str(x) for x in full_dict['demoAttributeValueId'].unique().tolist()])
         else:
             return full_dict

@@ -208,8 +208,8 @@ class MediaVortexTask:
 
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
-        
-        #Добавляем сортировку
+
+        # Добавляем сортировку
         self.task_builder.add_sortings(tsk, sortings)
 
         # добавляем Опции таска
@@ -248,7 +248,6 @@ class MediaVortexTask:
 
         if not self.task_checker.check_units_in_task(task_type, tsk):
             return
-
 
         # Сохраняем информацию о задании, для последующего сохранения в Excel
         tinfo = {
@@ -383,7 +382,7 @@ class MediaVortexTask:
                                time_filter=time_filter, location_filter=location_filter,
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
                                respondent_filter=respondent_filter,
-                               slices=slices, statistics=statistics, sortings=sortings, options=options, 
+                               slices=slices, statistics=statistics, sortings=sortings, options=options,
                                reach_conditions=reach_conditions,
                                custom_company_variable_id=custom_company_variable_id,
                                custom_demo_variable_id=custom_demo_variable_id,
@@ -1363,7 +1362,7 @@ class MediaVortexTask:
             df_merged = self.merge_rows(df)
             return df_merged
 
-        else: 
+        else:
             return df
 
     def _get_text_names(self, df, with_id=False, time_separator=True):
@@ -1426,7 +1425,7 @@ class MediaVortexTask:
                 df[col] = df[col].map(di)
 
         return df
-    
+
     def merge_rows(self, df: pd.DataFrame):
         """
         Объединить разные значения по атрибутам для одного adSpotId выхода 
@@ -1448,8 +1447,8 @@ class MediaVortexTask:
         if "adSpotId" not in df.columns:
             return df
 
-        x = df.copy() #создаем копию df
-        x = x.groupby("adSpotId").agg("first") #удаляем дубликаты по adSpotId, оставляем одно первое значение
+        x = df.copy()  # создаем копию df
+        x = x.groupby("adSpotId").agg("first")  # удаляем дубликаты по adSpotId, оставляем одно первое значение
 
         for col in x.columns:
             if col in [
@@ -1480,11 +1479,12 @@ class MediaVortexTask:
                 'articleLevel4EName'
             ]:
                 y = df.copy()
-                y = y[['adSpotId', col]] #делаем срез из исходного df
-                y.sort_values(by=['adSpotId', col], inplace=True) #сортируем
-                y.drop_duplicates(['adSpotId', col], keep='first', inplace=True) #удаляем дубликаты
-                y = y.groupby("adSpotId").agg({col: "; ".join}) #все осташиеся уникальные для id выхода значения объединяем в одну ячейку
-                x.update(y) #обновляем исходный df
+                y = y[['adSpotId', col]]  # делаем срез из исходного df
+                y.sort_values(by=['adSpotId', col], inplace=True)  # сортируем
+                y.drop_duplicates(['adSpotId', col], keep='first', inplace=True)  # удаляем дубликаты
+                y = y.groupby("adSpotId").agg(
+                    {col: "; ".join})  # все осташиеся уникальные для id выхода значения объединяем в одну ячейку
+                x.update(y)  # обновляем исходный df
         x.reset_index(inplace=True)
         return x
 
@@ -1629,10 +1629,21 @@ class MediaVortexTask:
 
         for element in tsk['filter']['companyFilter']['elements']:
             if element['unit'] == 'regionId':
-                city_ids = self.cats.get_tv_monitoring_cities(region_id=element['value'],
+                region_value = element['value']
+                if not type(element['value']) is list:
+                    region_value = [element['value']]
+
+                city_ids = self.cats.get_tv_monitoring_cities(region_id=region_value,
                                                               return_city_ids_as_string=True)
-                if demo_filter is None:
-                    return 'city ' + element['relation'] + ' (' + city_ids + ')'
+                if city_ids:
+                    relation_element = 'IN'
+                    if element['relation'] == 'NIN':
+                        relation_element = element['relation']
+
+                    if demo_filter is None:
+                        return 'city ' + relation_element + ' (' + city_ids + ')'
+                    else:
+                        if 'city' not in demo_filter:
+                            return demo_filter + ' AND city ' + relation_element + ' (' + city_ids + ')'
                 else:
-                    if 'city' not in demo_filter:
-                        return demo_filter + ' AND city ' + element['relation'] + ' (' + city_ids + ')'
+                    return demo_filter

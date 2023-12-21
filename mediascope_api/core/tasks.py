@@ -1,4 +1,5 @@
 import pandas as pd
+import json
 from ..core import utils
 from ..core import sql
 
@@ -98,6 +99,8 @@ class TaskBuilder:
                 tsk['filter'][filter_name] = filter
             elif type(filter_obj) == str:
                 tsk['filter'][filter_name] = sql.sql_to_json(filter_obj)
+            elif filter_name == 'respondentFilter' and isinstance(filter_obj, pd.DataFrame):
+                tsk['filter'][filter_name] = utils.get_dict_from_dataframe(filter_obj)
 
     @staticmethod
     def add_list_filter(tsk, filter_name, filter_obj_name, filter_obj):
