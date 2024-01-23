@@ -1,5 +1,5 @@
-import json
 from . import catalogs
+import difflib as dl
 
 
 class CrossWebTaskChecker:
@@ -16,7 +16,9 @@ class CrossWebTaskChecker:
                            'total': self.cats.get_media_total_unit(),
                            'ad': self.cats.get_ad_unit(),
                            'monitoring': self.cats.get_monitoring_unit(),
-                           'media-duplication': self.cats.get_media_duplication_unit()}
+                           'media-duplication': self.cats.get_media_duplication_unit(),
+                           'media-profile': self.cats.get_media_profile_unit(),
+                           'profile-duplication': self.cats.get_profile_duplication_unit()}
         self.check_list = {
             'task_type': {'types': [list], 'msg': 'Неверно задан тип задачи\n' +
                                                   f'Допустимые варианты: "{", ".join(self.task_types.keys())}"'
@@ -67,16 +69,18 @@ class CrossWebTaskChecker:
         self._check_filter('ad_description_filter', ad_description_filter, error_text)
         self._check_filter('event_description_filter', event_description_filter, error_text)
 
-        if self._check_filter('usetype_filter', mart_filter, error_text):
-            ut_err = False
-            uts = self.cats.usetypes['id'].to_list()
-            for utype in usetype_filter:
-                if type(utype) == int:
-                    if utype not in uts:
-                        ut_err = True
-                        error_text += f'Usetype: {utype} не найден.\n'
-            if ut_err:
-                error_text += f'Доступные варианты: {self.cats.usetypes}\n'
+        if task_type != 'media-profile':
+            if self._check_filter('usetype_filter', usetype_filter, error_text):
+                ut_err = False
+                uts = self.cats.usetypes['id'].to_list()
+                if usetype_filter is not None:
+                    for utype in usetype_filter:
+                        if type(utype) == int:
+                            if utype not in uts:
+                                ut_err = True
+                                error_text += f'Usetype: {utype} не найден.\n'
+                    if ut_err:
+                        error_text += f'Доступные варианты: {self.cats.usetypes}\n'
 
         if slices is not None:
             if type(slices) is not list:
@@ -115,27 +119,37 @@ class CrossWebTaskChecker:
 
     def check_units_in_task(self, task_type, tsk):
         error_text = ''
-
         if type(tsk['statistics']) == list:
 
             for s in tsk['statistics']:
                 if s not in self.task_types[task_type]['statistics']:
-                    error_text += f'Неизвестная статистика "{s}".\n'
+                    error_text += f'Неизвестная статистика "{s}".'
+                    probably_matches = dl.get_close_matches(s, self.task_types[task_type]['statistics'], n=3)
+                    if len(probably_matches) > 0:
+                        matches = '" или "'.join(probably_matches)
+                        error_text += f' Возможно соответствует "{matches}".\n'
         if type(tsk['filter']) == dict:
             for filter_name, filter_val in tsk['filter'].items():
                 filter_name = filter_name.replace('Filter', '')
                 units = []                
                 if filter_name == "duplicationMart":
                     filter_name = "mart"
+                if filter_name == "media" \
+                    or filter_name == "profile":
+                    filter_name = filter_name + "Mart"
                 self.get_units(units, filter_val)
-                self.check_units(f'фильтрах {filter_name}', units,
-                                 self.task_types[task_type]['filters'][filter_name],
-                                 error_text)
+                error_text = self.check_units(f'фильтрах {filter_name}', units,
+                                              self.task_types[task_type]['filters'][filter_name],
+                                              error_text)
         if type(tsk['slices']) == list:
             avl_slices = self.get_avl_slices(task_type)
             for slice_name in tsk['slices']:
                 if slice_name not in avl_slices:
                     error_text += f'Недопустимое название среза: "{slice_name}"'
+                    probably_matches = dl.get_close_matches(slice_name, avl_slices, n=3)
+                    if len(probably_matches) > 0:
+                        matches = '" или "'.join(probably_matches)
+                        error_text += f' Возможно соответствует "{matches}".\n'
         if len(error_text) > 0:
             print('Ошибка при формировании задания')
             print(error_text)
@@ -159,7 +173,12 @@ class CrossWebTaskChecker:
     def check_units(task_item_name, task_units, avl_units, error_text):
         for unit in task_units:
             if unit not in avl_units:
-                error_text += f'Не допустимое название атрибута: "{unit}" в {task_item_name}'
+                error_text += f'Недопустимое название атрибута: "{unit}" в {task_item_name}'
+                probably_matches = dl.get_close_matches(unit, avl_units, n=3)
+                if len(probably_matches) > 0:
+                    matches = '" или "'.join(probably_matches)
+                    error_text += f' Возможно соответствует "{matches}".\n'
+        return error_text
 
     def get_avl_slices(self, task_type):
         slices = []

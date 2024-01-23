@@ -20,12 +20,21 @@ class CrossWebCats:
         'media_property': '/dictionary/media/property/full',
         'monitoring_property': '/dictionary/monitoring/property/full',
         'media_duplication_property': '/dictionary/media-duplication/property/full',
+        'profile_duplication_property': '/dictionary/profile-duplication/property/full',
         'media_unit': '/unit/media',
         'ad_unit': '/unit/profile',
         'total_unit': '/unit/media-total',
         'monitoring_unit': '/unit/monitoring',
         'media_duplication_unit': '/unit/media-duplication',
+        'media_profile_unit': '/unit/media-profile',
+        'profile_duplication_unit': '/unit/profile-duplication',
         'usetype': '/dictionary/common/use-type',
+        'media_usetype': '/dictionary/media/use-type',
+        'media_total_usetype': '/dictionary/media-total/use-type',
+        'media_duplication_usetype': '/dictionary/media-duplication/use-type',
+        'profile_usetype': '/dictionary/profile/use-type',
+        'monitoring_usetype': '/dictionary/monitoring/use-type',
+        'profile_duplication_usetype': '/dictionary/profile-duplication/use-type',
         'date_range': '/dictionary/common/availability',
         'product_brand': '/dictionary/common/product-brand',
         'product_category_l1': '/dictionary/common/product-category-l1',
@@ -42,7 +51,14 @@ class CrossWebCats:
         'ad_video_utility': '/dictionary/common/ad-video-utility',
         'advertiser': '/dictionary/common/advertiser',
         'monitoring': '/dictionary/common/monitoring-link-tree',
-        'product-category-tree': '/dictionary/common/product-category-tree'
+        'product-category-tree': '/dictionary/common/product-category-tree',
+        'ad_list': '/dictionary/common/profile',
+        'monitoring_holding': '/dictionary/monitoring/holding',
+        'monitoring_product': '/dictionary/monitoring/product',
+        'monitoring_resource': '/dictionary/monitoring/resource',
+        'monitoring_resource_theme': '/dictionary/monitoring/resource-theme',
+        'monitoring_theme': '/dictionary/monitoring/theme',
+        'monitoring_media_tree': '/dictionary/monitoring/media-tree'
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -209,6 +225,43 @@ class CrossWebCats:
             DataFrame с демографическими переменными
         """
         data = self.msapi_network.send_request_lo('get', self._urls['media_duplication_property'], use_cache=True, limit=1000)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'header' not in data or 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+        res['entityTitle'] = []
+        res['optionValue'] = []
+        res['optionName'] = []
+        res['sliceUnit'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+            res['entityTitle'].append(item['entityTitle'])
+            res['optionValue'].append(item['optionValue'])
+            res['sliceUnit'].append(item['sliceUnit'])
+            if item['hasOptions']:
+                res['optionName'].append(item['optionName'])
+            else:
+                res['optionName'].append('')
+        return pd.DataFrame(res)
+
+    def load_profile_duplication_property(self):
+        """
+        Загрузить список переменных: все, по id или поиском по названию
+
+        Returns
+        -------
+        DemoAttribs : DataFrame
+
+            DataFrame с демографическими переменными
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['profile_duplication_property'], use_cache=True, limit=1000)
         res = {}
         if data is None or type(data) != dict:
             return None
@@ -1201,9 +1254,9 @@ class CrossWebCats:
         """
         return self.msapi_network.send_request('get', self._urls['media_duplication_unit'], use_cache=False)
 
-    def get_usetype(self):
+    def get_profile_duplication_unit(self):
         """
-        Получить списки доступных для использования в заданиях:
+        Получить списки доступных для использования в заданиях для пересечений profile duplication:
         - статистик
         - срезов
         - фильтров
@@ -1212,6 +1265,31 @@ class CrossWebCats:
         -------
         info : dict
             Словарь с доступными списками
+        """
+        return self.msapi_network.send_request('get', self._urls['profile_duplication_unit'], use_cache=False)
+
+    def get_media_profile_unit(self):
+        """
+        Получить списки доступных для использования в заданиях для расчета совокупных данных по Profile и Media:
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+        return self.msapi_network.send_request('get', self._urls['media_profile_unit'], use_cache=False)
+
+    def get_usetype(self):
+        """
+        Получить списка usetype
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
         """
         data = self.msapi_network.send_request_lo('get', self._urls['usetype'], use_cache=True)
         res = {}
@@ -1225,8 +1303,6 @@ class CrossWebCats:
         res['name'] = []
 
         for item in data['data']:
-            # print(item)
-            # print(type(item))
             res['id'].append(item['id'])
             res['name'].append(item['name'])
 
@@ -2811,3 +2887,675 @@ class CrossWebCats:
 
         return self.msapi_network.send_request('get', self._urls['availability'], use_cache=False)
 
+    def get_media_usetype(self):
+        """
+        Получить списка usetype для media
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['media_usetype'], use_cache=False)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_media_usetype(self):
+        """
+        Получить списка usetype для media
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['media_usetype'], use_cache=False)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_media_total_usetype(self):
+        """
+        Получить списка usetype для media_total
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['media_total_usetype'], use_cache=False)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_media_duplication_usetype(self):
+        """
+        Получить списка usetype для media duplication
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['media_duplication_usetype'], use_cache=False)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_profile_usetype(self):
+        """
+        Получить списка usetype для profile
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['profile_usetype'], use_cache=False)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_profile_duplication_usetype(self):
+        """
+        Получить списка usetype для profile duplication
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['profile_duplication_usetype'], use_cache=False)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_monitoring_usetype(self):
+        """
+        Получить списка usetype для monitoring
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['monitoring_usetype'], use_cache=False)
+        res = {}
+        if data is None or type(data) != dict:
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_ad_list(self, agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
+                    offset=None, limit=None, use_cache=True):
+        """
+        Получить список реклам
+
+        Parameters
+        ----------
+        agency_ids : list
+            Поиск по списку идентификаторов агентств.
+
+        brand_ids : list
+            Поиск по списку идентификаторов брендов.
+
+        campaign_ids : list
+            Поиск по списку идентификаторов рекламных кампаний.
+
+        ad_ids : list
+            Поиск по списку идентификаторов рекламных позиций.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с рекламами
+        """
+        search_params = {}
+        body_params = {
+            'advertisementAgencyIds': agency_ids,
+            'brandIds': brand_ids,
+            'advertisementCampaignIds': campaign_ids,
+            'advertisementIds': ad_ids
+        }
+        return self._get_dict('ad_list', search_params, body_params, offset, limit, use_cache)
+
+    def get_monitoring_theme(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                             product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
+                             resource_theme_ids=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список тематик для продуктов медиа мониторинга
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с Тематиками
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
+        body_params = {
+            'productIds': product_ids,
+            'holdingIds': holding_ids,
+            'resourceIds': resource_ids,
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
+        }
+
+        return self._get_dict('monitoring_theme', search_params, body_params, offset, limit, use_cache)
+
+    def get_monitoring_resource_theme(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                                      product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
+                                      resource_theme_ids=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список тематик для ресурсов медиа мониторинга
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с Тематиками ресурсов
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
+        body_params = {
+            'productIds': product_ids,
+            'holdingIds': holding_ids,
+            'resourceIds': resource_ids,
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
+        }
+
+        return self._get_dict('monitoring_resource_theme', search_params, body_params, offset, limit, use_cache)
+
+    def get_monitoring_holding(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                               product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
+                               resource_theme_ids=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список холдингов медиа мониторинга
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с Холдингами
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
+        body_params = {
+            'productIds': product_ids,
+            'holdingIds': holding_ids,
+            'resourceIds': resource_ids,
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
+        }
+
+        return self._get_dict('monitoring_holding', search_params, body_params, offset, limit, use_cache)
+
+    def get_monitoring_resource(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                                product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
+                                resource_theme_ids=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список ресурсов медиа мониторинга
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с найденными ресурсами
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
+        body_params = {
+            'productIds': product_ids,
+            'holdingIds': holding_ids,
+            'resourceIds': resource_ids,
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
+        }
+
+        return self._get_dict('monitoring_resource', search_params, body_params, offset, limit, use_cache)
+
+    def get_monitoring_product(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                               product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
+                               resource_theme_ids=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список продуктов медиа мониторинга
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с продуктами
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
+        body_params = {
+            'productIds': product_ids,
+            'holdingIds': holding_ids,
+            'resourceIds': resource_ids,
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
+        }
+        return self._get_dict('monitoring_product', search_params, body_params, offset, limit, use_cache)
+
+    def get_monitoring_media(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                             product_ids=None, holding_ids=None, resource_ids=None, theme_ids=None,
+                             resource_theme_ids=None, offset=None, limit=None, use_cache=True):
+        """
+        Получить список объектов дерева медиа мониторинга
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        media : DataFrame
+
+            DataFrame с объектами Медиа-дерева
+        """
+
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme}
+
+        body_params = {
+            'productIds': product_ids,
+            'holdingIds': holding_ids,
+            'resourceIds': resource_ids,
+            'themeIds': theme_ids,
+            'resourceThemeIds': resource_theme_ids
+        }
+
+        return self._get_dict('monitoring_media_tree', search_params, body_params, offset, limit, use_cache)

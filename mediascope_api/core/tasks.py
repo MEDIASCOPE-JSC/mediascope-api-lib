@@ -119,15 +119,15 @@ class TaskBuilder:
                 tsk['filter'][filter_name] = filter
 
     @staticmethod
-    def add_usetype_filter(tsk, usetype_filter):
+    def add_usetype_filter(tsk, usetype_filter, unit_name="useTypeId", filter_name="useTypeFilter"):
         # Добавляем фильтр по usetype
         if usetype_filter is not None and type(usetype_filter) == list and len(usetype_filter) > 0:
             usetype = {"operand": "OR", "elements": [{
-                "unit": "useTypeId",
+                "unit": unit_name,
                 "relation": "IN",
                 "value": usetype_filter
             }]}
-            tsk['filter']['useTypeFilter'] = usetype
+            tsk['filter'][filter_name] = usetype
 
     @staticmethod
     def add_slices(tsk, slices):

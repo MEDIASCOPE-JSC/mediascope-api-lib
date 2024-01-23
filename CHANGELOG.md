@@ -1,6 +1,15 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [1.1.15] - 2024-01-15
+
+### Added
+
+1. добавление возможности перезапуска и отмены расчетных задач в Crossweb API
+2. добавление отчета media-profile в Crossweb API
+3. добавление отчета profile-duplication в Crossweb API
+4. добавление справочников медиа мониторинга и профиля в Crossweb API
+
 ## [1.1.14] - 2023-12-20
 
 ### Added

@@ -18,7 +18,9 @@ class CrossWebTask:
         'total': '/task/media-total',
         'ad': '/task/profile',
         'monitoring': '/task/monitoring',
-        'media-duplication': '/task/media-duplication'
+        'media-duplication': '/task/media-duplication',
+        'media-profile': '/task/media-profile',
+        'profile-duplication': '/task/profile-duplication'
     }
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -36,7 +38,8 @@ class CrossWebTask:
                                                        root_url, client_id, client_secret, keycloak_url)
         self.task_builder = tasks.TaskBuilder()
         self.usetypes = self.get_usetype()
-        self.cats = catalogs.CrossWebCats()
+        self.cats = catalogs.CrossWebCats(0, settings_filename, cache_path, cache_enabled, username, passw,
+                                          root_url, client_id, client_secret, keycloak_url)
         self.units = self.cats.get_media_unit()
 
         self.media_attribs = self.cats.media_attribs[['sliceUnit', 'entityTitle', 'optionValue', 'optionName']].copy()
@@ -75,12 +78,14 @@ class CrossWebTask:
         return pd.DataFrame(res)
 
     def _build_task(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
-                   demo_filter=None, mart_filter=None, duplication_mart_filter=None, ad_description_filter=None,
-                   event_description_filter=None, slices=None, statistics=None, scales=None):
+                    demo_filter=None, mart_filter=None, duplication_mart_filter=None, ad_description_filter=None,
+                    event_description_filter=None, media_usetype_filter=None, profile_usetype_filter=None,
+                    media_filter=None, profile_filter=None, slices=None, statistics=None, scales=None):
         
         if not self.task_checker.check_task(task_type, date_filter, usetype_filter, geo_filter,
                                             demo_filter, mart_filter, duplication_mart_filter, 
-                                            ad_description_filter, event_description_filter, slices, statistics, scales):
+                                            ad_description_filter, event_description_filter,
+                                            slices, statistics, scales):
             return
 
         # Собираем JSON
@@ -98,6 +103,12 @@ class CrossWebTask:
         self.task_builder.add_filter(tsk, duplication_mart_filter, 'duplicationMartFilter')
         self.task_builder.add_filter(tsk, ad_description_filter, 'adDescriptionFilter')
         self.task_builder.add_filter(tsk, event_description_filter, 'eventDescriptionFilter')
+        self.task_builder.add_usetype_filter(tsk, media_usetype_filter,
+                                             "mediaUseTypeId", 'mediaUseTypeFilter')
+        self.task_builder.add_usetype_filter(tsk, profile_usetype_filter,
+                                             "profileUseTypeId", 'profileUseTypeFilter')
+        self.task_builder.add_filter(tsk, media_filter, 'mediaFilter')
+        self.task_builder.add_filter(tsk, profile_filter, 'profileFilter')
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
 
@@ -116,6 +127,10 @@ class CrossWebTask:
             'duplication_mart_filter': duplication_mart_filter,
             'ad_description_filter': ad_description_filter,
             'event_description_filter': event_description_filter,
+            'media_usetype_filter': media_usetype_filter,
+            'profile_usetype_filter': profile_usetype_filter,
+            'media_filter': media_filter,
+            'profile_filter': profile_filter,
             'slices': slices,
             'statistics': statistics,
             'scales': scales
@@ -413,10 +428,105 @@ class CrossWebTask:
             Задание в формате CrossWeb API
         """
         
-        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter, 
-                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter, 
-                                duplication_mart_filter=duplication_mart_filter, ad_description_filter=None, 
-                                event_description_filter=None, slices=slices, statistics=statistics, 
+        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter,
+                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter,
+                                duplication_mart_filter=duplication_mart_filter, ad_description_filter=None,
+                                event_description_filter=None, slices=slices, statistics=statistics,
+                                scales=scales)
+
+    def build_task_media_profile(self, task_type, task_name='', date_filter=None, geo_filter=None,
+                                 demo_filter=None, mart_filter=None, media_usetype_filter=None,
+                                 profile_usetype_filter=None, media_filter=None,
+                                 profile_filter=None, slices=None, statistics=None, scales=None):
+        """
+        Формирует текст задания пересечения для расчета статистик совокупных данных по Profile и Media
+
+        Parameters
+        ----------
+
+        task_type : str
+            Тип задания, возможные варианты:
+            - media
+
+        task_name : str
+            Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
+
+        date_filter : list
+            Список периодов, период задается списком пар - (начало, конец):
+            Пример:
+                date_filter = [
+                               ('2021-07-05', '2021-07-18'),
+                               ('2021-09-06', '2021-09-26'),
+                               ('2021-10-18', '2021-10-31')
+                              ]
+
+        usetype_filter: list|None
+            Список Типов пользования Интернетом
+            Пример:
+                usetype_filter = [1, 2, 3]
+
+        geo_filter: list|None
+            Условия фильтрации по географии
+            Возможные варианты можно получить через метод `find_property` модуля catalogs:
+            >>> cats.find_property('CityPop', expand=True)
+            >>> cats.find_property('CityPop100', expand=True)
+            >>> cats.find_property('FederalOkrug', expand=True)
+
+
+        demo_filter: str|None
+            Условия фильтрации по демографическим атрибутам
+            Пример:
+                demo_filter = "sex = 1 AND occupation = 1"
+
+            Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['filters']['demo']
+
+
+        mart_filter: str|None
+            Условия фильтрации по медиа-объектам
+            Пример:
+                mart_filter = "crossMediaResourceId = 1150 OR crossMediaResourceId = 1093"
+
+            Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['filters']['mart']
+
+        slices: list
+            Порядок разбивки результата расчета, задается в виде списка
+            Пример:
+                slices = ["useTypeName", "researchWeek", "crossMediaResourceId"]
+
+            Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['slices']
+
+        statistics : list
+            Список статистик, которые необходимо расчитать.
+            Пример:
+                statistics = ['reach', 'reachPer', 'dr']
+
+            Список допустимых названий атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            >>> cats.get_media_duplication_unit()['statistics']
+
+        scales : dict|None
+            Шкалы для статистик "drfd" и "reachN".
+            Пример:
+                scales = {
+                            'drfd':[(1, 5), (10, 20)],
+                            'reachN':[(2, 10), (20, 255)]
+                        }
+
+        Returns
+        -------
+        text : json
+            Задание в формате CrossWeb API
+        """
+
+        return self._build_task(task_type, task_name=task_name, date_filter=date_filter,
+                                media_usetype_filter=media_usetype_filter,
+                                profile_usetype_filter=profile_usetype_filter,
+                                media_filter=media_filter,
+                                profile_filter=profile_filter,
+                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter,
+                                slices=slices, statistics=statistics,
                                 scales=scales)
 
     def _send_task(self, task_type, data):
@@ -551,6 +661,44 @@ class CrossWebTask:
         """
         return self._send_task('media-duplication', data)
 
+    def send_profile_duplication_task(self, data):
+        """
+        Отправить задание на расчет аудиторных статистик по пересечению профилей
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('profile-duplication', data)
+
+    def send_media_profile_task(self, data):
+        """
+        Отправить задание на расчет совокупных данных по Profile и Media
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('media-profile', data)
+
     def wait_task(self, tsk):
         """
         Ожидает окончание расчета задания или заданий.
@@ -614,6 +762,7 @@ class CrossWebTask:
                 e = dt.datetime.now()
                 print(f"] время расчета: {str(e - s)}")
                 if task_state == 'DONE':
+                    tsk['message'] = 'DONE'
                     return tsk
         elif type(tsk) == list:
             task_list = list()
@@ -641,11 +790,13 @@ class CrossWebTask:
                     if task_state == 'IN_PROGRESS' or task_state == 'PENDING' or task_state == 'IN_QUEUE' or task_state == 'IDLE':
                         continue
                     elif task_state == 'DONE':
+                        t['task']['message'] = 'DONE'
                         done_count += 1
                     else:
                         errs[tid] = t
                         errs[tid]['state'] = task_state
-                        break
+                        errs[tid]['message'] = task_state_obj.get('message', '')
+                        done_count += 1
                 print('=', end=' ')
                 if done_count == len(tsk):
                     break
@@ -712,6 +863,128 @@ class CrossWebTask:
         if tsk is None or tsk.get('taskId') is None:
             return None
         return self.network_module.send_request('get', '/task/result/{}'.format(tsk['taskId']))
+
+    def restart_task(self, tsk: dict):
+        """
+        Перезапустить задание.
+
+        Parameters
+        ----------
+
+        tsk : dict
+            Задание в формате
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'message': 'Задача поступила в обработку'
+                }
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        if tsk.get('taskId') is not None:
+            tid = tsk.get('taskId', None)
+            task_state_obj = self.network_module.send_request('get', '/task/state/restart/{}'.format(tid))
+            return task_state_obj
+
+    def restart_tasks(self, tsk_ids: list):
+        """
+        Перезапустить задания.
+
+        Parameters
+        ----------
+
+        tsk_ids : list
+            Список taskId заданий
+
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        post_data = {
+            "taskIds": tsk_ids
+        }
+
+        task_state_obj = self.network_module.send_request('post', '/task/state/restart', json.dumps(post_data))
+        return task_state_obj
+
+    def cancel_task(self, tsk: dict):
+        """
+        Отменить задание.
+
+        Parameters
+        ----------
+
+        tsk : dict
+            Задание в формате
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'message': 'Задача поступила в обработку'
+                }
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        if tsk.get('taskId') is not None:
+            tid = tsk.get('taskId', None)
+            task_state_obj = self.network_module.send_request('get', '/task/state/cancel/{}'.format(tid))
+            return task_state_obj
+
+    def cancel_tasks(self, tsk_ids: list):
+        """
+        Отменить задания.
+
+        Parameters
+        ----------
+
+        tsk_ids : list
+            Список taskId заданий
+
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {}
+                }
+        """
+        post_data = {
+            "taskIds": tsk_ids
+        }
+
+        task_state_obj = self.network_module.send_request('post', '/task/state/cancel', json.dumps(post_data))
+        return task_state_obj
 
     def result2table(self, data, project_name=None):
         """
