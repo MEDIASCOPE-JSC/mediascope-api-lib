@@ -44,6 +44,7 @@ class MediaVortexTaskChecker:
             'duration_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по длительности.\n'},
             'duplication_company_filter': {'types': [str, dict], 'msg': 'Неверно задан duplication company фильтр.\n'},
             'duplication_time_filter': {'types': [str, dict], 'msg': 'Неверно задан duplication time фильтр.\n'},
+            'bigtv_filter': {'types': [str, dict], 'msg': 'Неверно задан big tv фильтр.\n'},
             'statistics': {'types': [list], 'msg': 'Не заданы статистики для задания.\n'},
         }        
         self.error_text = ''
@@ -78,7 +79,17 @@ class MediaVortexTaskChecker:
                    company_filter, region_filter, time_filter, location_filter,
                    basedemo_filter, targetdemo_filter, program_filter, break_filter,
                    ad_filter, subject_filter, duration_filter, duplication_company_filter,
-                   duplication_time_filter, slices, statistics, scales, sortings):
+                   duplication_time_filter, bigtv_filter, slices, statistics, scales, sortings, kit_id):
+
+        self.task_types = {
+            'timeband': self.cats.get_timeband_unit(kit_id),
+            'simple': self.cats.get_simple_unit(kit_id),
+            'crosstab': self.cats.get_crosstab_unit(kit_id),
+            'consumption-target': self.cats.get_consumption_target_unit(),
+            'duplication-timeband': self.cats.get_duplication_timeband_unit(),
+            'respondent-analysis': self.cats.get_respondent_analysis_unit()
+        }
+
         self.error_text = ''
         
         self._check_filter('task_type', task_type)
@@ -134,6 +145,9 @@ class MediaVortexTaskChecker:
 
         if self._check_filter('duplication_time_filter', duplication_time_filter):
             self._check_filter_units(task_type, 'duplication_time_filter', duplication_time_filter)
+
+        if self._check_filter('bigtv_filter', bigtv_filter):
+            self._check_filter_units(task_type, 'bigtv_filter', bigtv_filter)
         
         if slices is not None:
             if type(slices) is not list:

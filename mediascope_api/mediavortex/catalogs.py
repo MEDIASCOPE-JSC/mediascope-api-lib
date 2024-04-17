@@ -78,7 +78,9 @@ class MediaVortexCats:
         'tv-company-status': '/dictionary/tv/company-status',
         'tv-age-restriction': '/dictionary/tv/age-restriction',
         'availability-period': '/period/availability-period',
-        'monitoring-cities': '/dictionary/tv/monitoring-cities'
+        'monitoring-cities': '/dictionary/tv/monitoring-cities',
+        'tv-platform': '/dictionary/tv/platform',
+        'tv-playbacktype': '/dictionary/tv/play-back-type'
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None,
@@ -112,7 +114,7 @@ class MediaVortexCats:
         """
         data = self.get_tv_demo_attribute()
         # формируем столбец с именами срезов, относящихся к переменным (изменяем первую букву на строчную)
-        #data['entityName'] = data['colName'].str[0].str.lower() + data['colName'].str[1:]
+        # data['entityName'] = data['colName'].str[0].str.lower() + data['colName'].str[1:]
         return data
 
     def find_tv_property(self, text, expand=True, with_id=False):
@@ -209,7 +211,7 @@ class MediaVortexCats:
             f'Запрошены записи: {offset} - {offset + limit}\nВсего найдено записей: {total}\n')
 
     def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None, use_cache=False,
-                  request_type='post'):
+                  request_type='post', show_header=True):
         """
         Получить словарь из API
 
@@ -233,6 +235,12 @@ class MediaVortexCats:
             Количество записей в возвращаемом наборе данных. 
             Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        request_type : str
+            Тип запроса (по умолчанию post)
+
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
 
         Returns
         -------
@@ -292,10 +300,11 @@ class MediaVortexCats:
                     res[h].append('')
 
         # print header        
-        if offset is not None and limit is not None:
-            self._print_header(data['header'], offset, limit)
-        else:
-            self._print_header(data['header'], 0, data['header']['total'])
+        if show_header:
+            if offset is not None and limit is not None:
+                self._print_header(data['header'], offset, limit)
+            else:
+                self._print_header(data['header'], 0, data['header']['total'])
         return pd.DataFrame(res)
 
     def get_units(self):
@@ -314,26 +323,38 @@ class MediaVortexCats:
             'get', self._urls['tv-kit'], use_cache=False)
 
         result = {}
-        if len(units) > 0:
-            if 'reports' in units[0]:
-                for unit in units[0]['reports']:
+        for unit in units:
+            if 'reports' in unit:
+                for report in unit['reports']:
                     stats = []
                     slices = []
                     filters = []
-                    if 'statistics' in unit:
-                        stats = [i['name'] for i in unit['statistics']]
-                    if 'slices' in unit:
-                        slices = [i['name'] for i in unit['slices']]
-                    if 'filters' in unit:
-                        filters = [i['name'] for i in unit['filters']]
-                    result[unit['name']] = {
-                        'statistics': stats,
-                        'slices': slices,
-                        'filters': filters
-                    }
+                    if 'statistics' in report:
+                        stats = [i['name'] for i in report['statistics']]
+                    if 'slices' in report:
+                        slices = [i['name'] for i in report['slices']]
+                    if 'filters' in report:
+                        filters = [i['name'] for i in report['filters']]
+                    if str(unit['id']) not in result:
+                        result[str(unit['id'])] = {
+                            report['name']: {
+                                'statistics': stats,
+                                'slices': slices,
+                                'filters': filters
+                            }
+                        }
+                    else:
+                        result[str(unit['id'])][report['name']] = {
+                            'statistics': stats,
+                            'slices': slices,
+                            'filters': filters
+                        }
+        # хардкод для поставки 7 биг тв
+        if "7" not in result:
+            result["7"] = result.get("1")
         return result
 
-    def get_timeband_unit(self):
+    def get_timeband_unit(self, kit_id=1):
         """
         Получить списки доступных атрибутов отчета Периоды (Timeband):
         - статистик
@@ -345,9 +366,9 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.tv_units.get('TimeBand')
+        return self.tv_units.get(str(kit_id)).get('TimeBand')
 
-    def get_simple_unit(self):
+    def get_simple_unit(self, kit_id=1):
         """
         Получить списки доступных атрибутов отчета События (Simple):
         - статистик
@@ -359,9 +380,9 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.tv_units.get('Simple')
+        return self.tv_units.get(str(kit_id)).get('Simple')
 
-    def get_crosstab_unit(self):
+    def get_crosstab_unit(self, kit_id=1):
         """
         Получить списки доступных атрибутов отчета Кросс Таблица (Crosstab):
         - статистик
@@ -373,9 +394,9 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.tv_units.get('CrossTab')
+        return self.tv_units.get(str(kit_id)).get('CrossTab')
 
-    def get_consumption_target_unit(self):
+    def get_consumption_target_unit(self, kit_id=1):
         """
         Получить списки доступных атрибутов отчета Consumption target:
         - статистик
@@ -387,9 +408,9 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.tv_units.get('ConsumptionTarget')
+        return self.tv_units.get(str(kit_id)).get('ConsumptionTarget')
 
-    def get_duplication_timeband_unit(self):
+    def get_duplication_timeband_unit(self, kit_id=1):
         """
         Получить списки доступных атрибутов отчета Пересечение аудитории (Duplication timeband):
         - статистик
@@ -401,11 +422,10 @@ class MediaVortexCats:
         info : dict
             Словарь с доступными списками
         """
-        return self.tv_units.get('DuplicationTimeBand')
+        return self.tv_units.get(str(kit_id)).get('DuplicationTimeBand')
 
     def get_tv_subbrand(self, ids=None, name=None, ename=None, brand_ids=None, tv_area_ids=None, notes=None,
-                        order_by='id', order_dir=None, offset=None, limit=None,
-                        use_cache=False):
+                        order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию суббрендов
 
@@ -451,6 +471,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -472,12 +495,13 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        df_sub = self._get_dict('tv-subbrand', search_params, body_params, offset, limit, use_cache)
+        df_sub = self._get_dict(entity_name='tv-subbrand', search_params=search_params, body_params=body_params,
+                                offset=offset, limit=limit, use_cache=use_cache, show_header=show_header)
 
-        return df_sub.reindex(columns=['id','name','ename','brandId','tvArea','notes'],fill_value='')
+        return df_sub.reindex(columns=['id', 'name', 'ename', 'brandId', 'tvArea', 'notes'],fill_value='')
 
     def get_tv_subbrand_list(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                             offset=None, limit=None, use_cache=False):
+                             offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию списков суббрендов
 
@@ -514,6 +538,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -532,10 +559,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-subbrand-list', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-subbrand-list', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_research_day_type(self, order_by='id', order_dir=None, offset=None,
-                                 limit=None, use_cache=False):
+                                 limit=None, use_cache=False, show_header=True):
         """
         Получить типы дней
 
@@ -564,6 +593,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -582,10 +614,12 @@ class MediaVortexCats:
             "ename": None
         }
 
-        return self._get_dict('tv-research-day-type', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-research-day-type', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_region(self, ids=None, name=None, ename=None, notes=None, monitoring_type=None, order_by='id',
-                      order_dir=None, offset=None, limit=None, use_cache=False):
+                      order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить регионы
 
@@ -628,6 +662,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -648,13 +685,15 @@ class MediaVortexCats:
             "monitoringType": monitoring_type
         }
 
-        return self._get_dict('tv-region', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-region', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
-    def get_tv_program(self, ids=None, name=None, ename=None, extended_name=None, extended_ename=None, first_issue_date=None, 
-                       program_type_ids=None, program_category_ids=None, country_ids=None, program_sport_ids=None,
-                       sport_group_ids=None, language_ids=None, program_producer_ids=None, program_producer_year=None, 
-                       is_program_group=None, is_child=None, notes=None, order_by='id', order_dir=None, offset=None, limit=None, 
-                       use_cache=False):
+    def get_tv_program(self, ids=None, name=None, ename=None, extended_name=None, extended_ename=None,
+                       first_issue_date=None, program_type_ids=None, program_category_ids=None, country_ids=None,
+                       program_sport_ids=None, sport_group_ids=None, language_ids=None, program_producer_ids=None,
+                       program_producer_year=None, is_program_group=None, is_child=None, notes=None, order_by='id',
+                       order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию программ
 
@@ -733,6 +772,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -765,14 +807,18 @@ class MediaVortexCats:
             "firstIssueDate": first_issue_date
         }
 
-        df_prog =  self._get_dict('tv-program', search_params, body_params, offset, limit, use_cache)
+        df_prog =  self._get_dict(entity_name='tv-program', search_params=search_params,
+                                  body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                  show_header=show_header)
         
-        return df_prog.reindex(columns=['id','name','ename','extendedName','extendedEname','firstIssueDate','programTypeId',
-                           'programCategoryId','programCountryId','programSportId','programSportGroupId','languageId',
-                           'programProducerId','producerYear','isProgramGroup','isChild','notes'],fill_value='')
+        return df_prog.reindex(
+            columns=['id', 'name', 'ename', 'extendedName', 'extendedEname', 'firstIssueDate', 'programTypeId',
+                     'programCategoryId', 'programCountryId', 'programSportId', 'programSportGroupId', 'languageId',
+                     'programProducerId', 'producerYear', 'isProgramGroup', 'isChild', 'notes'],
+            fill_value='')
 
     def get_tv_program_type(self, ids=None, name=None, ename=None, notes=None,
-                            order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                            order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию жанров программ
 
@@ -812,6 +858,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -831,10 +880,12 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        return self._get_dict('tv-program-type', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-type', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_program_sport(self, ids=None, name=None, ename=None, notes=None, order_by='id',
-                             order_dir=None, offset=None, limit=None, use_cache=False):
+                             order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию видов спорта
 
@@ -874,6 +925,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -893,10 +947,12 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        return self._get_dict('tv-program-sport', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-sport', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_program_sport_group(self, ids=None, name=None, ename=None, notes=None, order_by='id',
-                                   order_dir=None, offset=None, limit=None, use_cache=False):
+                                   order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию групп спорта
 
@@ -936,6 +992,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -955,10 +1014,12 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        return self._get_dict('tv-program-sport-group', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-sport-group', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_program_issue_description(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                                         offset=None, limit=None, use_cache=False):
+                                         offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию описаний выходов программ
 
@@ -995,6 +1056,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1013,10 +1077,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-program-issue-description', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-issue-description', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_program_category(self, ids=None, name=None, ename=None, short_name=None, short_ename=None, type_ids=None, 
-                                program_type_category_nums=None, notes=None, offset=None, limit=None, use_cache=False):
+                                program_type_category_nums=None, notes=None, offset=None, limit=None, use_cache=False,
+                                show_header=True):
         """
         Получить коллекцию категорий программ
 
@@ -1062,6 +1129,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1085,14 +1155,19 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        df_pr_cat = self._get_dict('tv-program-category', search_params, body_params, offset, limit, use_cache)
+        df_pr_cat = self._get_dict(entity_name='tv-program-category', search_params=search_params,
+                                   body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                   show_header=show_header)
         
-        df_pr_cat = df_pr_cat.reindex(columns=['id','name','ename','shortName','shortEname','programTypeId','programTypeCategoryNum','notes'],fill_value='')
+        df_pr_cat = df_pr_cat.reindex(
+            columns=['id', 'name', 'ename', 'shortName', 'shortEname', 'programTypeId', 'programTypeCategoryNum',
+                     'notes'],
+            fill_value='')
         
-        return df_pr_cat.sort_values(by=['programTypeId','programTypeCategoryNum'])
+        return df_pr_cat.sort_values(by=['programTypeId', 'programTypeCategoryNum'])
 
     def get_tv_net(self, ids=None, name=None, ename=None, order_by='id',
-                   order_dir=None, offset=None, limit=None, use_cache=False):
+                   order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию телесетей
 
@@ -1129,6 +1204,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1147,12 +1225,14 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        df_net = self._get_dict('tv-net', search_params, body_params, offset, limit, use_cache)
+        df_net = self._get_dict(entity_name='tv-net', search_params=search_params,
+                                body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                show_header=show_header)
         
-        return df_net.reindex(columns=['id','name','ename'],fill_value='')
+        return df_net.reindex(columns=['id', 'name', 'ename'], fill_value='')
 
     def get_tv_model(self, ids=None, name=None, ename=None, subbrand_ids=None, article_ids=None, tv_area_ids=None, notes=None,
-                     order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                     order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию продуктов
 
@@ -1201,6 +1281,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1223,12 +1306,16 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        df_mod = self._get_dict('tv-model', search_params, body_params, offset, limit, use_cache)
+        df_mod = self._get_dict(entity_name='tv-model', search_params=search_params,
+                                body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                show_header=show_header)
 
-        return df_mod.reindex(columns=['id','name','ename','subbrandId','articleId','tvArea','notes'],fill_value='')
+        return df_mod.reindex(
+            columns=['id', 'name', 'ename', 'subbrandId', 'articleId', 'tvArea', 'notes'],
+            fill_value='')
 
     def get_tv_model_list(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                          offset=None, limit=None, use_cache=False):
+                          offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию списков продуктов
 
@@ -1265,6 +1352,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1283,10 +1373,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-model-list', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-model-list', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_location(self, ids=None, name=None, ename=None, order_by='id',
-                        order_dir=None, offset=None, limit=None, use_cache=False):
+                        order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию мест просмотра
 
@@ -1323,6 +1415,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1341,10 +1436,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-location', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-location', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_grp_type(self, ids=None, name=None, notes=None, expression=None, order_by='name',
-                        order_dir=None, offset=None, limit=None, use_cache=False):
+                        order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить типы баинговых аудиторий
 
@@ -1384,6 +1481,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1403,10 +1503,12 @@ class MediaVortexCats:
             "expression": expression
         }
 
-        return self._get_dict('tv-grp-type', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-grp-type', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_exchange_rate(self, research_date=None, rate=None, order_by='researchDay',
-                             order_dir=None, offset=None, limit=None, use_cache=False):
+                             order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить курсы обмена
 
@@ -1440,6 +1542,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1457,10 +1562,12 @@ class MediaVortexCats:
             "rate": rate
         }
 
-        return self._get_dict('tv-exchange-rate', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-exchange-rate', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_day_week(self, ids=None, name=None, ename=None, order_by='id',
-                        order_dir=None, offset=None, limit=None, use_cache=False):
+                        order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллецию дней недели
 
@@ -1497,6 +1604,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1515,11 +1625,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-day-week', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-day-week', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_company(self, ids=None, name=None, ename=None, tv_net_ids=None, region_ids=None, tv_company_group_ids=None,
                        tv_company_category_ids=None, information=None, offset=None,
-                       limit=None, use_cache=False):
+                       limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию телекомпаний
 
@@ -1565,6 +1677,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1588,15 +1703,19 @@ class MediaVortexCats:
             "information": information
         }
 
-        df_comp = self._get_dict('tv-company', search_params, body_params, offset, limit, use_cache)
+        df_comp = self._get_dict(entity_name='tv-company', search_params=search_params,
+                                 body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                 show_header=show_header)
 
-        df_comp = df_comp.reindex(columns=['id','name','ename','tvNetId','regionId','tvCompanyHoldingId','tvCompanyMediaHoldingId','tvThematicId',
-                           'tvCompanyGroupId','tvCompanyCategoryId','tvCompanyMediaType','information'],fill_value='')
+        df_comp = df_comp.reindex(
+            columns=['id', 'name', 'ename', 'tvNetId', 'regionId', 'tvCompanyHoldingId', 'tvCompanyMediaHoldingId',
+                     'tvThematicId', 'tvCompanyGroupId', 'tvCompanyCategoryId', 'tvCompanyMediaType', 'information'],
+            fill_value='')
         
         return df_comp.sort_values(by=['regionId','id'])
 
     def get_tv_company_merge(self, ids=None, tv_channel_merge_ids=None, tv_company_ids=None, 
-                             order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                             order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить объединенные компании в регионах
 
@@ -1633,6 +1752,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1651,10 +1773,12 @@ class MediaVortexCats:
             "id": ids
         }
 
-        return self._get_dict('tv-company-merge', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-company-merge', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_calendar(self, research_date=None, research_day_type=None, order_by='researchDate', order_dir=None,
-                        offset=None, limit=None, use_cache=False):
+                        offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить календарь
 
@@ -1688,6 +1812,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1705,12 +1832,15 @@ class MediaVortexCats:
             "researchDayType": research_day_type
         }
 
-        df_calendar = self._get_dict('tv-calendar', search_params, body_params, offset, limit, use_cache)
+        df_calendar = self._get_dict(entity_name='tv-calendar', search_params=search_params,
+                                     body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                     show_header=show_header)
 
-        return df_calendar.reindex(columns=['researchDate', 'researchDayTypeId'],fill_value='')
+        return df_calendar.reindex(columns=['researchDate', 'researchDayTypeId'], fill_value='')
 
     def get_tv_breaks(self, ids=None, name=None, ename=None, pos_types=None, distrib_types=None, cont_types=None,
-                      style_ids=None, notes=None, order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                      style_ids=None, notes=None, order_by='id', order_dir=None, offset=None, limit=None,
+                      use_cache=False, show_header=True):
         """
         Получить коллекцию рекламных блоков
 
@@ -1762,6 +1892,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1785,10 +1918,12 @@ class MediaVortexCats:
             "styleId": style_ids
         }
 
-        return self._get_dict('tv-breaks', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-breaks', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_brand(self, ids=None, name=None, ename=None, notes=None, tv_area_ids=None,
-                     order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                     order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию брендов
 
@@ -1831,6 +1966,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1851,12 +1989,14 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        df_brand = self._get_dict('tv-brand', search_params, body_params, offset, limit, use_cache)
+        df_brand = self._get_dict(entity_name='tv-brand', search_params=search_params,
+                                  body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                  show_header=show_header)
 
         return df_brand.reindex(columns=['id', 'name', 'ename', 'tvArea', 'notes'], fill_value='')
 
     def get_tv_brand_list(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                          offset=None, limit=None, use_cache=False):
+                          offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию списков брендов
 
@@ -1893,6 +2033,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1911,10 +2054,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-brand-list', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-brand-list', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_article(self, ids=None, name=None, ename=None, levels=None, parent_ids=None, notes=None,
-                       order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                       order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить товарные категории
 
@@ -1960,6 +2105,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -1981,12 +2129,14 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        df_art = self._get_dict('tv-article', search_params, body_params, offset, limit, use_cache)
+        df_art = self._get_dict(entity_name='tv-article', search_params=search_params,
+                                body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                show_header=show_header)
 
-        return df_art.reindex(columns=['id', 'name', 'ename', 'level', 'parentId', 'notes'],fill_value='')
+        return df_art.reindex(columns=['id', 'name', 'ename', 'level', 'parentId', 'notes'], fill_value='')
 
     def get_tv_article_list4(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                             offset=None, limit=None, use_cache=False):
+                             offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию списков товарных категорий 4 уровня
 
@@ -2023,6 +2173,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2041,10 +2194,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-article-list4', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-article-list4', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_article_list3(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                             offset=None, limit=None, use_cache=False):
+                             offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию списков товарных категорий 3 уровня
 
@@ -2081,6 +2236,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2099,10 +2257,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-article-list3', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-article-list3', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_article_list2(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                             offset=None, limit=None, use_cache=False):
+                             offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию списков товарных категорий 2 уровня
 
@@ -2139,6 +2299,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2157,11 +2320,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-article-list2', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-article-list2', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_appendix(self, ids=None, advertiser_ids=None, brand_ids=None, subbrand_ids=None, model_ids=None,
                         article2_ids=None, article3_ids=None, article4_ids=None, 
-                        order_by='adId', order_dir=None, offset=None, limit=None, use_cache=False):
+                        order_by='adId', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить аппендикс
 
@@ -2213,6 +2378,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2236,13 +2404,17 @@ class MediaVortexCats:
             "brandId": brand_ids
         }
 
-        df_appndx = self._get_dict('tv-appendix', search_params, body_params, offset, limit, use_cache)
+        df_appndx = self._get_dict(entity_name='tv-appendix', search_params=search_params,
+                                   body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                   show_header=show_header)
 
-        return df_appndx.reindex(columns=['adId','advertiserId','brandId','subbrandId','modelId','articleLevel_1Id','articleLevel_2Id',
-                               'articleLevel_3Id','articleLevel_4Id'],fill_value='')
+        return df_appndx.reindex(
+            columns=['adId', 'advertiserId', 'brandId', 'subbrandId', 'modelId', 'articleLevel_1Id',
+                     'articleLevel_2Id', 'articleLevel_3Id', 'articleLevel_4Id'],
+            fill_value='')
 
     def get_tv_advertiser(self, ids=None, name=None, ename=None, notes=None, tv_area_ids=None,
-                          order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                          order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию рекламодателей
 
@@ -2285,6 +2457,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2305,12 +2480,14 @@ class MediaVortexCats:
             "tvArea": tv_area_ids
         }
 
-        df_advert = self._get_dict('tv-advertiser', search_params, body_params, offset, limit, use_cache)
+        df_advert = self._get_dict(entity_name='tv-advertiser', search_params=search_params,
+                                   body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                   show_header=show_header)
     
         return df_advert.reindex(columns=['id', 'name', 'ename', 'tvArea', 'notes'], fill_value='')
 
     def get_tv_advertiser_list(self, ids=None, name=None, ename=None,
-                               order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                               order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию списков рекламодателей
 
@@ -2347,6 +2524,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2365,14 +2545,16 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-advertiser-list', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-advertiser-list', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_advertiser_tree(self, advertiser_ids=None, brand_ids=None, subbrand_ids=None,
                                model_ids=None, advertiser_names=None, advertiser_enames=None,
                                brand_names=None, brand_enames=None, subbrand_names=None,
                                subbrand_enames=None, model_names=None, model_enames=None,
                                kit_ids=None, order_by='id', order_dir=None, offset=None, limit=None,
-                               use_cache=False):
+                               use_cache=False, show_header=True):
         """
         Получить дерево рекламы
 
@@ -2439,6 +2621,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2467,15 +2652,18 @@ class MediaVortexCats:
             "kitId": kit_ids
         }
 
-        return self._get_dict('tv-advertiser-tree', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-advertiser-tree', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_ad(self, ids=None, tv_ad_type_ids=None, name=None, ename=None, notes=None, standard_durations=None, 
                   ad_style_ids=None, slogan_audio_ids=None, slogan_video_ids=None, first_issue_dates=None,  
                   advertiser_list_ids=None, brand_list_ids=None, subbrand_list_ids=None, model_list_ids=None,
                   article_list2_ids=None, article_list3_ids=None, article_list4_ids=None, 
-                  advertiser_list_main_ids=None, brand_list_main_ids=None, subbrand_list_main_ids=None, model_list_main_ids=None,
-                  article_list2_main_ids=None, article_list3_main_ids=None, article_list4_main_ids=None,
-                  age_restriction_ids=None, tv_area_ids=None, order_by='id', order_dir=None, offset=None, limit=None, use_cache=False):
+                  advertiser_list_main_ids=None, brand_list_main_ids=None, subbrand_list_main_ids=None,
+                  model_list_main_ids=None, article_list2_main_ids=None, article_list3_main_ids=None,
+                  article_list4_main_ids=None, age_restriction_ids=None, tv_area_ids=None, order_by='id',
+                  order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию рекламных роликов
 
@@ -2581,6 +2769,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2622,16 +2813,21 @@ class MediaVortexCats:
             "firstIssueDate": first_issue_dates
         }
 
-        df_ad = self._get_dict('tv-ad', search_params, body_params, offset, limit, use_cache)
+        df_ad = self._get_dict(entity_name='tv-ad', search_params=search_params,
+                               body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                               show_header=show_header)
 
-        return df_ad.reindex(columns=['id','adTypeId','name','ename','notes','standardDuration','adStyleId','sloganAudioId','sloganVideoId',
-                       'firstIssueDate','advertiserListId','brandListId','subbrandListId','modelListId','articleList_2Id',
-                       'articleList_3Id','articleList_4Id','advertiserListMainId','brandListMainId','subbrandListMainId','modelListMainId',
-                       'articleList_2MainId','articleList_3MainId','articleList_4MainId','ageRestrictionId','tvArea'],fill_value='')
+        return df_ad.reindex(
+            columns=['id', 'adTypeId', 'name', 'ename', 'notes', 'standardDuration', 'adStyleId', 'sloganAudioId',
+                     'sloganVideoId', 'firstIssueDate', 'advertiserListId', 'brandListId', 'subbrandListId',
+                     'modelListId', 'articleList_2Id', 'articleList_3Id', 'articleList_4Id', 'advertiserListMainId',
+                     'brandListMainId', 'subbrandListMainId', 'modelListMainId', 'articleList_2MainId',
+                     'articleList_3MainId', 'articleList_4MainId', 'ageRestrictionId', 'tvArea'],
+            fill_value='')
 
     def get_tv_ad_type(self, ids=None, name=None, ename=None, notes=None, accounting_duration_type_ids=None,
                        is_override=None, position_type=None, is_price=None, order_by='id', order_dir=None, offset=None,
-                       limit=None, use_cache=False):
+                       limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию типов роликов
 
@@ -2683,6 +2879,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2706,10 +2905,12 @@ class MediaVortexCats:
             "isPrice": is_price
         }
 
-        return self._get_dict('tv-ad-type', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-ad-type', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_ad_style(self, ids=None, name=None, ename=None, notes=None, order_by='id',
-                        order_dir=None, offset=None, limit=None, use_cache=False):
+                        order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию стилей роликов
 
@@ -2749,6 +2950,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2768,10 +2972,12 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        return self._get_dict('tv-ad-style', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-ad-style', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_ad_slogan_video(self, ids=None, name=None, ename=None, order_by='id', order_dir=None, offset=None,
-                               limit=None, use_cache=False):
+                               limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию видео слоганов
 
@@ -2808,6 +3014,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2826,10 +3035,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-ad-slogan-video', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-ad-slogan-video', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_ad_slogan_audio(self, ids=None, name=None, ename=None, order_by='id', order_dir=None, offset=None,
-                               limit=None, use_cache=False):
+                               limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию аудио слоганов
 
@@ -2866,6 +3077,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -2884,7 +3098,9 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-ad-slogan-audio', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-ad-slogan-audio', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_time_band(self):
         """
@@ -2909,7 +3125,7 @@ class MediaVortexCats:
         
         df_tb['order'] = df_tb['order'].map(order_dict)
         df_tb.sort_values(by=['order'], inplace=True)
-        df_tb = df_tb.reindex(columns=['value','name'],fill_value='')
+        df_tb = df_tb.reindex(columns=['value', 'name'], fill_value='')
         
         return df_tb.reset_index(drop=True)
 
@@ -2947,7 +3163,7 @@ class MediaVortexCats:
         return pd.DataFrame(self.msapi_network.send_request('get', self._urls['tv-monitoring-type'], use_cache=False))
 
     def get_tv_demo_attribute(self, ids=None, names=None, entity_names=None, value_ids=None, value_names=None,
-                              offset=None, limit=None, use_cache=False):
+                              offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию демографических переменных
 
@@ -2984,6 +3200,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -3006,18 +3225,20 @@ class MediaVortexCats:
             "demoAttributeValueId": value_ids
         }
 
-        df_dem = self._get_dict('tv-demo-attribute', search_params, body_params, offset, limit, use_cache)
+        df_dem = self._get_dict(entity_name='tv-demo-attribute', search_params=search_params,
+                                body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                show_header=show_header)
         
         df_dem['entityName'] = df_dem['colName'].str[0].str.lower() + df_dem['colName'].str[1:]
 
-        df_dem = df_dem.reindex(columns=['id','name','entityName','valueId','valueName'],fill_value='')
+        df_dem = df_dem.reindex(columns=['id', 'name', 'entityName', 'valueId', 'valueName'], fill_value='')
 
-        return df_dem.sort_values(by=['id','valueId'])
+        return df_dem.sort_values(by=['id', 'valueId'])
 
 
     def get_tv_program_country(self, ids=None, name=None, ename=None, notes=None,
                                order_by='id', order_dir=None, offset=None,
-                               limit=None, use_cache=False):
+                               limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию стран производства программ
 
@@ -3057,6 +3278,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -3076,11 +3300,13 @@ class MediaVortexCats:
             "notes": notes
         }
 
-        return self._get_dict('tv-program-country', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-country', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_company_holding(self, ids=None, name=None, ename=None,
                                order_by='id', order_dir=None, offset=None,
-                               limit=None, use_cache=False):
+                               limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию холдингов телекомпаний
 
@@ -3117,6 +3343,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -3135,11 +3364,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-company-holding', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-company-holding', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_company_media_holding(self, ids=None, name=None,
                                      ename=None, order_by='id', order_dir=None, offset=None,
-                                     limit=None, use_cache=False):
+                                     limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию медиа холдингов телекомпаний
 
@@ -3176,6 +3407,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -3194,10 +3428,12 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-company-media-holding', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-company-media-holding', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_thematic(self, ids=None, name=None, ename=None, order_by='id', order_dir=None,
-                        offset=None, limit=None, use_cache=False):
+                        offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию жанров телекомпаний
 
@@ -3234,6 +3470,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         media : DataFrame
@@ -3252,10 +3491,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-thematic', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-thematic', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_custom_respondent_variable(self, ids=None, mart_type=None, name=None,
-                                       order_by=None, order_dir=None, offset=0, limit=1000, use_cache=False):
+                                       order_by=None, order_dir=None, offset=0, limit=1000, use_cache=False,
+                                       show_header=True):
         """
         Получение списка кастомных respondent переменных
 
@@ -3293,6 +3535,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3310,8 +3555,9 @@ class MediaVortexCats:
 
         body_params = {}
 
-        return self._get_dict('custom-respondent-variable', search_params, body_params,
-                              offset, limit, use_cache, 'get')
+        return self._get_dict(entity_name='custom-respondent-variable', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              request_type='get', show_header=show_header)
 
     def add_custom_respondent_variable(self, resp, name, mart_type='mediavortex', is_public=True):
         """
@@ -3370,7 +3616,7 @@ class MediaVortexCats:
 
     def get_tv_program_producer_country(self, ids=None, name=None, ename=None,
                                         order_by='id', order_dir=None, offset=None,
-                                        limit=None, use_cache=False):
+                                        limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию типов производства программ
 
@@ -3407,6 +3653,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3426,11 +3675,13 @@ class MediaVortexCats:
             "empty": True
         }
 
-        return self._get_dict('tv-program-producer-country', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-producer-country', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_prime_time_status(self, ids=None, name=None, ename=None,
                                  order_by='id', order_dir=None, offset=None,
-                                 limit=None, use_cache=False):
+                                 limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию прайм-тайм статусов
 
@@ -3467,6 +3718,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3485,11 +3739,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-prime-time-status', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-prime-time-status', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_issue_status(self, ids=None, name=None, ename=None,
                             order_by='id', order_dir=None, offset=None,
-                            limit=None, use_cache=False):
+                            limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию статусов выходов
 
@@ -3526,6 +3782,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3544,11 +3803,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-issue-status', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-issue-status', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_breaks_style(self, ids=None, name=None, ename=None,
                             order_by='id', order_dir='DESC', offset=None,
-                            limit=None, use_cache=False):
+                            limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию стилей блоков
 
@@ -3585,6 +3846,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3603,11 +3867,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-breaks-style', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-breaks-style', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_breaks_position(self, ids=None, name=None, ename=None,
                                order_by=None, order_dir=None, offset=None,
-                               limit=None, use_cache=False):
+                               limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию типов блоков
 
@@ -3662,11 +3928,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-breaks-position', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-breaks-position', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_breaks_distribution(self, ids=None, name=None, ename=None,
                                    order_by='type', order_dir=None, offset=None,
-                                   limit=None, use_cache=False):
+                                   limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию типов распространения блоков
 
@@ -3703,6 +3971,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3721,11 +3992,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-breaks-distribution', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-breaks-distribution', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_breaks_content(self, ids=None, name=None, ename=None,
                               order_by='type', order_dir=None, offset=None,
-                              limit=None, use_cache=False):
+                              limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию типов содержания блоков
 
@@ -3762,6 +4035,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3780,11 +4056,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-breaks-content', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-breaks-content', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_area(self, ids=None, name=None, ename=None,
                     order_by='id', order_dir=None, offset=None,
-                    limit=None, use_cache=False):
+                    limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию областей выходов
 
@@ -3821,6 +4099,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3840,11 +4121,13 @@ class MediaVortexCats:
             "empty": True
         }
 
-        return self._get_dict('tv-area', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-area', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_ad_position(self, ids=None, name=None, ename=None,
                            order_by='type', order_dir=None, offset=None,
-                           limit=None, use_cache=False):
+                           limit=None, use_cache=False, show_header=True):
         """
         Получить типы позиции клипа
 
@@ -3881,6 +4164,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3899,11 +4185,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-ad-position', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-ad-position', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_company_status(self, ids=None, name=None, ename=None,
                               order_by=None, order_dir=None, offset=None,
-                              limit=None, use_cache=False):
+                              limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию статусов телекомпаний
 
@@ -3940,6 +4228,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -3959,11 +4250,13 @@ class MediaVortexCats:
             "empty": True
         }
 
-        return self._get_dict('tv-company-status', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-company-status', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_program_producer(self, ids=None, name=None, ename=None,
                                 order_by=None, order_dir=None, offset=None,
-                                limit=None, use_cache=False):
+                                limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию производителей программ
 
@@ -4000,6 +4293,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4019,11 +4315,13 @@ class MediaVortexCats:
             "empty": True
         }
 
-        return self._get_dict('tv-program-producer', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-producer', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_program_group(self, ids=None, name=None, ename=None,
                              order_by='id', order_dir=None, offset=None,
-                             limit=None, use_cache=False):
+                             limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию групповых имен программ
 
@@ -4060,6 +4358,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4078,11 +4379,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-program-group', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-program-group', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_no_yes_na(self, ids=None, name=None, ename=None,
                          order_by=None, order_dir=None, offset=None,
-                         limit=None, use_cache=False):
+                         limit=None, use_cache=False, show_header=True):
         """
         Получить Да-Нет-Неизвестно флаги
 
@@ -4119,6 +4422,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4137,11 +4443,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-no-yes-na', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-no-yes-na', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_language(self, ids=None, name=None, ename=None,
                         order_by='id', order_dir=None, offset=None,
-                        limit=None, use_cache=False):
+                        limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию языков программ
 
@@ -4178,6 +4486,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4196,11 +4507,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-language', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-language', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_company_group(self, ids=None, name=None, ename=None,
                              order_by=None, order_dir=None, offset=None,
-                             limit=None, use_cache=False):
+                             limit=None, use_cache=False, show_header=True):
         """
         Получить типы групп телекомпаний
 
@@ -4237,6 +4550,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4255,11 +4571,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-company-group', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-company-group', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_company_category(self, ids=None, name=None, ename=None,
                                 order_by='id', order_dir=None, offset=None,
-                                limit=None, use_cache=False):
+                                limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию категорий телекомпаний
 
@@ -4296,6 +4614,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4314,11 +4635,13 @@ class MediaVortexCats:
             "ename": ename
         }
 
-        return self._get_dict('tv-company-category', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-company-category', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_tv_age_restriction(self, ids=None, name=None,
                                order_by='id', order_dir=None, offset=None,
-                               limit=None, use_cache=False):
+                               limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию возрастных ограничений
 
@@ -4352,6 +4675,9 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4369,7 +4695,9 @@ class MediaVortexCats:
             "name": name
         }
 
-        return self._get_dict('tv-age-restriction', search_params, body_params, offset, limit, use_cache)
+        return self._get_dict(entity_name='tv-age-restriction', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
 
     def get_availability_period(self, order_by='name', order_dir=None, offset=0, limit=1000):
         """
@@ -4464,7 +4792,7 @@ class MediaVortexCats:
     def get_tv_monitoring_cities(self, region_id=None, region_name=None, demo_attribute_value_id=None,
                                  demo_attribute_value_name=None, demo_attribute_id=None, demo_attribute_col_name=None,
                                  kit_id=None, order_by='regionId', order_dir=None, offset=None,
-                                 limit=None, use_cache=False, return_city_ids_as_string=False):
+                                 limit=None, use_cache=False, return_city_ids_as_string=False, show_header=True):
         """
         Получить коллекцию связей регион-город
 
@@ -4513,6 +4841,12 @@ class MediaVortexCats:
             с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
             получение данных.
 
+        return_city_ids_as_string : bool
+            Возврат результата, как строки с id городов. По умолчанию выключено (False).
+
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
         Returns
         -------
         result : DataFrame
@@ -4535,9 +4869,129 @@ class MediaVortexCats:
             "kitId": kit_id
         }
 
-        full_dict = self._get_dict('monitoring-cities', search_params, body_params, offset, limit, use_cache)
+        full_dict = self._get_dict(entity_name='monitoring-cities', search_params=search_params,
+                                   body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                                   show_header=show_header)
 
         if return_city_ids_as_string and not full_dict.empty:
             return ", ".join([str(x) for x in full_dict['demoAttributeValueId'].unique().tolist()])
         else:
             return full_dict
+
+    def get_tv_platform(self, ids=None, name=None, order_by='id',
+                        order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
+        """
+        Получить коллекцию платформ
+
+        Parameters
+        ----------
+        ids : str or list of str
+            Поиск по списку идентификаторов платформ
+
+        name : str or list of str
+            Поиск по имени платформы
+
+        order_by : string, default 'id'
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+
+        limit : int
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
+        Returns
+        -------
+        media : DataFrame
+
+            DataFrame с местами
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": ids,
+            "name": name
+        }
+
+        return self._get_dict(entity_name='tv-platform', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
+
+    def get_tv_playbacktype(self, ids=None, name=None, order_by='id',
+                            order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
+        """
+        Получить коллекцию типов плейбеков
+
+        Parameters
+        ----------
+        ids : str or list of str
+            Поиск по списку идентификаторов типов плейбеков
+
+        name : str or list of str
+            Поиск по имени типа плейбека
+
+        order_by : string, default 'id'
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+
+        limit : int
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
+        Returns
+        -------
+        media : DataFrame
+
+            DataFrame с местами
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": ids,
+            "name": name
+        }
+
+        return self._get_dict(entity_name='tv-playbacktype', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)

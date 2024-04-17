@@ -43,7 +43,7 @@ class MediaVortexTask:
                    company_filter=None, region_filter=None, time_filter=None, location_filter=None,
                    basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
                    ad_filter=None, subject_filter=None, duration_filter=None, duplication_company_filter=None,
-                   duplication_time_filter=None, respondent_filter=None, slices=None,
+                   duplication_time_filter=None, respondent_filter=None, bigtv_filter=None, slices=None,
                    statistics=None, scales=None, options=None, reach_conditions=None, custom_demo_variable_id=None,
                    custom_company_variable_id=None, custom_respondent_variable_id=None, custom_time_variable_id=None,
                    custom_duplication_time_variable_id=None, custom_duplication_company_variable_id=None,
@@ -114,6 +114,9 @@ class MediaVortexTask:
         duplication_time_filter : str
             Фильтр временных интервалов
 
+        bigtv_filter : str
+            Фильтр срезов биг-тв
+
         slices : list of str
             Список срезов
 
@@ -169,16 +172,19 @@ class MediaVortexTask:
             Задание в формате JSON
         """
         if add_city_to_basedemo_from_region:
-            basedemo_filter = self._add_city_to_demo_from_region(company_filter, basedemo_filter)
+            basedemo_filter = self._add_city_to_demo_from_region(
+                company_filter, basedemo_filter, options.get('kitId'))
 
         if add_city_to_targetdemo_from_region:
-            targetdemo_filter = self._add_city_to_demo_from_region(company_filter, targetdemo_filter)
+            targetdemo_filter = self._add_city_to_demo_from_region(
+                company_filter, targetdemo_filter, options.get('kitId'))
 
         if not self.task_checker.check_task(task_type, date_filter, weekday_filter, daytype_filter,
                                             company_filter, region_filter, time_filter, location_filter,
                                             basedemo_filter, targetdemo_filter, program_filter, break_filter,
                                             ad_filter, subject_filter, duration_filter, duplication_company_filter,
-                                            duplication_time_filter, slices, statistics, scales, sortings):
+                                            duplication_time_filter, bigtv_filter, slices, statistics, scales,
+                                            sortings, options.get('kitId')):
             return
 
         # Собираем JSON
@@ -205,6 +211,7 @@ class MediaVortexTask:
         self.task_builder.add_filter(tsk, duplication_company_filter, 'duplicationCompanyFilter')
         self.task_builder.add_filter(tsk, duplication_time_filter, 'duplicationTimeFilter')
         self.task_builder.add_filter(tsk, respondent_filter, 'respondentFilter')
+        self.task_builder.add_filter(tsk, bigtv_filter, 'bigTvFilter')
 
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
@@ -270,6 +277,7 @@ class MediaVortexTask:
             'respondent_filter': respondent_filter,
             'duplication_company_filter': duplication_company_filter,
             'duplication_time_filter': duplication_time_filter,
+            'bigtv_filter': bigtv_filter,
             'slices': slices,
             'statistics': statistics,
             'scales': scales,
@@ -292,7 +300,7 @@ class MediaVortexTask:
     def build_timeband_task(self, task_name='', date_filter=None, weekday_filter=None,
                             daytype_filter=None, company_filter=None, region_filter=None, time_filter=None,
                             location_filter=None, basedemo_filter=None, targetdemo_filter=None,
-                            respondent_filter=None, slices=None,
+                            respondent_filter=None, bigtv_filter=None, slices=None,
                             statistics=None, sortings=None, options=None, reach_conditions=None,
                             custom_demo_variable_id=None,
                             custom_company_variable_id=None, custom_respondent_variable_id=None,
@@ -336,6 +344,9 @@ class MediaVortexTask:
 
         respondent_filter : str
             Фильтр респондентов
+
+        bigtv_filter : str
+            Фильтр срезов биг-тв
 
         slices : list
             Список срезов
@@ -382,6 +393,7 @@ class MediaVortexTask:
                                time_filter=time_filter, location_filter=location_filter,
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
                                respondent_filter=respondent_filter,
+                               bigtv_filter=bigtv_filter,
                                slices=slices, statistics=statistics, sortings=sortings, options=options,
                                reach_conditions=reach_conditions,
                                custom_company_variable_id=custom_company_variable_id,
@@ -395,8 +407,8 @@ class MediaVortexTask:
                           company_filter=None, region_filter=None, location_filter=None,
                           basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
                           ad_filter=None, subject_filter=None, respondent_filter=None,
-                          slices=None, statistics=None, sortings=None, options=None, reach_conditions=None,
-                          custom_demo_variable_id=None, custom_company_variable_id=None,
+                          bigtv_filter=None, slices=None, statistics=None, sortings=None, options=None,
+                          reach_conditions=None, custom_demo_variable_id=None, custom_company_variable_id=None,
                           custom_time_variable_id=None,
                           custom_respondent_variable_id=None, frequency_dist_conditions=None,
                           add_city_to_basedemo_from_region=False, add_city_to_targetdemo_from_region=False):
@@ -448,6 +460,9 @@ class MediaVortexTask:
         respondent_filter : str
             Фильтр респондентов
 
+        bigtv_filter : str
+            Фильтр срезов биг-тв
+
         slices : list
             Список срезов
 
@@ -498,6 +513,7 @@ class MediaVortexTask:
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
                                respondent_filter=respondent_filter,
+                               bigtv_filter=bigtv_filter,
                                slices=slices, statistics=statistics, sortings=sortings,
                                options=options, reach_conditions=reach_conditions,
                                custom_company_variable_id=custom_company_variable_id,
@@ -512,8 +528,8 @@ class MediaVortexTask:
                             company_filter=None, region_filter=None, location_filter=None,
                             basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
                             ad_filter=None, subject_filter=None, respondent_filter=None,
-                            slices=None, statistics=None, sortings=None, options=None, reach_conditions=None,
-                            custom_demo_variable_id=None, custom_company_variable_id=None,
+                            bigtv_filter=None, slices=None, statistics=None, sortings=None, options=None,
+                            reach_conditions=None, custom_demo_variable_id=None, custom_company_variable_id=None,
                             custom_time_variable_id=None, custom_respondent_variable_id=None,
                             frequency_dist_conditions=None,
                             add_city_to_basedemo_from_region=False, add_city_to_targetdemo_from_region=False):
@@ -565,6 +581,9 @@ class MediaVortexTask:
         respondent_filter : str
             Фильтр респондентов
 
+        bigtv_filter : str
+            Фильтр срезов биг-тв
+
         slices : list
             Список срезов
 
@@ -615,6 +634,7 @@ class MediaVortexTask:
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
                                respondent_filter=respondent_filter,
+                               bigtv_filter=bigtv_filter,
                                slices=slices, statistics=statistics, sortings=sortings,
                                options=options, reach_conditions=reach_conditions,
                                custom_company_variable_id=custom_company_variable_id,
@@ -990,7 +1010,7 @@ class MediaVortexTask:
         """
         return self._send_task('duplication-timeband', data)
 
-    def wait_task(self, tsk):
+    def wait_task(self, tsk, status_delay=3, task_delay=0.2):
         """
         Ожидает окончание расчета задания или заданий.
 
@@ -1014,6 +1034,13 @@ class MediaVortexTask:
                     },
                     ...
                 ]
+
+        status_delay : int
+            Задержка в секундах между опросом статуса. По умолчанию 3 с
+
+        task_delay : int
+            Задержка в секундах между опросом статуса каждого задания для списка заданий. По умолчанию 0.2 с
+
         Returns
         -------
         tsk : dict|list
@@ -1028,7 +1055,7 @@ class MediaVortexTask:
                 cnt = 0
                 while cnt < 5:
                     try:
-                        time.sleep(3)
+                        time.sleep(status_delay)
                         task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
                     except errors.HTTP404Error:
                         cnt += 1
@@ -1046,7 +1073,7 @@ class MediaVortexTask:
                 # DONE, FAILED, IN_PROGRESS, CANCELLED, IN_QUEUE
                 while task_state == 'IN_QUEUE' or task_state == 'IN_PROGRESS':
                     print('=', end=' ')
-                    time.sleep(3)
+                    time.sleep(status_delay)
                     task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tsk['taskId']))
                     if task_state_obj is not None:
                         task_state = task_state_obj.get('taskStatus', '')
@@ -1070,13 +1097,14 @@ class MediaVortexTask:
             print(f'Расчет задач ({len(task_list)}) [ ', end='')
             s = dt.datetime.now()
             while True:
-                time.sleep(3)
+                time.sleep(status_delay)
                 # запросим состояние
                 done_count = 0
                 for t in task_list:
                     tid = t['task']['taskId']
                     task_state = ''
                     task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
+                    time.sleep(task_delay)
                     if task_state_obj is not None:
                         task_state = task_state_obj.get('taskStatus', '')
 
@@ -1386,8 +1414,8 @@ class MediaVortexTask:
                 self.cats.tv_demo_attribs['entityName'] == col
                 ].copy()[['valueId', 'valueName']]
             if not _attrs.empty:
-                df[col] = df[col].astype('int32', errors='ignore')
-                _attrs['valueId'] = _attrs['valueId'].astype('int32', errors='ignore')
+                df[col] = df[col].astype(str, errors='ignore')
+                _attrs['valueId'] = _attrs['valueId'].astype(str, errors='ignore')
                 df[col + id_name] = df.merge(_attrs, how='left', left_on=col, right_on='valueId')['valueName']
         return df
 
@@ -1614,7 +1642,7 @@ class MediaVortexTask:
                                custom_time_variable_id=custom_time_variable_id,
                                sortings=sortings)
 
-    def _add_city_to_demo_from_region(self, company_filter=None, demo_filter=None):
+    def _add_city_to_demo_from_region(self, company_filter=None, demo_filter=None, kit_id=None):
         # автоматическое добавление фильтра городов по значениям региона
 
         # если фильтр по регионам не задан, то возвращаем демо без изменений
@@ -1634,7 +1662,9 @@ class MediaVortexTask:
                     region_value = [element['value']]
 
                 city_ids = self.cats.get_tv_monitoring_cities(region_id=region_value,
-                                                              return_city_ids_as_string=True)
+                                                              kit_id=kit_id,
+                                                              return_city_ids_as_string=True,
+                                                              show_header=False)
                 if city_ids:
                     relation_element = 'IN'
                     if element['relation'] == 'NIN':
