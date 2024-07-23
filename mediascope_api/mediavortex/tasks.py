@@ -43,7 +43,8 @@ class MediaVortexTask:
                    company_filter=None, region_filter=None, time_filter=None, location_filter=None,
                    basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
                    ad_filter=None, subject_filter=None, duration_filter=None, duplication_company_filter=None,
-                   duplication_time_filter=None, respondent_filter=None, bigtv_filter=None, slices=None,
+                   duplication_time_filter=None, respondent_filter=None, platform_filter=None,
+                   playbacktype_filter=None, bigtv_filter=None, slices=None,
                    statistics=None, scales=None, options=None, reach_conditions=None, custom_demo_variable_id=None,
                    custom_company_variable_id=None, custom_respondent_variable_id=None, custom_time_variable_id=None,
                    custom_duplication_time_variable_id=None, custom_duplication_company_variable_id=None,
@@ -114,8 +115,14 @@ class MediaVortexTask:
         duplication_time_filter : str
             Фильтр временных интервалов
 
+        platform_filter : str
+            Фильтр платформы (бигтв)
+
+        playbacktype_filter : str
+            Фильтр типа плейбека (бигтв)
+
         bigtv_filter : str
-            Фильтр срезов биг-тв
+            Фильтр срезов бигтв
 
         slices : list of str
             Список срезов
@@ -179,12 +186,16 @@ class MediaVortexTask:
             targetdemo_filter = self._add_city_to_demo_from_region(
                 company_filter, targetdemo_filter, options.get('kitId'))
 
-        if not self.task_checker.check_task(task_type, date_filter, weekday_filter, daytype_filter,
-                                            company_filter, region_filter, time_filter, location_filter,
-                                            basedemo_filter, targetdemo_filter, program_filter, break_filter,
-                                            ad_filter, subject_filter, duration_filter, duplication_company_filter,
-                                            duplication_time_filter, bigtv_filter, slices, statistics, scales,
-                                            sortings, options.get('kitId')):
+        if not self.task_checker.check_task(
+                task_type=task_type, date_filter=date_filter, weekdate_filter=weekday_filter,
+                daytype_filter=daytype_filter, company_filter=company_filter, region_filter=region_filter,
+                time_filter=time_filter, location_filter=location_filter, basedemo_filter=basedemo_filter,
+                targetdemo_filter=targetdemo_filter, program_filter=program_filter, break_filter=break_filter,
+                ad_filter=ad_filter, subject_filter=subject_filter, duration_filter=duration_filter,
+                duplication_company_filter=duplication_company_filter, duplication_time_filter=duplication_time_filter,
+                platform_filter=platform_filter, playbacktype_filter=playbacktype_filter,
+                bigtv_filter=bigtv_filter, slices=slices, statistics=statistics, scales=scales,
+                sortings=sortings, kit_id=options.get('kitId')):
             return
 
         # Собираем JSON
@@ -212,6 +223,8 @@ class MediaVortexTask:
         self.task_builder.add_filter(tsk, duplication_time_filter, 'duplicationTimeFilter')
         self.task_builder.add_filter(tsk, respondent_filter, 'respondentFilter')
         self.task_builder.add_filter(tsk, bigtv_filter, 'bigTvFilter')
+        self.task_builder.add_filter(tsk, platform_filter, 'platformFilter')
+        self.task_builder.add_filter(tsk, playbacktype_filter, 'playBackTypeFilter')
 
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
@@ -277,6 +290,8 @@ class MediaVortexTask:
             'respondent_filter': respondent_filter,
             'duplication_company_filter': duplication_company_filter,
             'duplication_time_filter': duplication_time_filter,
+            'platform_filter': platform_filter,
+            'playbacktype_filter': playbacktype_filter,
             'bigtv_filter': bigtv_filter,
             'slices': slices,
             'statistics': statistics,
@@ -300,7 +315,8 @@ class MediaVortexTask:
     def build_timeband_task(self, task_name='', date_filter=None, weekday_filter=None,
                             daytype_filter=None, company_filter=None, region_filter=None, time_filter=None,
                             location_filter=None, basedemo_filter=None, targetdemo_filter=None,
-                            respondent_filter=None, bigtv_filter=None, slices=None,
+                            respondent_filter=None, platform_filter=None, playbacktype_filter=None,
+                            bigtv_filter=None, slices=None,
                             statistics=None, sortings=None, options=None, reach_conditions=None,
                             custom_demo_variable_id=None,
                             custom_company_variable_id=None, custom_respondent_variable_id=None,
@@ -345,8 +361,14 @@ class MediaVortexTask:
         respondent_filter : str
             Фильтр респондентов
 
+        platform_filter : str
+            Фильтр платформы (бигтв)
+
+        playbacktype_filter : str
+            Фильтр типа плейбека (бигтв)
+
         bigtv_filter : str
-            Фильтр срезов биг-тв
+            Фильтр срезов бигтв
 
         slices : list
             Список срезов
@@ -393,6 +415,7 @@ class MediaVortexTask:
                                time_filter=time_filter, location_filter=location_filter,
                                basedemo_filter=basedemo_filter, targetdemo_filter=targetdemo_filter,
                                respondent_filter=respondent_filter,
+                               platform_filter=platform_filter, playbacktype_filter=playbacktype_filter,
                                bigtv_filter=bigtv_filter,
                                slices=slices, statistics=statistics, sortings=sortings, options=options,
                                reach_conditions=reach_conditions,
@@ -407,6 +430,7 @@ class MediaVortexTask:
                           company_filter=None, region_filter=None, location_filter=None,
                           basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
                           ad_filter=None, subject_filter=None, respondent_filter=None,
+                          platform_filter=None, playbacktype_filter=None,
                           bigtv_filter=None, slices=None, statistics=None, sortings=None, options=None,
                           reach_conditions=None, custom_demo_variable_id=None, custom_company_variable_id=None,
                           custom_time_variable_id=None,
@@ -460,8 +484,14 @@ class MediaVortexTask:
         respondent_filter : str
             Фильтр респондентов
 
+        platform_filter : str
+            Фильтр платформы (бигтв)
+
+        playbacktype_filter : str
+            Фильтр типа плейбека (бигтв)
+
         bigtv_filter : str
-            Фильтр срезов биг-тв
+            Фильтр срезов бигтв
 
         slices : list
             Список срезов
@@ -513,6 +543,7 @@ class MediaVortexTask:
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
                                respondent_filter=respondent_filter,
+                               platform_filter=platform_filter, playbacktype_filter=playbacktype_filter,
                                bigtv_filter=bigtv_filter,
                                slices=slices, statistics=statistics, sortings=sortings,
                                options=options, reach_conditions=reach_conditions,
@@ -528,6 +559,7 @@ class MediaVortexTask:
                             company_filter=None, region_filter=None, location_filter=None,
                             basedemo_filter=None, targetdemo_filter=None, program_filter=None, break_filter=None,
                             ad_filter=None, subject_filter=None, respondent_filter=None,
+                            platform_filter=None, playbacktype_filter=None,
                             bigtv_filter=None, slices=None, statistics=None, sortings=None, options=None,
                             reach_conditions=None, custom_demo_variable_id=None, custom_company_variable_id=None,
                             custom_time_variable_id=None, custom_respondent_variable_id=None,
@@ -581,8 +613,14 @@ class MediaVortexTask:
         respondent_filter : str
             Фильтр респондентов
 
+        platform_filter : str
+            Фильтр платформы (бигтв)
+
+        playbacktype_filter : str
+            Фильтр типа плейбека (бигтв)
+
         bigtv_filter : str
-            Фильтр срезов биг-тв
+            Фильтр срезов бигтв
 
         slices : list
             Список срезов
@@ -634,6 +672,7 @@ class MediaVortexTask:
                                program_filter=program_filter, break_filter=break_filter,
                                ad_filter=ad_filter, subject_filter=subject_filter,
                                respondent_filter=respondent_filter,
+                               platform_filter=platform_filter, playbacktype_filter=playbacktype_filter,
                                bigtv_filter=bigtv_filter,
                                slices=slices, statistics=statistics, sortings=sortings,
                                options=options, reach_conditions=reach_conditions,
@@ -1504,7 +1543,19 @@ class MediaVortexTask:
                 'articleLevel3EName',
                 'articleLevel4Id',
                 'articleLevel4Name',
-                'articleLevel4EName'
+                'articleLevel4EName',
+                'advertiserTvAreaId',
+                'advertiserTvAreaName',
+                'advertiserTvAreaEName',
+                'brandTvAreaId',
+                'brandTvAreaName',
+                'brandTvAreaEName',
+                'subbrandTvAreaId',
+                'subbrandTvAreaName',
+                'subbrandTvAreaEName',
+                'modelTvAreaId',
+                'modelTvAreaName',
+                'modelTvAreaEName'
             ]:
                 y = df.copy()
                 y = y[['adSpotId', col]]  # делаем срез из исходного df

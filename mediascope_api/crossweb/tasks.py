@@ -699,7 +699,7 @@ class CrossWebTask:
         """
         return self._send_task('media-profile', data)
 
-    def wait_task(self, tsk):
+    def wait_task(self, tsk, status_delay=3, task_delay=0.2):
         """
         Ожидает окончание расчета задания или заданий.
 
@@ -723,6 +723,13 @@ class CrossWebTask:
                     },
                     ...
                 ]
+
+        status_delay : int
+            Задержка в секундах между опросом статуса. По умолчанию 3 с
+
+        task_delay : int
+            Задержка в секундах между опросом статуса каждого задания для списка заданий. По умолчанию 0.2 с
+
         Returns
         -------
         tsk : dict|list
@@ -736,7 +743,7 @@ class CrossWebTask:
                 cnt = 0
                 while cnt < 5:
                     try:
-                        time.sleep(3)
+                        time.sleep(status_delay)
                         task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
                     except errors.HTTP404Error:
                         cnt += 1
@@ -754,7 +761,7 @@ class CrossWebTask:
                 # DONE, FAILED, IN_PROGRESS, CANCELLED, IN_QUEUE
                 while task_state == 'IN_QUEUE' or task_state == 'IN_PROGRESS':
                     print('=', end=' ')
-                    time.sleep(3)
+                    time.sleep(status_delay)
                     task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tsk['taskId']))
                     if task_state_obj is not None:
                         task_state = task_state_obj.get('taskStatus', '')
@@ -777,12 +784,13 @@ class CrossWebTask:
             s = dt.datetime.now()
             errs = dict()
             while True:
-                time.sleep(3)
+                time.sleep(status_delay)
                 # запросим состояние
                 done_count = 0
                 for t in task_list:
                     tid = t['task']['taskId']
                     task_state = ''
+                    time.sleep(task_delay)
                     task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
                     if task_state_obj is not None:
                         task_state = task_state_obj.get('taskStatus', '')

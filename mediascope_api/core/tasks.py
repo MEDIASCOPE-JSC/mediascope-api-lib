@@ -40,6 +40,30 @@ class TaskBuilder:
         """
         return utils.get_excel_filename(task_name, export_path, add_dates)
 
+    @staticmethod
+    def get_csv_filename(task_name: str, export_path: str = '../csv', add_dates: bool = True) -> str:
+        """
+        Получить имя csv файла
+
+        Parameters
+        ----------
+
+        task_name : str
+            Название задания
+
+        export_path : str
+            Путь к папке с csv файлами
+
+        add_dates : bool
+            Флаг - добавлять в имя файла дату или нет, по умолчанию = True
+
+        Returns
+        -------
+        filename : str
+            Путь и имя excel файла
+        """
+        return utils.get_csv_filename(task_name, export_path, add_dates)
+
     def save_report_info(self, tinfo: dict):
         """
         Сохраняет общую информацию о заданиях. Использует при сохранении отчета в Excel
@@ -54,7 +78,7 @@ class TaskBuilder:
     def get_report_info(self):
         """
         Возвращает информацию о расчитываемом отчете в виде DataFrame, которая была предварительно сохранена
-        с помощью метода save_audience_info
+        с помощью метода save_report_info
 
         Returns
         -------

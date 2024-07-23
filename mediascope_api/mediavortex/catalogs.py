@@ -365,8 +365,14 @@ class MediaVortexCats:
         -------
         info : dict
             Словарь с доступными списками
+
+        kit_id : int
+            Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        return self.tv_units.get(str(kit_id)).get('TimeBand')
+        if not str(kit_id) in self.tv_units:
+            print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
+        else:
+            return self.tv_units.get(str(kit_id)).get('TimeBand')
 
     def get_simple_unit(self, kit_id=1):
         """
@@ -379,8 +385,14 @@ class MediaVortexCats:
         -------
         info : dict
             Словарь с доступными списками
+
+        kit_id : int
+            Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        return self.tv_units.get(str(kit_id)).get('Simple')
+        if not str(kit_id) in self.tv_units:
+            print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
+        else:
+            return self.tv_units.get(str(kit_id)).get('Simple')
 
     def get_crosstab_unit(self, kit_id=1):
         """
@@ -393,8 +405,14 @@ class MediaVortexCats:
         -------
         info : dict
             Словарь с доступными списками
+
+        kit_id : int
+            Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        return self.tv_units.get(str(kit_id)).get('CrossTab')
+        if not str(kit_id) in self.tv_units:
+            print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
+        else:
+            return self.tv_units.get(str(kit_id)).get('CrossTab')
 
     def get_consumption_target_unit(self, kit_id=1):
         """
@@ -407,8 +425,14 @@ class MediaVortexCats:
         -------
         info : dict
             Словарь с доступными списками
+
+        kit_id : int
+            Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        return self.tv_units.get(str(kit_id)).get('ConsumptionTarget')
+        if not str(kit_id) in self.tv_units:
+            print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
+        else:
+            return self.tv_units.get(str(kit_id)).get('ConsumptionTarget')
 
     def get_duplication_timeband_unit(self, kit_id=1):
         """
@@ -421,8 +445,14 @@ class MediaVortexCats:
         -------
         info : dict
             Словарь с доступными списками
+
+        kit_id : int
+            Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        return self.tv_units.get(str(kit_id)).get('DuplicationTimeBand')
+        if not str(kit_id) in self.tv_units:
+            print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
+        else:
+            return self.tv_units.get(str(kit_id)).get('DuplicationTimeBand')
 
     def get_tv_subbrand(self, ids=None, name=None, ename=None, brand_ids=None, tv_area_ids=None, notes=None,
                         order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
@@ -4775,7 +4805,7 @@ class MediaVortexCats:
 
         return pd.DataFrame(res)
 
-    def get_respondent_analysis_unit(self):
+    def get_respondent_analysis_unit(self, kit_id=1):
         """
         Получить списки доступных атрибутов отчета Анализ отдельных респондентов (Respondent analysis):
         - статистик
@@ -4786,8 +4816,14 @@ class MediaVortexCats:
         -------
         info : dict
             Словарь с доступными списками
+
+        kit_id : int
+            Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        return self.tv_units.get('RespondentAnalysis')
+        if not str(kit_id) in self.tv_units:
+            print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
+        else:
+            return self.tv_units.get(str(kit_id)).get('RespondentAnalysis')
 
     def get_tv_monitoring_cities(self, region_id=None, region_name=None, demo_attribute_value_id=None,
                                  demo_attribute_value_name=None, demo_attribute_id=None, demo_attribute_col_name=None,
