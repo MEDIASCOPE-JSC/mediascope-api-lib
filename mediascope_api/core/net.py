@@ -17,9 +17,7 @@ class MediascopeApiNetwork:
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(MediascopeApiNetwork, cls).__new__(cls, *args, **kwargs)
-        return cls.instance
+        return super(MediascopeApiNetwork, cls).__new__(cls, *args, **kwargs) #cls.instance
 
     def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                  username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
@@ -71,7 +69,7 @@ class MediascopeApiNetwork:
             total=5,
             backoff_factor=1,
             status_forcelist=[502, 503, 504],
-            allowed_methods={'POST', 'GET'},
+            allowed_methods={'POST', 'GET', 'DELETE'},
         )
 
         self.session.mount('https://', HTTPAdapter(max_retries=self.retries))
@@ -95,7 +93,7 @@ class MediascopeApiNetwork:
         token : dict
             Токен доступа к Mediascope-API
         """
-        my_tocken_req = self.session.post(
+        my_token_req = self.session.post(
             url=self.keycloak_url,
             data={
                 'client_id': self.client_id,
@@ -107,8 +105,8 @@ class MediascopeApiNetwork:
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             proxies=self.proxies
         )
-        if my_tocken_req.status_code == 200:
-            t = my_tocken_req.json()
+        if my_token_req.status_code == 200:
+            t = my_token_req.json()
             t['now'] = datetime.datetime.now()
             return t
         elif my_token_req.status_code == 401:
@@ -295,7 +293,10 @@ class MediascopeApiNetwork:
 
     def send_raw_request(self, method: str, endpoint: str, data: dict = None):
         """
-        Отправляет запрос в Mediascope-API, и получает результат в сыром виде (как есть - в тексте)
+        Отправляет запрос в Mediascope-API
+
+        Parameters
+        ----------
 
         method : str
             HTTP метод:
@@ -312,15 +313,18 @@ class MediascopeApiNetwork:
 
         use_cache : bool
             Флаг кэширования
-                - True - использовать кэш. Формирует хэш для запроса, и сохраняет результат в файл.
+                - True - использовать кэш. Формирует хэш для запроса и сохраняет результат в файл.
                         Если следующие запросы совпадут по хэшу с существующим - результат возьмется из сохраненного
                         файла. Запроса к API не будет. Удобно использовать для частых запросов к большим объемам.
                 - False - кэш не используется (по умолчанию).
 
+        limit : int
+            Размер порции данных получаемых за один запрос
+
         Returns
         -------
 
-        result : str
+        result : dict
             Результат выполнения запроса
         """
         # Send request
@@ -339,6 +343,7 @@ class MediascopeApiNetwork:
         else:
             self._raise_error(req)
             return None
+
 
     def send_crossweb_request(self, method: str, endpoint: str, data: dict = None):
         """

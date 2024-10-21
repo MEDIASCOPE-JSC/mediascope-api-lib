@@ -2,6 +2,8 @@ import json
 import os
 import datetime as dt
 import pandas as pd
+import requests
+import subprocess
 
 
 def load_settings(settings_filename: str = 'settings.json'):
@@ -160,3 +162,39 @@ def get_csv_filename(task_name: str, export_path: str = '../csv', add_date: bool
     fname += '.csv'
     return os.path.join(export_path, fname)
 
+
+def check_version():
+    """
+        Проверка установленна ли актуальная версия библиотеки
+
+    """
+    print("Получаем установленную версию библиотеки...")
+    package = 'mediascope_api_lib'
+    result = subprocess.run(['pip', 'show', package], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    if len(result):
+        version_start_str = "Version: "
+        start = result.find(version_start_str)
+        if start == -1:
+            print(f"Не найдена версия установленной библиотеки {package}")
+            print(f"Проверьте полученный результат {result}")
+        else:
+            current_version = result[start + len(version_start_str) : result.find("\r\n", start)]
+            print(f"Найдена установленная версия {current_version}")
+            pypi_str = f'https://pypi.org/pypi/{package}/json'
+            print(f"Проверяем актуальную версию на {pypi_str} ...")
+            response = requests.get(pypi_str)
+            if response.status_code == 200:
+                latest_version = response.json()['info']['version']
+                print(f"Найдена актуальная версия {latest_version}")
+                if latest_version > current_version:
+                    print(f"Требуется обновление библиотеки с версии {current_version} на {latest_version}")
+                    print("Запускаем обновление...")
+                    print(subprocess.run(['pip', 'install', package, "-U"], stdout=subprocess.PIPE).stdout.decode('utf-8'))
+                else:
+                    print("Обновление не требуется")
+            else:
+                print("Не могу проверить актуальную версию")
+                print(response.text)
+            response.close()
+    else:
+        print(f"Ошибка получения информации об установленной библиотеке {package}")

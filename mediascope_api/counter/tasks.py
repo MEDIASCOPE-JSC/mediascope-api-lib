@@ -8,6 +8,7 @@ from ..core import net
 from ..core import tasks
 from ..core import errors
 from ..core import sql
+from ..core import utils
 
 
 class CounterTask:
@@ -33,16 +34,17 @@ class CounterTask:
     
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+                client_secret: str = None, keycloak_url: str = None, check_version: bool = True, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super().__new__(cls, *args, **kwargs)
         return cls.instance
 
     def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                  username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+                 client_secret: str = None, keycloak_url: str = None, check_version: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
+        if check_version:
+            utils.check_version()
         self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
                                                       root_url, client_id, client_secret, keycloak_url)
         self.task_builder = tasks.TaskBuilder()
@@ -300,6 +302,9 @@ class CounterTask:
                 print(f"] время расчета: {str(e - s)}")
                 if task_state == 'DONE':
                     tsk['message'] = 'DONE'
+                    tsk['dtRegister'] = task_state_obj.get('dtRegister', '')
+                    tsk['dtFinish'] = task_state_obj.get('dtFinish', '')
+                    tsk['taskProcessingTimeSec'] = task_state_obj.get('taskProcessingTimeSec', '')
                     return tsk
         elif type(tsk) == list:
             task_list = list()
@@ -332,6 +337,9 @@ class CounterTask:
                             continue
                         elif task_state == 'DONE':
                             t['task']['message'] = 'DONE'
+                            t['task']['dtRegister'] = task_state_obj.get('dtRegister', '')
+                            t['task']['dtFinish'] = task_state_obj.get('dtFinish', '')
+                            t['task']['taskProcessingTimeSec'] = task_state_obj.get('taskProcessingTimeSec', '')
                             done_count += 1
                         else:
                             errs[tid] = t
@@ -375,7 +383,10 @@ class CounterTask:
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
                     'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
+                    'dtFinish': '2024-09-30 12:17:54',
+                    'taskProcessingTimeSec': 21
                 }
         """
         if tsk.get('taskId') is not None:
@@ -406,8 +417,9 @@ class CounterTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'IN_QUEUE',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33'
                 }
         """
         if tsk.get('taskId') is not None:
@@ -433,8 +445,9 @@ class CounterTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'IN_QUEUE',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33'
                 }
         """
         post_data = {
@@ -467,8 +480,11 @@ class CounterTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'CANCELLED',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
+                    'dtFinish': '2024-09-30 12:49:43',
+                    'taskProcessingTimeSec': 1930
                 }
         """
         if tsk.get('taskId') is not None:
@@ -494,8 +510,11 @@ class CounterTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'CANCELLED',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
+                    'dtFinish': '2024-09-30 12:49:43',
+                    'taskProcessingTimeSec': 1930
                 }
         """
         post_data = {

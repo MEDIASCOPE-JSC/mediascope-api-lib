@@ -9,6 +9,7 @@ from . import checks
 from ..core import errors
 from ..core import net
 from ..core import tasks
+from ..core import utils
 
 
 class MediaVortexTask:
@@ -23,15 +24,17 @@ class MediaVortexTask:
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+                client_secret: str = None, keycloak_url: str = None, check_version: bool = True, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(MediaVortexTask, cls).__new__(cls, *args)
         return cls.instance
 
     def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                  username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+                 client_secret: str = None, keycloak_url: str = None, check_version: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if check_version:
+            utils.check_version()
         self.network_module = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
                                                        root_url, client_id, client_secret, keycloak_url)
         self.task_builder = tasks.TaskBuilder()
@@ -1123,6 +1126,9 @@ class MediaVortexTask:
                 print(f"] время расчета: {str(e - s)}")
                 if task_state == 'DONE':
                     tsk['message'] = 'DONE'
+                    tsk['dtRegister'] = task_state_obj.get('dtRegister', '')
+                    tsk['dtFinish'] = task_state_obj.get('dtFinish', '')
+                    tsk['taskProcessingTimeSec'] = task_state_obj.get('taskProcessingTimeSec', '')
                     return tsk
         elif type(tsk) == list:
             task_list = list()
@@ -1154,6 +1160,9 @@ class MediaVortexTask:
                         continue
                     elif task_state == 'DONE':
                         t['task']['message'] = 'DONE'
+                        t['task']['dtRegister'] = task_state_obj.get('dtRegister', '')
+                        t['task']['dtFinish'] = task_state_obj.get('dtFinish', '')
+                        t['task']['taskProcessingTimeSec'] = task_state_obj.get('taskProcessingTimeSec', '')
                         done_count += 1
                     else:
                         errs[tid] = t
@@ -1197,13 +1206,48 @@ class MediaVortexTask:
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
                     'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
+                    'dtFinish': '2024-09-30 12:17:54',
+                    'taskProcessingTimeSec': 21
                 }
         """
         if tsk.get('taskId') is not None:
             tid = tsk.get('taskId', None)
             task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
             return task_state_obj
+
+    def get_statuses(self, tsk_ids: list):
+        """
+        Получить статус расчета заданий.
+
+        Parameters
+        ----------
+
+        tsk_ids : list
+            Список taskId заданий
+
+        Returns
+        -------
+        tsk : dict
+            Возвращает задание и его состояние:
+
+                {
+                    'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    'userName': 'user.name',
+                    'taskStatus': 'DONE',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
+                    'dtFinish': '2024-09-30 12:17:54',
+                    'taskProcessingTimeSec': 21
+                }
+        """
+        post_data = {
+            "taskIds": tsk_ids
+        }
+
+        task_state_obj = self.network_module.send_request('post', '/task/state', json.dumps(post_data))
+        return task_state_obj.get('data')
 
     def restart_task(self, tsk: dict):
         """
@@ -1228,8 +1272,9 @@ class MediaVortexTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'IN_QUEUE',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
                 }
         """
         if tsk.get('taskId') is not None:
@@ -1255,8 +1300,9 @@ class MediaVortexTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'IN_QUEUE',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
                 }
         """
         post_data = {
@@ -1289,8 +1335,11 @@ class MediaVortexTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'CANCELLED',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
+                    'dtFinish': '2024-09-30 12:17:54',
+                    'taskProcessingTimeSec': 21
                 }
         """
         if tsk.get('taskId') is not None:
@@ -1316,8 +1365,11 @@ class MediaVortexTask:
                 {
                     'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     'userName': 'user.name',
-                    'taskStatus': 'DONE',
-                    'additionalParameters': {}
+                    'taskStatus': 'CANCELLED',
+                    'additionalParameters': {},
+                    'dtRegister': '2024-09-30 12:17:33',
+                    'dtFinish': '2024-09-30 12:17:54',
+                    'taskProcessingTimeSec': 21
                 }
         """
         post_data = {
