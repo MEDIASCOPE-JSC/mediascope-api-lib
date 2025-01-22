@@ -1,22 +1,28 @@
+"""
+Resonsum catalogs module
+"""
 import os
 import pandas as pd
 from ..core import net
 
 
 class ResponsumCats:
+    """
+    Класс для работы с каталогами Responsum
+    """
     facility_id = None
 
-    def __new__(cls, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
-                username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+    def __new__(cls, facility_id, settings_filename: str = None, cache_path: str = None,
+                cache_enabled: bool = True, username: str = None, passw: str = None, root_url: str = None,
+                client_id: str = None, client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             # print("Creating Instance")
             cls.instance = super(ResponsumCats, cls).__new__(cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
-                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+    def __init__(self, facility_id, settings_filename: str = None, cache_path: str = None,
+                 cache_enabled: bool = True, username: str = None, passw: str = None, root_url: str = None,
+                 client_id: str = None, client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # load holdings
         self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
@@ -30,27 +36,27 @@ class ResponsumCats:
     def get_demo(self, did=None, find_text=None, expand=True, frmt='df'):
         """
         Получить список демографических переменных: всеx, по id или поиском по названию.
-        
+
         Parameters
         ----------
 
         did : int
             Идентификатор демографической переменной для того, чтобы получить одну переменную. По умолчанию - не задано
             (None).
-        
+
         find_text : str
             Текст для поиска по названию переменной. По умолчанию - не задано (None).
-        
+
         expand : bool
             Отобразить в таблице (DataFrame) доступные варианты для данной переменной - True/False? По умолчанию - True.
-        
+
         frmt: str
             Формат вывода результата:
             - "df" - DataFrame,
             - "json" - JSON.
             По умолчанию - "df".
-            
-        
+
+
         Returns
         -------
         DataFrame
@@ -142,7 +148,7 @@ class ResponsumCats:
     def get_population(names='Russia0+'):
         """
             ! Функция не используется.
-            
+
             Получить список ID численности населения городов для фильтра по географии.
             Список строится на основе демографической переменной "Численность населения города" VarId=350.
 
@@ -214,7 +220,8 @@ class ResponsumCats:
 
         usetype_names: str
 
-            Cтрока, в которой перечислены типы пользования Интернетом (через пробел, если типов пользования Интернетом несколько).
+            Cтрока, в которой перечислены типы пользования Интернетом (через пробел,
+            если типов пользования Интернетом несколько).
 
             Если не задано или строка пустая - возвращает все устройства.
 
@@ -276,7 +283,7 @@ class ResponsumCats:
     def get_age_groups(ages='12+'):
         """
         ! Функция не используется.
-        
+
         Получить список ID Возрастных групп для фильтра.
 
         Список строится на основе демографической переменной "Возрастные группы" VarId=170.
@@ -307,7 +314,7 @@ class ResponsumCats:
         --------
 
         Получим список идентификаторов для населения 12+:
-        
+
         >>> import sys
         >>> sys.path.append("../../mediascope-api/")
         >>> from mediascope_api.responsum import catalogs as rc
@@ -342,7 +349,7 @@ class ResponsumCats:
         """
         Получить список холдингов: всеx, по id или поиском по названию.
         Если branch или find_text не заданы, то возвращает все доступные холдинги.
-        
+
         Parameters
         ----------
         facility_id : str
@@ -354,7 +361,7 @@ class ResponsumCats:
             - holding - Поиск в ветке "Холдинги"
             - agency - Поиск в ветке "Рекламные агентства"
             - network - Поиск в ветке "Рекламные сети"
-        
+
         find_text: str
             Текст для поиска по названию холдинга. По умолчанию - не задано (None).
 
@@ -363,12 +370,11 @@ class ResponsumCats:
 
         Returns
         -------
-        
-        DataFrame с холдингами.
-        
-        """
 
-        data = self.msapi_network.send_request('get', '/media/holdings?facility_id={}'.format(facility_id),
+        DataFrame с холдингами.
+
+        """
+        data = self.msapi_network.send_request('get', f'/media/holdings?facility_id={facility_id}',
                                                use_cache=use_cache)
         jdata = []
         for holding in data:
@@ -446,24 +452,24 @@ class ResponsumCats:
     def get_holding(self, facility_id, hid, find_text=None):
         """
         Получить холдинг - получает все сайты, секции, субсекции, входящие в холдинг.
-        
+
         Parameters
         ----------
 
         facility_id : Установка: "desktop", "mobile", "desktop_pre". Обязательный параметр.
-        
+
         hid : идентификатор холдинга. Обязательный параметр.
-        
-        
-        find_text : Текст для поиска внутри холдинга по названию сайта, секции, субсекции. 
-        
+
+
+        find_text : Текст для поиска внутри холдинга по названию сайта, секции, субсекции.
+
         Returns
         -------
-        
+
         DataFrame с найденными объектами.
-        
+
         """
-        data = self.msapi_network.send_request('get', '/media/holdings/{}?facility_id={}'.format(hid, facility_id))
+        data = self.msapi_network.send_request('get', f'/media/holdings/{hid}?facility_id={facility_id}')
         if 'id' in data:
             hid = data['id']
             title = data['title']
@@ -520,30 +526,31 @@ class ResponsumCats:
         кэш-файле, холдинг загружается из кэша.
         Не рекомендуется передавать большой список холдингов на загрузку, т.к. получение каждого отдельного холдинга
         занимает время.
-        
-        
+
+
         Parameters
         ----------
 
         facility_id : str
             Установка: "desktop", "mobile", "desktop_pre". Обязательный параметр.
-        
+
         holdings : DataFrame
             Список холдингов, по которым нужно получить их состав.
-        
-        
+
+
         reload : bool
-            Флаг перезагрузки: 
-                True - загружает информацию по холдингам без использования кэш-файла, т.е. получает информацию с сервера.
+            Флаг перезагрузки:
+                True - загружает информацию по холдингам без использования кэш-файла,
+                       т.е. получает информацию с сервера.
                 False - использует кэш-файл.
             Рекомендуется периодически вызывать функцию с параметром reload=True, чтобы получить актуальный
             состав холдинга.
-        
+
         Returns
         -------
-        
+
         DataFrame с найденными объектами, входящими в список холдингов.
-        
+
         """
 
         holdings_filename = 'holdings.pikle'
@@ -613,9 +620,9 @@ class ResponsumCats:
         fin_list = ['any', 'holding', 'site', 'project', 'section', 'subsection']
         if find_in is not None:
             # check find_in
-            if type(find_in) == str:
+            if isinstance(find_in, str):
                 find_in = [str(find_in).strip()]
-            if type(find_in) == list:
+            if isinstance(find_in, list):
                 is_error = False
                 for f in find_in:
                     if str(f).lower() not in fin_list:
@@ -633,7 +640,7 @@ class ResponsumCats:
 
         text = find_text.strip()
         if len(text) > 0:
-            if find_in is not None and type(find_in) == list:
+            if find_in is not None and isinstance(find_in, list):
                 dframes = list()
                 for f in find_in:
                     if f == 'any':

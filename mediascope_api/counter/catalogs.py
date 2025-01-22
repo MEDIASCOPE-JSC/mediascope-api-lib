@@ -1,27 +1,31 @@
-import os
+"""
+Counter module
+"""
 import json
-from io import StringIO
+#from io import StringIO
 
 import pandas as pd
 from ..core import net
 
 
 class CounterCats:
+    """
+    Класс для работы со справочниками счетчика
+    """
     _urls = {
         'ad-campaigns': '/dictionary/ad-campaigns',
         'area-type': '/dictionary/area-type'
     }
 
-    def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+    def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
-            # print("Creating Instance")
             cls.instance = super(CounterCats, cls).__new__(
                 cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, facility_id=None, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
+    def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                  username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
                  client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -30,7 +34,7 @@ class CounterCats:
 
     @staticmethod
     def _get_query(vals):
-        if type(vals) != dict:
+        if not isinstance(vals, dict):
             return None
         query = ''
         for k, v in vals.items():
@@ -45,7 +49,7 @@ class CounterCats:
 
     @staticmethod
     def _get_post_data(vals):
-        if type(vals) != dict:
+        if not isinstance(vals, dict):
             return None
         data = {}
         for k, v in vals.items():
@@ -53,12 +57,12 @@ class CounterCats:
                 data[k] = None
                 continue
 
-            if type(v) == str:
+            if isinstance(v, str):
                 val = []
                 for i in v.split(','):
                     val.append(str(i).strip())
                 v = val
-            if type(v) == list:
+            if isinstance(v, list):
                 data[k] = v
 
         if len(data) > 0:
@@ -66,12 +70,12 @@ class CounterCats:
 
     @staticmethod
     def _print_header(header, offset, limit):
-        if type(header) != dict or 'total' not in header:
+        if not isinstance(header, dict) or 'total' not in header:
             return
         total = header["total"]
         print(
             f'Запрошены записи: {offset} - {offset + limit}\nВсего найдено записей: {total}\n')
-    
+
     def _get_dict(self, entity_name, search_params=None, body_params=None, offset=None, limit=None,
                   use_cache=True, request_type='post'):
         """
@@ -119,24 +123,24 @@ class CounterCats:
         data = self.msapi_network.send_request_lo(
             request_type, url, data=post_data, use_cache=use_cache)
 
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
             return None
-        
+
         # извлекаем все заголовки столбцов (их может быть разное количество, особенно для поля notes)
         res_headers = []
         for item in data['data']:
-            for k, v in item.items():
+            for k, _ in item.items():
                 if k not in res_headers:
-                    res_headers.append(k)        
-               
-        # инициализируем списки данных столбцов        
+                    res_headers.append(k)
+
+        # инициализируем списки данных столбцов
         res = {}
         for h in res_headers:
             res[h] = []
-        
+
         # наполняем найденные столбцы значениями
         for item in data['data']:
             for h in res_headers:
@@ -144,8 +148,7 @@ class CounterCats:
                     res[h].append(item[h])
                 else:
                     res[h].append('')
-            
-        # print header        
+        # print header
         if offset is not None and limit is not None:
             self._print_header(data['header'], offset, limit)
         else:
@@ -154,8 +157,9 @@ class CounterCats:
 
     def get_adcampaigns(self, advertisement_ids=None, advertisement_names=None, advertisement_campaign_ids=None,
                          advertisement_campaign_names=None, brand_ids=None, brand_names=None,
-                         advertisement_agency_ids=None, advertisement_agency_names=None, tmsecs=None, order_by=None,
-                         order_dir=None, offset=None, limit=None, use_cache=True):
+                         advertisement_agency_ids=None, advertisement_agency_names=None, tmsecs=None, 
+                         advertisement_description=None, created_date=None, start_date=None, end_date=None,
+                         order_by=None, order_dir=None, offset=None, limit=None, use_cache=True):
         """
         Получить рекламные кампании
 
@@ -172,13 +176,13 @@ class CounterCats:
 
         advertisement_campaign_names : list of str
             Поиск по списку названий рекламных кампаний
-        
+
         brand_ids : list of int
             Поиск по списку идентификаторов брендов
 
         brand_names : list of str
             Поиск по списку имен брендов
-        
+
         advertisement_agency_ids : list of int
             Поиск по списку идентификаторов рекламных агенств
 
@@ -187,13 +191,25 @@ class CounterCats:
 
         tmsecs : list of str
             Поиск по списку названий tmsec
-            
+        
+        advertisement_description : str
+            Поиск по кастомному описанию рекламы. Допускается задавать часть названия.        
+
+        created_date : str
+            Поиск по дате создания счетчика. 
+        
+        start_date : str
+            Поиск по дате старта срабатывания счетчика.
+        
+        end_date : str
+            Поиск по дате окончания срабатывания счетчика.
+
         order_by : string
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
-              
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
         offset : int
             Смещение от начала набора отобранных данных
 
@@ -228,7 +244,11 @@ class CounterCats:
             "brandName": brand_names,
             "advertisementAgencyId": advertisement_agency_ids,
             "advertisementAgencyName": advertisement_agency_names,
-            "tmsec": tmsecs
+            "tmsec": tmsecs,
+            'advertisementDescription': advertisement_description,                         
+            'createdDate': created_date,
+            'startDate': start_date,
+            'endDate': end_date
         }
 
         return self._get_dict('ad-campaigns', search_params, body_params, offset, limit, use_cache)

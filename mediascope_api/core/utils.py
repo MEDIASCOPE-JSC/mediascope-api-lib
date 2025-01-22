@@ -1,10 +1,12 @@
-import json
+"""
+Utils module
+"""
 import os
+import json
+import subprocess
 import datetime as dt
 import pandas as pd
 import requests
-import subprocess
-
 
 def load_settings(settings_filename: str = 'settings.json'):
     """
@@ -35,7 +37,7 @@ def load_settings(settings_filename: str = 'settings.json'):
     if settings_filename is None:
         settings_filename = 'settings.json'
 
-    with open(settings_filename) as datafile:
+    with open(settings_filename, encoding='utf-8') as datafile:
         jd = json.load(datafile)
         return jd['username'], \
             jd['passw'], \
@@ -182,7 +184,7 @@ def check_version():
             print(f"Найдена установленная версия {current_version}")
             pypi_str = f'https://pypi.org/pypi/{package}/json'
             print(f"Проверяем актуальную версию на {pypi_str} ...")
-            response = requests.get(pypi_str)
+            response = requests.get(pypi_str, timeout=10)
             if response.status_code == 200:
                 latest_version = response.json()['info']['version']
                 print(f"Найдена актуальная версия {latest_version}")

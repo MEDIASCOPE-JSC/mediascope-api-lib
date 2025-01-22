@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.19] - 2025-01-22
+
+1. добавление возможности расчета индекса аффинитивности для кастомных целевых групп (Crossweb API)
+2. добавление дополнительных полей профиля РК для Crossweb API, Metrix API
+
 ## [1.1.18] - 2024-10-14
 
 1. добавление дополнительных полей статуса задач для TV Index API, Crossweb API, Metrix API

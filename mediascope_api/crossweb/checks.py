@@ -1,8 +1,13 @@
-from . import catalogs
+"""
+CrossWeb checks module
+"""
 import difflib as dl
-
+from . import catalogs
 
 class CrossWebTaskChecker:
+    """
+    Класс для проверки заданий CrossWeb
+    """
 
     def __new__(cls, cats: catalogs.CrossWebCats, *args, **kwargs):
         if not hasattr(cls, 'instance'):
@@ -30,6 +35,8 @@ class CrossWebTaskChecker:
             'mart_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по медиа.\n'},
             'demo_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по демографии.\n'},
             'geo_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по географии.\n'},
+            'base_demo_filter': {'types': [str, dict], 'msg': 'Неверно задан базовый фильтр по демографии.\n'},
+            'base_geo_filter': {'types': [str, dict], 'msg': 'Неверно задан базовый фильтр по географии.\n'},
             'ad_description_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по рекламе.\n'},
             'event_description_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по событиям.\n'},
             'usetype_filter': {'types': [list], 'msg': 'неверно задан usetype_filter,\n' +
@@ -50,11 +57,14 @@ class CrossWebTaskChecker:
         return True
 
     def check_task(self, task_type, date_filter, usetype_filter, geo_filter,
-                   demo_filter, mart_filter, duplication_mart_filter, 
+                   demo_filter, base_geo_filter, base_demo_filter, mart_filter, duplication_mart_filter,
                    ad_description_filter, event_description_filter, slices, statistics, scales):
+        """
+        Проверяет задание на корректность
+        """
         error_text = ''
         if self._check_filter('task_type', task_type, error_text):
-            if task_type not in self.task_types.keys():
+            if task_type not in self.task_types:
                 error_text += self.check_list['task_type']['msg']
 
         if self._check_filter('date_filter', date_filter, error_text):
@@ -65,6 +75,8 @@ class CrossWebTaskChecker:
         self._check_filter('mart_filter', mart_filter, error_text)
         self._check_filter('demo_filter', demo_filter, error_text)
         self._check_filter('geo_filter', geo_filter, error_text)
+        self._check_filter('base_demo_filter', base_demo_filter, error_text)
+        self._check_filter('base_geo_filter', base_geo_filter, error_text)
         self._check_filter('mart_filter', duplication_mart_filter, error_text)
         self._check_filter('ad_description_filter', ad_description_filter, error_text)
         self._check_filter('event_description_filter', event_description_filter, error_text)
@@ -75,7 +87,7 @@ class CrossWebTaskChecker:
                 uts = self.cats.usetypes['id'].to_list()
                 if usetype_filter is not None:
                     for utype in usetype_filter:
-                        if type(utype) == int:
+                        if isinstance(utype, int):
                             if utype not in uts:
                                 ut_err = True
                                 error_text += f'Usetype: {utype} не найден.\n'
@@ -83,11 +95,11 @@ class CrossWebTaskChecker:
                         error_text += f'Доступные варианты: {self.cats.usetypes}\n'
 
         if slices is not None:
-            if type(slices) is not list:
-                error_text += f'Неверно заданы срезы (slices).\n'
+            if not isinstance(slices, list):
+                error_text += 'Неверно заданы срезы (slices).\n'
             else:
                 for s in slices:
-                    if type(s) is not str:
+                    if not isinstance(s, str):
                         error_text += f'Неверно задан срез (slices): {s}.\n'
 
         if len(error_text) > 0:
@@ -101,25 +113,29 @@ class CrossWebTaskChecker:
     def _check_scales(statistics, scales, error_text):
         for scale_stat in ['drfd', 'reachN']:
             if scale_stat in statistics:
-                if scales is None or type(scales) != dict or len(scales) == 0:
+                if scales is None or not isinstance(scales, dict) or len(scales) == 0:
                     error_text += f'1 нe задана шкала для статистики "{scale_stat}".\n'
                 elif scales.get(scale_stat) is None:
                     error_text += f'2 нe задана шкала для статистики "{scale_stat}".\n'
                 else:
                     scale_val = scales.get(scale_stat)
-                    if type(scale_val) != list or len(scale_val) == 0:
+                    if not isinstance(scale_val, list) or len(scale_val) == 0:
                         error_text += f'3 нe задана шкала для статистики "{scale_stat}".\n'
                         error_text += f'формат: "{scale_stat}":[(F, T), ...].\n'
                     else:
                         for val_ft in scale_val:
-                            if type(val_ft) != tuple or type(val_ft[0]) != int or type(val_ft[1]) != int:
+                            if not isinstance(val_ft, tuple) or not isinstance(val_ft[0], int) or \
+                                not isinstance(val_ft[1], int):
                                 error_text += f'4 шкала для статистики "{scale_stat} задана не верно,".\n'
                                 error_text += f'формат: "{scale_stat}":[(F, T), ...].\n'
         return error_text
 
     def check_units_in_task(self, task_type, tsk):
+        """
+        Проверяет отдельные единицы задания на корректность
+        """
         error_text = ''
-        if type(tsk['statistics']) == list:
+        if isinstance(tsk['statistics'], list):
 
             for s in tsk['statistics']:
                 if s not in self.task_types[task_type]['statistics']:
@@ -128,10 +144,14 @@ class CrossWebTaskChecker:
                     if len(probably_matches) > 0:
                         matches = '" или "'.join(probably_matches)
                         error_text += f' Возможно соответствует "{matches}".\n'
-        if type(tsk['filter']) == dict:
+        if isinstance(tsk['filter'], dict):
             for filter_name, filter_val in tsk['filter'].items():
                 filter_name = filter_name.replace('Filter', '')
-                units = []                
+                units = []
+                if filter_name == "baseGeo":
+                    filter_name = "geo"
+                if filter_name == "baseDemo":
+                    filter_name = "demo"
                 if filter_name == "duplicationMart":
                     filter_name = "mart"
                 if filter_name == "media" \
@@ -141,7 +161,7 @@ class CrossWebTaskChecker:
                 error_text = self.check_units(f'фильтрах {filter_name}', units,
                                               self.task_types[task_type]['filters'][filter_name],
                                               error_text)
-        if type(tsk['slices']) == list:
+        if isinstance(tsk['slices'], list):
             avl_slices = self.get_avl_slices(task_type)
             for slice_name in tsk['slices']:
                 if slice_name not in avl_slices:
@@ -154,23 +174,28 @@ class CrossWebTaskChecker:
             print('Ошибка при формировании задания')
             print(error_text)
             return False
-        else:
-            return True
+        return True
 
     def get_units(self, units, obj):
-        if type(obj) == dict:
+        """
+        Получить единицы из словаря
+        """
+        if isinstance(obj, dict):
             for k, v in obj.items():
                 if type(v) in [dict, list]:
                     self.get_units(units, v)
-                elif type(v) == str:
+                elif isinstance(v, str):
                     if str(k) == 'unit':
                         units.append(v)
-        elif type(obj) == list:
+        elif isinstance(obj, list):
             for v in obj:
                 self.get_units(units, v)
 
     @staticmethod
     def check_units(task_item_name, task_units, avl_units, error_text):
+        """
+        Проверка единиц в задании
+        """
         for unit in task_units:
             if unit not in avl_units:
                 error_text += f'Недопустимое название атрибута: "{unit}" в {task_item_name}'
@@ -181,15 +206,11 @@ class CrossWebTaskChecker:
         return error_text
 
     def get_avl_slices(self, task_type):
+        """
+        Получить доступные срезы
+        """
         slices = []
-        for slice, vals in self.task_types[task_type]['slices'].items():
+        for _, vals in self.task_types[task_type]['slices'].items():
             for v in vals:
                 slices.append(v)
         return slices
-
-
-
-
-
-
-

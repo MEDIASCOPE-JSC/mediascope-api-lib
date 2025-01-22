@@ -1,3 +1,6 @@
+"""
+module for work with Media Vortex catalog
+"""
 import json
 import pandas as pd
 from ..core import net
@@ -5,6 +8,9 @@ from ..core import utils
 
 
 class MediaVortexCats:
+    """
+    Класс для работы с каталогами Media Vortex
+    """
     _urls = {
         'tv-kit': '/kit',
         'tv-tv-ad': '/dictionary/tv/ad',
@@ -86,15 +92,17 @@ class MediaVortexCats:
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None,
                 cache_enabled: bool = True, username: str = None, passw: str = None, root_url: str = None,
                 client_id: str = None, client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+        _ = facility_id
         if not hasattr(cls, 'instance'):
             # print("Creating Instance")
             cls.instance = super(MediaVortexCats, cls).__new__(
                 cls, *args, **kwargs)
         return cls.instance
 
-    def __init__(self, facility_id=None, settings_filename: str = None, cache_path: str = None,
+    def __init__(self,  facility_id=None, settings_filename: str = None, cache_path: str = None,
                  cache_enabled: bool = True, username: str = None, passw: str = None, root_url: str = None,
                  client_id: str = None, client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+        _ = facility_id
         super().__init__(*args, **kwargs)
 
         self.msapi_network = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
@@ -161,7 +169,7 @@ class MediaVortexCats:
 
     @staticmethod
     def _get_query(vals):
-        if type(vals) != dict:
+        if not isinstance(vals, dict):
             return None
         query = ''
         for k, v in vals.items():
@@ -176,7 +184,7 @@ class MediaVortexCats:
 
     @staticmethod
     def _get_post_data(vals):
-        if type(vals) != dict:
+        if not isinstance(vals, dict):
             return None
         data = {}
         for k, v in vals.items():
@@ -184,27 +192,30 @@ class MediaVortexCats:
                 data[k] = None
                 continue
 
-            if type(v) == str:
+            if isinstance(v, str):
                 val = []
                 for i in v.split(','):
                     val.append(str(i).strip())
                 v = val
-            if type(v) == list:
+            if isinstance(v, list):
                 data[k] = v
 
         if len(data) > 0:
             return json.dumps(data)
 
     def get_slices(self, slice_name):
-        if type(self.units) != dict or \
-                self.units.get('slices', None) is None or \
-                self.units['slices'].get(slice_name, None) is None:
+        """
+        Получить список срезов
+        """
+        if not isinstance(self.tv_units, dict) or \
+            self.tv_units.get('slices', None) is None or \
+            self.tv_units['slices'].get(slice_name, None) is None:
             return
-        return self.units['slices'][slice_name]
+        return self.tv_units['slices'][slice_name]
 
     @staticmethod
     def _print_header(header, offset, limit):
-        if type(header) != dict or 'total' not in header:
+        if not isinstance(header, dict) or 'total' not in header:
             return
         total = header["total"]
         print(
@@ -228,12 +239,14 @@ class MediaVortexCats:
             Словарь с параметрами в теле запроса
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         request_type : str
@@ -251,10 +264,10 @@ class MediaVortexCats:
 
         if limit is not None and offset is None:
             raise ValueError("Необходимо указать значение параметра offset. Укажите 0, если смещение не требуется")
-        
+
         if offset is not None and limit is None:
             raise ValueError("Необходимо указать значение параметра limit")
-        
+
         if self._urls.get(entity_name) is None:
             return None
 
@@ -273,7 +286,7 @@ class MediaVortexCats:
         data = self.msapi_network.send_request_lo(
             request_type, url, data=post_data, use_cache=use_cache)
 
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
@@ -282,7 +295,7 @@ class MediaVortexCats:
         # извлекаем все заголовки столбцов (их может быть разное количество, особенно для поля notes)
         res_headers = []
         for item in data['data']:
-            for k, v in item.items():
+            for k, _ in item.items():
                 if k not in res_headers:
                     res_headers.append(k)
 
@@ -299,7 +312,7 @@ class MediaVortexCats:
                 else:
                     res[h].append('')
 
-        # print header        
+        # print header
         if show_header:
             if offset is not None and limit is not None:
                 self._print_header(data['header'], offset, limit)
@@ -369,7 +382,7 @@ class MediaVortexCats:
         kit_id : int
             Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        if not str(kit_id) in self.tv_units:
+        if  str(kit_id) not in self.tv_units:
             print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
         else:
             return self.tv_units.get(str(kit_id)).get('TimeBand')
@@ -389,7 +402,7 @@ class MediaVortexCats:
         kit_id : int
             Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        if not str(kit_id) in self.tv_units:
+        if str(kit_id) not in self.tv_units:
             print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
         else:
             return self.tv_units.get(str(kit_id)).get('Simple')
@@ -409,7 +422,7 @@ class MediaVortexCats:
         kit_id : int
             Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        if not str(kit_id) in self.tv_units:
+        if str(kit_id) not in self.tv_units:
             print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
         else:
             return self.tv_units.get(str(kit_id)).get('CrossTab')
@@ -429,7 +442,7 @@ class MediaVortexCats:
         kit_id : int
             Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        if not str(kit_id) in self.tv_units:
+        if str(kit_id) not in self.tv_units:
             print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
         else:
             return self.tv_units.get(str(kit_id)).get('ConsumptionTarget')
@@ -449,7 +462,7 @@ class MediaVortexCats:
         kit_id : int
             Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        if not str(kit_id) in self.tv_units:
+        if str(kit_id) not in self.tv_units:
             print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
         else:
             return self.tv_units.get(str(kit_id)).get('DuplicationTimeBand')
@@ -463,35 +476,37 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов суббрендов
-        
+
         name : str or list of str
             Поиск по имени суббренда
-        
+
         ename : str or list of str
             Поиск по англоязычному имени суббренда
-            
+
         brand_ids : str or list of str
             Поиск по списку идентификаторов брендов
 
         tv_area_ids : str or list of str
             Поиск по списку идентификаторов областей выхода
-        
+
         notes : str or list of str
             Поиск по заметкам
-        
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -539,26 +554,28 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов суббрендов
-        
+
         name : str or list of str
             Поиск по имени суббренда
-        
+
         ename : str or list of str
             Поиск по англоязычному имени суббренда
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -603,17 +620,19 @@ class MediaVortexCats:
 
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -657,32 +676,34 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов регионов
-        
+
         name : str or list of str
             Поиск по имени региона
-        
+
         ename : str or list of str
             Поиск по англоязычному имени региона
-            
+
         notes : str or list of str
             Поиск по заметкам
-        
+
         monitoring_type : str or list of str
             Поиск по типу мониторинга
-                
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -734,65 +755,67 @@ class MediaVortexCats:
 
         name : str or list of str
             Поиск по имени программы
-        
+
         ename : str or list of str
             Поиск по англоязычному имени программы
-        
+
         extended_name : str or list of str
             Поиск по полному имени программы
-        
+
         extended_ename : str or list of str
             Поиск по полному англоязычному имени программы
 
         first_issue_date : str or list of str
             Поиск по дате первого выхода
-        
+
         program_type_ids : str or list of str
             Поиск по списку идентификаторов жанров программ
-        
+
         program_category_ids : str or list of str
             Поиск по списку идентификаторов категорий программ
 
         country_ids : str or list of str
             Поиск по списку идентификаторов стран производства
-        
+
         program_sport_ids : str or list of str
             Поиск по списку идентификаторов видов спорта
-        
+
         sport_group_ids : str or list of str
             Поиск по списку идентификаторов групп спорта
 
         language_ids : str or list of str
             Поиск по списку идентификаторов языков
-        
+
         program_producer_ids : str or list of str
             Поиск по списку идентификаторов производителей программ
-        
+
         program_producer_year : str or list of str
             Поиск по году создания
 
         is_program_group : string
             Поиск по флагу программа группа
-        
+
         is_child : string
             Поиск по флагу программа десткая
-            
+
         notes : str or list of str
-            Поиск по заметкам            
-        
+            Поиск по заметкам
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
-              
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -840,7 +863,7 @@ class MediaVortexCats:
         df_prog =  self._get_dict(entity_name='tv-program', search_params=search_params,
                                   body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                                   show_header=show_header)
-        
+
         return df_prog.reindex(
             columns=['id', 'name', 'ename', 'extendedName', 'extendedEname', 'firstIssueDate', 'programTypeId',
                      'programCategoryId', 'programCountryId', 'programSportId', 'programSportGroupId', 'languageId',
@@ -856,29 +879,31 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов жанров программ
-        
+
         name : str or list of str
             Поиск по имени жанра
-        
+
         ename : str or list of str
             Поиск по англоязычному имени жанра
-            
+
         notes : str or list of str
-            Поиск по заметкам 
-                       
+            Поиск по заметкам
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -923,29 +948,31 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов видов спорта
-        
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
-            
+            Поиск по англоязычному имени
+
         notes : str or list of str
-            Поиск по заметкам 
-                        
+            Поиск по заметкам
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -990,29 +1017,31 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов групп спорта
-        
+
         name : str or list of str
             Поиск по имени группы
-        
+
         ename : str or list of str
             Поиск по англоязычному имени группы
-            
+
         notes : str or list of str
-            Поиск по заметкам 
-                                    
+            Поиск по заметкам
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1057,26 +1086,28 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов описаний выпусков
-        
+
         name : str or list of str
             Поиск по тексту описания
-        
+
         ename : str or list of str
             Поиск по англоязычному тексту описания
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1111,7 +1142,7 @@ class MediaVortexCats:
                               body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                               show_header=show_header)
 
-    def get_tv_program_category(self, ids=None, name=None, ename=None, short_name=None, short_ename=None, type_ids=None, 
+    def get_tv_program_category(self, ids=None, name=None, ename=None, short_name=None, short_ename=None, type_ids=None,
                                 program_type_category_nums=None, notes=None, offset=None, limit=None, use_cache=False,
                                 show_header=True):
         """
@@ -1124,32 +1155,34 @@ class MediaVortexCats:
 
         name : str or list of str
             Поиск по имени категории
-        
+
         ename : str or list of str
             Поиск по англоязычному имени категории
 
         short_name : str or list of str
             Поиск по короткому имени категории
-        
+
         short_ename : str or list of str
             Поиск по короткому англоязычному имени категории
 
         type_ids : str or list of str
             Поиск по списку идентификаторов жанров программ
-        
+
         program_type_category_nums : str or list of str
             Поиск по порядковому номеру категории в жанре
-            
+
         notes : str or list of str
-            Поиск по заметкам 
+            Поиск по заметкам
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1188,12 +1221,12 @@ class MediaVortexCats:
         df_pr_cat = self._get_dict(entity_name='tv-program-category', search_params=search_params,
                                    body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                                    show_header=show_header)
-        
+
         df_pr_cat = df_pr_cat.reindex(
             columns=['id', 'name', 'ename', 'shortName', 'shortEname', 'programTypeId', 'programTypeCategoryNum',
                      'notes'],
             fill_value='')
-        
+
         return df_pr_cat.sort_values(by=['programTypeId', 'programTypeCategoryNum'])
 
     def get_tv_net(self, ids=None, name=None, ename=None, order_by='id',
@@ -1205,26 +1238,28 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов сетей
-        
+
         name : str or list of str
             Поиск по имени сети
-        
+
         ename : str or list of str
-            Поиск по англоязычному имени сети 
-            
+            Поиск по англоязычному имени сети
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1258,11 +1293,12 @@ class MediaVortexCats:
         df_net = self._get_dict(entity_name='tv-net', search_params=search_params,
                                 body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                                 show_header=show_header)
-        
+
         return df_net.reindex(columns=['id', 'name', 'ename'], fill_value='')
 
-    def get_tv_model(self, ids=None, name=None, ename=None, subbrand_ids=None, article_ids=None, tv_area_ids=None, notes=None,
-                     order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
+    def get_tv_model(self, ids=None, name=None, ename=None, subbrand_ids=None, article_ids=None, tv_area_ids=None,
+                     notes=None, order_by='id', order_dir=None, offset=None, limit=None, use_cache=False,
+                     show_header=True):
         """
         Получить коллекцию продуктов
 
@@ -1270,38 +1306,40 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов моделей
-        
+
         name : str or list of str
             Поиск по имени
-        
+
         ename : str or list of str
             Поиск по англоязычному имени
 
         subbrand_ids : str or list of str
             Поиск по списку идентификаторов суббрендов
-            
+
         article_ids : str or list of str
             Поиск по списку идентификаторов статей
 
         tv_area_ids : str or list of str
-            Поиск по списку идентификаторов областей выхода 
-            
+            Поиск по списку идентификаторов областей выхода
+
         notes : str or list of str
             Поиск по заметкам
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1350,29 +1388,31 @@ class MediaVortexCats:
         Получить коллекцию списков продуктов
 
         Parameters
-        ----------       
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов моделей
-        
+
         name : str or list of str
             Поиск по имени
-        
+
         ename : str or list of str
             Поиск по англоязычному имени
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1419,24 +1459,26 @@ class MediaVortexCats:
 
         name : str or list of str
             Поиск по имени места
-        
+
         ename : str or list of str
             Поиск по англоязычному имени места
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
-            Если смещение не требуется, то в 'offset' может быть передан 0. 
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
             Использовать кэширование: True - да, False - нет
@@ -1476,32 +1518,34 @@ class MediaVortexCats:
         Получить типы баинговых аудиторий
 
         Parameters
-        ----------       
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов типов групп
-        
+
         name : str or list of str
             Поиск по имени
-        
+
         notes : str or list of str
             Поиск по заметке
-        
+
         expression : str or list of str
-            Поиск по выражению 
-            
+            Поиск по выражению
+
         order_by : string, default 'name'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1543,26 +1587,28 @@ class MediaVortexCats:
         Получить курсы обмена
 
         Parameters
-        ----------       
+        ----------
         research_date : str or list of str
             Поиск по списку дней
-        
+
         rate : str or list of str
             Поиск по списку курсов
-            
+
         order_by : string, default 'researchDay'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1605,26 +1651,28 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов дней недели
-            
+
         name : str or list of str
             Поиск по имени дня
-        
+
         ename : str or list of str
-            Поиск по англоязычному имени дня  
-                      
+            Поиск по англоязычному имени дня
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1659,45 +1707,47 @@ class MediaVortexCats:
                               body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                               show_header=show_header)
 
-    def get_tv_company(self, ids=None, name=None, ename=None, tv_net_ids=None, region_ids=None, tv_company_group_ids=None,
-                       tv_company_category_ids=None, information=None, offset=None,
+    def get_tv_company(self, ids=None, name=None, ename=None, tv_net_ids=None, region_ids=None,
+                       tv_company_group_ids=None, tv_company_category_ids=None, information=None, offset=None,
                        limit=None, use_cache=False, show_header=True):
         """
         Получить коллекцию телекомпаний
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов телекомпаний
-        
+
         name : str or list of str
             Поиск по имени телекомпании
-        
+
         ename : str or list of str
             Поиск по англоязычному имени телекомпании
-           
+
         tv_net_ids : str or list of str
             Поиск по списку идентификаторов телесетей
-            
+
         region_ids : str or list of str
             Поиск по списку идентификаторов регионов
-            
+
         tv_company_group_ids : str or list of str
             Поиск по списку идентификаторов групп телекомпаний
-            
+
         tv_company_category_ids : str or list of str
             Поиск по списку идентификаторов категорий телекомпаний
-             
+
         information : str or list of str
-            Поиск по информации      
-              
+            Поиск по информации
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1741,10 +1791,10 @@ class MediaVortexCats:
             columns=['id', 'name', 'ename', 'tvNetId', 'regionId', 'tvCompanyHoldingId', 'tvCompanyMediaHoldingId',
                      'tvThematicId', 'tvCompanyGroupId', 'tvCompanyCategoryId', 'tvCompanyMediaType', 'information'],
             fill_value='')
-        
+
         return df_comp.sort_values(by=['regionId','id'])
 
-    def get_tv_company_merge(self, ids=None, tv_channel_merge_ids=None, tv_company_ids=None, 
+    def get_tv_company_merge(self, ids=None, tv_channel_merge_ids=None, tv_company_ids=None,
                              order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить объединенные компании в регионах
@@ -1756,23 +1806,25 @@ class MediaVortexCats:
 
         tv_channel_merge_ids : str or list of str
             Поиск по списку идентификаторов объединенных каналов
-        
+
         tv_company_ids : str or list of str
             Поиск по списку идентификаторов телекомпаний
-                               
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1816,23 +1868,25 @@ class MediaVortexCats:
         ----------
         research_date : str or list of str
             Поиск по списку дат
-        
+
         research_day_type : str or list of str
-            Поиск по списку типов дат 
-                        
+            Поиск по списку типов дат
+
         order_by : string, default 'researchDate'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1875,16 +1929,16 @@ class MediaVortexCats:
         Получить коллекцию рекламных блоков
 
         Parameters
-        ----------   
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов блоков
 
         name : str or list of str
             Поиск по имени блока
-        
+
         ename : str or list of str
             Поиск по англоязычному имени блока
-           
+
         pos_types : str or list of str
             Поиск по списку идентификаторов типов блоков
 
@@ -1898,21 +1952,23 @@ class MediaVortexCats:
             Поиск по списку идентификаторов стилей блоков
 
         notes : str or list of str
-            Поиск по заметкам 
+            Поиск по заметкам
 
         order_by : string, default 'id
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -1958,35 +2014,37 @@ class MediaVortexCats:
         Получить коллекцию брендов
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов брендов
-        
+
         name : str or list of str
             Поиск по имени бренда
-        
+
         ename : str or list of str
             Поиск по англоязычному имени бренда
-            
+
         notes : str or list of str
             Поиск по заметкам
-        
+
         tv_area_ids : str or list of str
             Поиск по списку идентификаторов областей выхода
-        
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2031,29 +2089,31 @@ class MediaVortexCats:
         Получить коллекцию списков брендов
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
-            Поиск по списку идентификаторов 
-        
+            Поиск по списку идентификаторов
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
+            Поиск по англоязычному имени
 
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2096,36 +2156,38 @@ class MediaVortexCats:
         Parameters
         ----------
         ids : str or list of str
-            Поиск по списку идентификаторов 
-        
+            Поиск по списку идентификаторов
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
+            Поиск по англоязычному имени
 
         levels : str or list of str
-            Поиск по списку уровней  
+            Поиск по списку уровней
 
         parent_ids : str or list of str
             Поиск по списку родительских идентификаторов
-        
+
         notes : str or list of str
             Поиск по заметкам
 
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2171,29 +2233,31 @@ class MediaVortexCats:
         Получить коллекцию списков товарных категорий 4 уровня
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
-            Поиск по списку идентификаторов 
-        
+            Поиск по списку идентификаторов
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
+            Поиск по англоязычному имени
 
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2234,29 +2298,31 @@ class MediaVortexCats:
         Получить коллекцию списков товарных категорий 3 уровня
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
-            Поиск по списку идентификаторов 
-        
+            Поиск по списку идентификаторов
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
+            Поиск по англоязычному имени
 
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2273,7 +2339,7 @@ class MediaVortexCats:
         -------
         media : DataFrame
 
-            DataFrame со списками товарных категорий 3 уровня 
+            DataFrame со списками товарных категорий 3 уровня
         """
 
         search_params = {
@@ -2297,29 +2363,31 @@ class MediaVortexCats:
         Получить коллекцию списков товарных категорий 2 уровня
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
-            Поиск по списку идентификаторов 
-        
+            Поиск по списку идентификаторов
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
+            Поиск по англоязычному имени
 
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2355,13 +2423,13 @@ class MediaVortexCats:
                               show_header=show_header)
 
     def get_tv_appendix(self, ids=None, advertiser_ids=None, brand_ids=None, subbrand_ids=None, model_ids=None,
-                        article2_ids=None, article3_ids=None, article4_ids=None, 
+                        article2_ids=None, article3_ids=None, article4_ids=None,
                         order_by='adId', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
         """
         Получить аппендикс
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов роликов
 
@@ -2372,33 +2440,35 @@ class MediaVortexCats:
             Поиск по списку идентификаторов брендов
 
         subbrand_ids : str or list of str
-            Поиск по списку идентификаторов суббрендов       
-        
+            Поиск по списку идентификаторов суббрендов
+
         model_ids : str or list of str
             Поиск по списку идентификаторов моделей
 
         article2_ids : str or list of str
-            Поиск по списку идентификаторов 
-            
+            Поиск по списку идентификаторов
+
         article3_ids : str or list of str
-            Поиск по списку идентификаторов 
-            
+            Поиск по списку идентификаторов
+
         article4_ids : str or list of str
-            Поиск по списку идентификаторов 
-            
+            Поиск по списку идентификаторов
+
         order_by : string, default 'adId'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2449,35 +2519,37 @@ class MediaVortexCats:
         Получить коллекцию рекламодателей
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-       
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
-        
+            Поиск по англоязычному имени
+
         notes : str or list of str
             Поиск по заметкам
-            
+
         tv_area_ids : str or list of str
             Поиск по списку идентификаторов областей выхода
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2513,38 +2585,41 @@ class MediaVortexCats:
         df_advert = self._get_dict(entity_name='tv-advertiser', search_params=search_params,
                                    body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                                    show_header=show_header)
-    
+
         return df_advert.reindex(columns=['id', 'name', 'ename', 'tvArea', 'notes'], fill_value='')
 
     def get_tv_advertiser_list(self, ids=None, name=None, ename=None,
-                               order_by='id', order_dir=None, offset=None, limit=None, use_cache=False, show_header=True):
+                               order_by='id', order_dir=None, offset=None, limit=None, use_cache=False,
+                               show_header=True):
         """
         Получить коллекцию списков рекламодателей
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-       
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
-            Поиск по англоязычному имени 
-            
+            Поиск по англоязычному имени
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2637,11 +2712,13 @@ class MediaVortexCats:
 
         offset : int
             Смещение от начала набора отобранных данных.
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
             Количество записей в возвращаемом наборе данных.
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2686,10 +2763,10 @@ class MediaVortexCats:
                               body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                               show_header=show_header)
 
-    def get_tv_ad(self, ids=None, tv_ad_type_ids=None, name=None, ename=None, notes=None, standard_durations=None, 
-                  ad_style_ids=None, slogan_audio_ids=None, slogan_video_ids=None, first_issue_dates=None,  
+    def get_tv_ad(self, ids=None, tv_ad_type_ids=None, name=None, ename=None, notes=None, standard_durations=None,
+                  ad_style_ids=None, slogan_audio_ids=None, slogan_video_ids=None, first_issue_dates=None,
                   advertiser_list_ids=None, brand_list_ids=None, subbrand_list_ids=None, model_list_ids=None,
-                  article_list2_ids=None, article_list3_ids=None, article_list4_ids=None, 
+                  article_list2_ids=None, article_list3_ids=None, article_list4_ids=None,
                   advertiser_list_main_ids=None, brand_list_main_ids=None, subbrand_list_main_ids=None,
                   model_list_main_ids=None, article_list2_main_ids=None, article_list3_main_ids=None,
                   article_list4_main_ids=None, age_restriction_ids=None, tv_area_ids=None, order_by='id',
@@ -2701,95 +2778,97 @@ class MediaVortexCats:
         ----------
         ids : str or list of str
             Поиск по списку идентификаторов рекламы
-            
+
         tv_ad_type_ids : str or list of str
             Поиск по списку идентификаторов типов рекламы
 
         name : str or list of str
             Поиск по имени рекламы
-        
+
         ename : str or list of str
-            Поиск по англоязычному имени рекламы  
+            Поиск по англоязычному имени рекламы
 
         notes : str or list of str
             Поиск по заметкам
 
         standard_durations : str or list of str
             Поиск по списку продолжительности рекламы
-        
+
         ad_style_ids : str or list of str
             Поиск по списку идентификаторов стилей рекламы
 
         slogan_audio_ids : str or list of str
             Поиск по списку идентификаторов аудио слоганов
-        
+
         slogan_video_ids : str or list of str
             Поиск по списку идентификаторов видео слоганов
 
         first_issue_dates : str or list of str
-            Поиск по списку дат первого выхода    
-                 
+            Поиск по списку дат первого выхода
+
         advertiser_list_ids : str or list of str
             Поиск по списку идентификаторов рекламодателей
-        
+
         brand_list_ids : str or list of str
             Поиск по списку идентификаторов брендов
 
         subbrand_list_ids : str or list of str
             Поиск по списку идентификаторов суббрендов
-        
+
         model_list_ids : str or list of str
             Поиск по списку идентификаторов моделей
-        
+
         article_list2_ids : str or list of str
             Поиск по списку идентификаторов мест
-        
+
         article_list3_ids : str or list of str
             Поиск по списку идентификаторов мест
-        
+
         article_list4_ids : str or list of str
             Поиск по списку идентификаторов мест
-        
+
         advertiser_list_main_ids : str or list of str
             Поиск по списку идентификаторов основного списка рекламодателей
-        
+
         brand_list_main_ids : str or list of str
             Поиск по списку идентификаторов основного списка брендов
 
         subbrand_list_main_ids : str or list of str
             Поиск по списку идентификаторов основного списка суббрендов
-        
+
         model_list_main_ids : str or list of str
             Поиск по списку идентификаторов основного списка моделей
-            
+
         article_list2_main_ids : str or list of str
             Поиск по списку идентификаторов основного списка статей 2
-        
+
         article_list3_main_ids : str or list of str
             Поиск по списку идентификаторов основного списка статей 3
-        
+
         article_list4_main_ids : str or list of str
             Поиск по списку идентификаторов основного списка статей 4
-        
+
         age_restriction_ids : str or list of str
             Поиск по списку идентификаторов возрастных ограничений
 
         tv_area_ids : str or list of str
-            Поиск по списку идентификаторов областей выхода        
-        
+            Поиск по списку идентификаторов областей выхода
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
-              
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2862,44 +2941,46 @@ class MediaVortexCats:
         Получить коллекцию типов роликов
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов роликов
-            
+
         name : str or list of str
             Поиск по имени роликов
-        
+
         ename : str or list of str
-            Поиск по англоязычному имени роликов        
-            
+            Поиск по англоязычному имени роликов
+
         notes : str or list of str
-            Поиск по заметкам 
-        
+            Поиск по заметкам
+
         accounting_duration_type_ids : str or list of str
             Поиск по списку идентификаторов режима учета длительности рекламы
-        
+
         is_override : string
             Поиск по признаку наложения в эфире рекламы данного типа на рекламы других типов
-        
+
         position_type : str or list of str
             Поиск по списку идентификаторов положения рекламы в эфире относительно телепередач и рекламных блоков
-        
+
         is_price : string
             Поиск по признаку учета стоимости рекламы данного типа
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
-            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.      
-              
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -2945,32 +3026,34 @@ class MediaVortexCats:
         Получить коллекцию стилей роликов
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-            
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
             Поиск по англоязычному имени
-        
+
         notes : str or list of str
             Поиск по англоязычному имени
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3012,29 +3095,31 @@ class MediaVortexCats:
         Получить коллекцию видео слоганов
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-            
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
             Поиск по англоязычному имени
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3075,29 +3160,31 @@ class MediaVortexCats:
         Получить коллекцию аудио слоганов
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-            
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
             Поиск по англоязычному имени
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3135,7 +3222,7 @@ class MediaVortexCats:
     def get_tv_time_band(self):
         """
         Получить коллекцию временных интервалов
-        
+
         Returns
         -------
         info : DataFrame
@@ -3152,17 +3239,17 @@ class MediaVortexCats:
             'timeBand30':5,
             'timeBand60':6,
             }
-        
+
         df_tb['order'] = df_tb['order'].map(order_dict)
         df_tb.sort_values(by=['order'], inplace=True)
         df_tb = df_tb.reindex(columns=['value', 'name'], fill_value='')
-        
+
         return df_tb.reset_index(drop=True)
 
     def get_tv_stat(self):
         """
         Получить справочник статусов статистик
-        
+
         Returns
         -------
         info : DataFrame
@@ -3173,7 +3260,7 @@ class MediaVortexCats:
     def get_tv_relation(self):
         """
         Получить справочник отношений атрибутов
-        
+
         Returns
         -------
         info : Dict
@@ -3184,7 +3271,7 @@ class MediaVortexCats:
     def get_tv_monitoring_type(self):
         """
         Получить справочник типов мониторинга
-        
+
         Returns
         -------
         info : DataFrame
@@ -3204,23 +3291,25 @@ class MediaVortexCats:
 
         names : str or list of str
             Поиск по списку имен переменных
-        
+
         entity_names : str or list of str
             Поиск по списку entity имен переменных (атрибуты, которые задаются в параметры задания)
-        
+
         value_ids : str or list of str
             Поиск по списку идентификаторов категорий переменных
-        
+
         value_names : str or list of str
             Поиск по списку имен категорий переменных
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3258,7 +3347,7 @@ class MediaVortexCats:
         df_dem = self._get_dict(entity_name='tv-demo-attribute', search_params=search_params,
                                 body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                                 show_header=show_header)
-        
+
         df_dem['entityName'] = df_dem['colName'].str[0].str.lower() + df_dem['colName'].str[1:]
 
         df_dem = df_dem.reindex(columns=['id', 'name', 'entityName', 'valueId', 'valueName'], fill_value='')
@@ -3273,32 +3362,34 @@ class MediaVortexCats:
         Получить коллекцию стран производства программ
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-            
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
             Поиск по англоязычному имени
-        
+
         notes : str or list of str
             Поиск по заметкам
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3341,29 +3432,31 @@ class MediaVortexCats:
         Получить коллекцию холдингов телекомпаний
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-            
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
             Поиск по англоязычному имени
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3405,29 +3498,31 @@ class MediaVortexCats:
         Получить коллекцию медиа холдингов телекомпаний
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-            
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
             Поиск по англоязычному имени
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3468,29 +3563,31 @@ class MediaVortexCats:
         Получить коллекцию жанров телекомпаний
 
         Parameters
-        ----------        
+        ----------
         ids : str or list of str
             Поиск по списку идентификаторов
-            
+
         name : str or list of str
-            Поиск по имени 
-        
+            Поиск по имени
+
         ename : str or list of str
             Поиск по англоязычному имени
-            
+
         order_by : string, default 'id'
             Поле, по которому происходит сортировка
-            
+
         order_dir : string
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
-              
+
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3550,12 +3647,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3668,12 +3767,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3733,12 +3834,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3797,12 +3900,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3861,12 +3966,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3925,12 +4032,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -3986,12 +4095,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4050,12 +4161,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4114,12 +4227,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4179,12 +4294,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4243,12 +4360,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4308,12 +4427,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4373,12 +4494,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4437,12 +4560,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4501,12 +4626,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4565,12 +4692,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4629,12 +4758,14 @@ class MediaVortexCats:
             Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
 
         offset : int
-            Смещение от начала набора отобранных данных. 
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
-            Количество записей в возвращаемом наборе данных. 
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4691,11 +4822,13 @@ class MediaVortexCats:
 
         offset : int
             Смещение от начала набора отобранных данных.
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
             Количество записей в возвращаемом наборе данных.
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4744,11 +4877,13 @@ class MediaVortexCats:
 
         offset : int
             Смещение от начала набора отобранных данных.
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
             Количество записей в возвращаемом наборе данных.
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         Returns
@@ -4786,7 +4921,7 @@ class MediaVortexCats:
         # извлекаем все заголовки столбцов
         res_headers = []
         for item in json_data:
-            for k, v in item.items():
+            for k, _ in item.items():
                 if k not in res_headers:
                     res_headers.append(k)
 
@@ -4820,7 +4955,7 @@ class MediaVortexCats:
         kit_id : int
             Id набора данных. Значение по умолчанию 1 (TV Index All Russia)
         """
-        if not str(kit_id) in self.tv_units:
+        if str(kit_id) not in self.tv_units:
             print(f"Недоступны данные для kit_id={str(kit_id)}. Проверьте заданный kit_id")
         else:
             return self.tv_units.get(str(kit_id)).get('RespondentAnalysis')
@@ -4863,11 +4998,13 @@ class MediaVortexCats:
 
         offset : int
             Смещение от начала набора отобранных данных.
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
             Количество записей в возвращаемом наборе данных.
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4935,11 +5072,13 @@ class MediaVortexCats:
 
         offset : int
             Смещение от начала набора отобранных данных.
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
             Количество записей в возвращаемом наборе данных.
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool
@@ -4994,11 +5133,13 @@ class MediaVortexCats:
 
         offset : int
             Смещение от начала набора отобранных данных.
-            Используется в связке с параметром 'limit': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
 
         limit : int
             Количество записей в возвращаемом наборе данных.
-            Используется в связке с параметром 'offset': в случае использования одного параметра, другой также должен быть задан.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
             Если смещение не требуется, то в 'offset' может быть передан 0.
 
         use_cache : bool

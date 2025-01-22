@@ -1,8 +1,11 @@
+"""
+CounterTask module
+"""
 import json
+import time
+import datetime as dt
 import pandas as pd
 import numpy as np
-import datetime as dt
-import time
 import pendulum
 from ..core import net
 from ..core import tasks
@@ -12,9 +15,12 @@ from ..core import utils
 
 
 class CounterTask:
+    """
+    Класс для работы с заданиями счетчика
+    """
     device_types = {"ALL": None,
-                    "MOBILE": "deviceTypeName in ('MOBILE', 'TABLET', 'SMARTPHONE', 'IOS', 'ANDROID',  'SMALLSCREEN', " \
-                              + "'WINDOWS_MOBILE')",
+                    "MOBILE": "deviceTypeName in ('MOBILE', 'TABLET', 'SMARTPHONE', 'IOS', 'ANDROID',  " \
+                              + "'SMALLSCREEN', 'WINDOWS_MOBILE')",
                     "DESKTOP": "deviceTypeName = 'DESKTOP'",
                     "OTHER": "deviceTypeName nin ('DESKTOP', 'MOBILE', 'TABLET', 'SMARTPHONE', 'IOS', 'ANDROID', " \
                              + "'SMALLSCREEN', 'WINDOWS_MOBILE')"
@@ -31,7 +37,7 @@ class CounterTask:
                  }
 
     area_type_filter = ["audience", "advertisingCampaign", "advertisingNetwork"]
-    
+
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
                 client_secret: str = None, keycloak_url: str = None, check_version: bool = True, *args, **kwargs):
@@ -51,20 +57,23 @@ class CounterTask:
 
     @staticmethod
     def add_device_type_filter(tsk: dict, device_type_names, filter_name):
-        # Добавляем фильтр по типам устройств
-        if device_type_names is not None and type(device_type_names) == list and len(device_type_names) > 0:
+        """
+        Добавляет фильтр по типам устройств
+        """
+        if device_type_names is not None and isinstance(device_type_names, list) and len(device_type_names) > 0:
             device_type_filters = {
                 "operand": "OR",
                 "elements": []
             }
-            for dt in device_type_names:
+            for device_type in device_type_names:
                 if "elements" not in device_type_filters:
-                    if dt in CounterTask.device_types.keys():
+                    if dt in CounterTask.device_types:
                         device_type_filters.update(
-                                sql.sql_to_json(CounterTask.device_types[dt]))
+                                sql.sql_to_json(CounterTask.device_types[device_type]))
                 else:
-                    if dt in CounterTask.device_types.keys():
-                        device_type_filters["elements"].append(sql.sql_to_json(CounterTask.device_types[dt])['elements'][0])
+                    if device_type in CounterTask.device_types:
+                        (device_type_filters["elements"]
+                         .append(sql.sql_to_json(CounterTask.device_types[device_type])['elements'][0]))
             tsk['filter'][filter_name] = device_type_filters
 
     def build_task(self, task_name: str = '', date_filter: list = None, area_type_filter: list = None,
@@ -224,7 +233,7 @@ class CounterTask:
             return None
         try:
             return self.msapi_network.send_request('post', '/daily-task', task)
-        except errors.HTTP400Error as e:
+        except errors.BadRequestError as e:
             print(f"Ошибка: {e}")
 
     def wait_task(self, tsk, status_delay=3, task_delay=0.2):
@@ -265,7 +274,7 @@ class CounterTask:
             Возвращает задание или список заданий
         """
         errs = dict()
-        if type(tsk) == dict:
+        if isinstance(tsk, dict):
             if tsk.get('taskId') is not None:
                 tid = tsk.get('taskId', None)
                 task_state = ''
@@ -274,12 +283,12 @@ class CounterTask:
                 while cnt < 5:
                     try:
                         time.sleep(status_delay)
-                        task_state_obj = self.msapi_network.send_request('get', '/task/state/{}'.format(tid))
-                    except errors.HTTP404Error:
+                        task_state_obj = self.msapi_network.send_request('get', f'/task/state/{tid}')
+                    except errors.NotFoundError:
                         cnt += 1
                         print(cnt)
-                    except Exception:
-                        raise Exception('Ошибка при получении статуса задания')
+                    except Exception as ex:
+                        raise errors.MediascopeApiError('Ошибка при получении статуса задания') from ex
                     else:
                         break
 
@@ -292,7 +301,7 @@ class CounterTask:
                 while task_state == 'IN_QUEUE' or task_state == 'IN_PROGRESS':
                     print('=', end=' ')
                     time.sleep(status_delay)
-                    task_state_obj = self.msapi_network.send_request('get', '/task/state/{}'.format(tsk['taskId']))
+                    task_state_obj = self.msapi_network.send_request('get', f'/task/state/{tsk["taskId"]}')
                     if task_state_obj is not None:
                         task_state = task_state_obj.get('taskStatus', '')
                 if task_state == 'FAILED':
@@ -306,7 +315,7 @@ class CounterTask:
                     tsk['dtFinish'] = task_state_obj.get('dtFinish', '')
                     tsk['taskProcessingTimeSec'] = task_state_obj.get('taskProcessingTimeSec', '')
                     return tsk
-        elif type(tsk) == list:
+        elif isinstance(tsk, list):
             task_list = list()
             # получим все идентификаторы заданий
             for t in tsk:
@@ -326,16 +335,13 @@ class CounterTask:
                         tid = t['task']['taskId']
                         task_state = ''
                         time.sleep(task_delay)
-                        task_state_obj = self.msapi_network.send_request('get', '/task/state/{}'.format(tid))
+                        task_state_obj = self.msapi_network.send_request('get', f'/task/state/{tid}')
                         if task_state_obj is not None:
                             task_state = task_state_obj.get('taskStatus', '')
 
-                        if task_state == 'IN_PROGRESS' \
-                                or task_state == 'PENDING' \
-                                or task_state == 'IN_QUEUE' \
-                                or task_state == 'IDLE':
+                        if task_state in ('IN_PROGRESS', 'PENDING', 'IN_QUEUE', 'IDLE'):
                             continue
-                        elif task_state == 'DONE':
+                        if task_state == 'DONE':
                             t['task']['message'] = 'DONE'
                             t['task']['dtRegister'] = task_state_obj.get('dtRegister', '')
                             t['task']['dtFinish'] = task_state_obj.get('dtFinish', '')
@@ -351,7 +357,7 @@ class CounterTask:
                         break
 
                 if len(errs) > 0:
-                    print(f"Одна или несколько задач завершились с ошибкой")
+                    print("Одна или несколько задач завершились с ошибкой")
                     for tid, task_state in errs.items():
                         print(f"Задача: {tid} состояние: {task_state}")
                     return None
@@ -391,7 +397,7 @@ class CounterTask:
         """
         if tsk.get('taskId') is not None:
             tid = tsk.get('taskId', None)
-            task_state_obj = self.msapi_network.send_request('get', '/task/state/{}'.format(tid))
+            task_state_obj = self.msapi_network.send_request('get', f'/task/state/{tid}')
             return task_state_obj
 
     def restart_task(self, tsk: dict):
@@ -424,7 +430,7 @@ class CounterTask:
         """
         if tsk.get('taskId') is not None:
             tid = tsk.get('taskId', None)
-            task_state_obj = self.msapi_network.send_request('get', '/task/state/restart/{}'.format(tid))
+            task_state_obj = self.msapi_network.send_request('get', f'/task/state/restart/{tid}')
             return task_state_obj
 
     def restart_tasks(self, tsk_ids: list):
@@ -489,7 +495,7 @@ class CounterTask:
         """
         if tsk.get('taskId') is not None:
             tid = tsk.get('taskId', None)
-            task_state_obj = self.msapi_network.send_request('get', '/task/state/cancel/{}'.format(tid))
+            task_state_obj = self.msapi_network.send_request('get', f'/task/state/cancel/{tid}')
             return task_state_obj
 
     def cancel_tasks(self, tsk_ids: list):
@@ -543,7 +549,7 @@ class CounterTask:
         """
         if tsk is None or tsk.get('taskId') is None:
             return None
-        return self.msapi_network.send_request('get', '/task/result/{}'.format(tsk['taskId']))
+        return self.msapi_network.send_request('get', f'/task/result/{tsk["taskId"]}')
 
     @staticmethod
     def result2table(data, project_name: str = None):
@@ -565,13 +571,13 @@ class CounterTask:
             DataFrame с результатом выполнения задания
         """
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'taskId' not in data or 'resultBody' not in data:
             return None
 
-        if type(data['resultBody']) == list and len(data['resultBody']) == 0:
+        if isinstance(data['resultBody'], list) and len(data['resultBody']) == 0:
             msg = data.get('message', None)
             if msg is not None:
                 print(msg)
@@ -625,26 +631,26 @@ class CounterTask:
         ----------
         date_filter : list
             Поиск по диапазону дней (если день не указан, то ищем по вчерашнему дню)
-        
+
         partners : list
             Поиск по списку партнеров
 
         Returns
         -------
         tmsecs : list
-        
+
             Список с tmsecs
         """
 
-        if date_filter is None:            
+        if date_filter is None:
             # если день не указан, то берем вчерашний
             bday = pendulum.from_format(pendulum.now('Europe/Moscow').format('YYYY-MM-DD'), 'YYYY-MM-DD').add(days=-1)
             eday = bday
-            date_filter = [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))] 
-                
+            date_filter = [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))]
+
         partner_filter = partners
-        project_name = f"{partners} tmsecs"        
-        
+        project_name = f"{partners} tmsecs"
+
         task_json = self.build_task(task_name=project_name,
                                          date_filter=date_filter,
                                          area_type_filter=self.area_type_filter,
@@ -658,14 +664,14 @@ class CounterTask:
 
         task = self.wait_task(self.send_task(task_json))
         df_tmsecs = self.result2table(self.get_result(task), project_name)
-        
+
         if df_tmsecs is not None:
             if len(df_tmsecs):
                 if 'stat.hitsVisits' in df_tmsecs.columns and 'tmsec' in df_tmsecs.columns:
                     return df_tmsecs.sort_values(by=['stat.hitsVisits'], ascending=False)['tmsec'].to_list()
-        
+
         return f"Нет данных за {eday.format('YYYY-MM-DD')}"
-    
+
     def get_partners(self, date_filter: list = None):
         """
         Получить партнеров в требуемый диапазон дней
@@ -678,18 +684,18 @@ class CounterTask:
         Returns
         -------
         partners : list
-        
+
             Список партнеров
         """
 
-        if date_filter is None:            
+        if date_filter is None:
             # если день не указан, то берем вчерашний
             bday = pendulum.from_format(pendulum.now('Europe/Moscow').format('YYYY-MM-DD'), 'YYYY-MM-DD').add(days=-1)
             eday = bday
             date_filter = [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))]
-            
-        project_name = "Clients"        
-        
+
+        project_name = "Clients"
+
         task_json = self.build_task(task_name=project_name,
                                          date_filter=date_filter,
                                          area_type_filter=self.area_type_filter,
@@ -708,10 +714,10 @@ class CounterTask:
             if len(df_tmsecs):
                 if 'stat.hitsVisits' in df_tmsecs.columns and 'partnerName' in df_tmsecs.columns:
                     return df_tmsecs.sort_values(by=['stat.hitsVisits'], ascending=False)['partnerName'].to_list()
-        
+
         return f"Нет данных за {eday.format('YYYY-MM-DD')}"
-    
-    
+
+
     def get_date_range(self, day: str = None, range_type: str = 'D'):
         """
         Получить нужный период времени (предыдущий день, последнюю закрытую неделю и месяц)
@@ -720,21 +726,21 @@ class CounterTask:
         ----------
         day : str
             Базовый день в формате 'YYYY-MM-DD' (если день не указан, то берем текущий день)
-        
+
         range_type : str
             Требуемый диапазон ('D'- предыдущий день, 'W' - последняя закрытая неделя, 'M' - последний закрытй месяц)
 
         Returns
         -------
         date_list : list
-        
+
             Диапазон дат, соответствующих нужному периоду времени
         """
-        
-        if day is None:            
+
+        if day is None:
             # если день не указан, то берем текущий
             day = pendulum.now('Europe/Moscow').format('YYYY-MM-DD')
-        
+
         if range_type == 'D':
             # получаем вчерашний день
             bday = pendulum.from_format(day, 'YYYY-MM-DD').add(days=-1)
@@ -742,7 +748,7 @@ class CounterTask:
             return [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))]
         elif range_type == 'W':
             # получаем последнюю закрытую неделю
-            bday = pendulum.from_format(day, 'YYYY-MM-DD')        
+            bday = pendulum.from_format(day, 'YYYY-MM-DD')
             if bday.day_of_week == 0:
                 bday = bday.start_of('week')
             else:
@@ -750,7 +756,7 @@ class CounterTask:
             eday = bday.add(days=6)
             return [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))]
         elif range_type == 'M':
-            # получаем последний закрытый месяц    
+            # получаем последний закрытый месяц
             current_date = pendulum.from_format(day, 'YYYY-MM-DD')
             start_of_current_month = current_date.start_of('month')
             end_of_current_month = start_of_current_month.add(months=1).add(days=-1)
@@ -763,38 +769,47 @@ class CounterTask:
             return [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))]
         else:
             raise ValueError(f'Wrong range type: {range_type}')
-        
-    def get_partner_data(self, date_filter: list = None, 
-                         stats: list = ['hitsVisits'],
-                         slices: list =["partnerName", 'tmsec'],
-                         partners: list = None,
-                         tmsecs: list = None,
-                         devices: list = ["ALL"],
-                         geos: list = ['W'],
-                         mart: str = None,
-                         sampling: int = 100):
+
+    def get_partner_data(self, date_filter: list = None,
+                     stats: list = None,
+                     slices: list = None,
+                     partners: list = None,
+                     tmsecs: list = None,
+                     devices: list = None,
+                     geos: list = None,
+                     mart: str = None,
+                     sampling: int = 100):
+
         """
         Получить данные
 
         Parameters
         ----------
-        
-
         Returns
         -------
-        
-        """        
+
+        """
+
+        if stats is None:
+            stats = ['hitsVisits']
+        if slices is None:
+            slices = ["partnerName", 'tmsec']
+        if devices is None:
+            devices = ["ALL"]
+        if geos is None:
+            geos = ['W']
+
         error_msg = None
-        
-        results = []        
-        
-        if date_filter is None:            
+
+        results = []
+
+        if date_filter is None:
             # если день не указан, то берем вчерашний
             bday = pendulum.from_format(pendulum.now('Europe/Moscow').format('YYYY-MM-DD'), 'YYYY-MM-DD').add(days=-1)
             eday = bday
-            date_filter = [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))]        
-        
-        tasks = []
+            date_filter = [(bday.format('YYYY-MM-DD'), eday.format('YYYY-MM-DD'))]
+
+        partner_tasks = []
         for partner in partners:
             for geo in geos:
                 for device in devices:
@@ -818,15 +833,15 @@ class CounterTask:
                                                     statistics=stats,
                                                     sampling=sampling)
 
-                    tasks.append({
+                    partner_tasks.append({
                         "task": self.send_task(task_json),
                         "geo": geo,
                         "device": device
                     })
 
 
-        tasks = self.wait_task(tasks)
-        for t in tasks:
+        partner_tasks = self.wait_task(partner_tasks)
+        for t in partner_tasks:
             df_res = self.result2table(self.get_result(t.get("task")))
 
             if df_res is not None:
@@ -834,11 +849,10 @@ class CounterTask:
                     df_res['deviceTypeName'] = t.get("device")
                     df_res['geo'] = t.get("geo")
                     results.append(df_res)
-        
-        if results is not None:
-            if len(results):                
-                return pd.concat(results)
-                
+
+        if results:
+            return pd.concat(results)
+
         if error_msg is not None:
             return error_msg
         else:

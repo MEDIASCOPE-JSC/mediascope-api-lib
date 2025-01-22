@@ -1,1 +1,4 @@
-version = '1.1.6'
+"""
+Mediascope API library
+"""
+version = '1.1.19'

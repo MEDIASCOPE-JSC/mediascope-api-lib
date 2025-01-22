@@ -1,10 +1,15 @@
+"""
+Tasks module for Mediascope API
+"""
 import pandas as pd
-import json
 from ..core import utils
 from ..core import sql
 
 
 class TaskBuilder:
+    """
+    TasjkBuilder class for Mediascope API
+    """
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             # print("Creating Instance")
@@ -92,8 +97,10 @@ class TaskBuilder:
 
     @staticmethod
     def add_range_filter(tsk: dict, date_filter):
-        # Добавляем фильтр по диапазонам
-        if date_filter is not None and type(date_filter) == list and len(date_filter) > 0:
+        """
+        Добавляет фильтр по диапазонам
+        """
+        if date_filter is not None and isinstance(date_filter, list) and len(date_filter) > 0:
             date_ranges = {
                 "operand": "OR",
                 "children": []
@@ -118,19 +125,25 @@ class TaskBuilder:
 
     @staticmethod
     def add_filter(tsk: dict, filter_obj, filter_name):
+        """
+        Добавляет фильтр
+        """
         if filter_obj is not None:
-            if type(filter_obj) == dict:
+            if isinstance(filter_obj, dict):
                 tsk['filter'][filter_name] = filter
-            elif type(filter_obj) == str:
+            elif isinstance(filter_obj, str):
                 tsk['filter'][filter_name] = sql.sql_to_json(filter_obj)
             elif filter_name == 'respondentFilter' and isinstance(filter_obj, pd.DataFrame):
                 tsk['filter'][filter_name] = utils.get_dict_from_dataframe(filter_obj)
 
     @staticmethod
     def add_list_filter(tsk, filter_name, filter_obj_name, filter_obj):
+        """
+        Добавляет IN фильтр
+        """
         if filter_obj is not None:
-            if type(filter_obj) == list:
-                filter = {
+            if isinstance(filter_obj, list):
+                flt = {
                     "operand": "AND",
                     "elements": [
                         {
@@ -140,12 +153,14 @@ class TaskBuilder:
                         }
                     ]
                 }
-                tsk['filter'][filter_name] = filter
+                tsk['filter'][filter_name] = flt
 
     @staticmethod
     def add_usetype_filter(tsk, usetype_filter, unit_name="useTypeId", filter_name="useTypeFilter"):
-        # Добавляем фильтр по usetype
-        if usetype_filter is not None and type(usetype_filter) == list and len(usetype_filter) > 0:
+        """
+        Добавляет фильтр по usetype
+        """
+        if usetype_filter is not None and isinstance(usetype_filter, list) and len(usetype_filter) > 0:
             usetype = {"operand": "OR", "elements": [{
                 "unit": unit_name,
                 "relation": "IN",
@@ -155,13 +170,17 @@ class TaskBuilder:
 
     @staticmethod
     def add_slices(tsk, slices):
-        # Добавляем срезы
+        """
+        Добавляет срезы
+        """
         if slices is not None:
             tsk['slices'] = slices
 
     @staticmethod
     def add_scales(tsk, scales):
-        # Добавляем шкалы
+        """
+        Добавляет шкалы
+        """
         if scales is not None:
             scales_json = {}
             for scale, val in scales.items():
@@ -172,10 +191,16 @@ class TaskBuilder:
 
     @staticmethod
     def add_sampling(tsk, sampling=42):
+        """
+        Добавляет сэмплирование
+        """
         tsk['sampling'] = {'percent': str(sampling)}
 
     @staticmethod
     def add_sortings(tsk, sortings):
+        """
+        Добавляет сортировки
+        """
         if sortings is not None:
             sort_json = {}
             sort_list = []
@@ -185,7 +210,5 @@ class TaskBuilder:
                 unit["unit"] = k
                 unit["direction"] = v
                 sort_list.append(unit)
-                
             sort_json["sortingUnits"] = sort_list
             tsk["sorting"] = sort_json
-            

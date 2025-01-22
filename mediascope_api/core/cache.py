@@ -1,10 +1,13 @@
+"""
+Cache module
+"""
 import os
 import hashlib
 import json
 import pathlib
-from datetime import datetime, timedelta
+from datetime import datetime
 
-cache_path = '../.cache'
+CACHE_PATH = '../.cache'
 
 
 def get_hash(query: str) -> str:
@@ -39,7 +42,7 @@ def get_cache(query: str, login: str = 'default'):
         obj : json
             Хэшрованный объект
     """
-    if cache_path is None:
+    if CACHE_PATH is None:
         return None
     h = get_hash(query)
     h = login + '-' + get_hash(query)
@@ -48,7 +51,7 @@ def get_cache(query: str, login: str = 'default'):
         return None
     if not _check_cache_is_valid(cache_filename):
         return None
-    with open(cache_filename, 'r') as f:
+    with open(cache_filename, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
@@ -68,18 +71,18 @@ def save_cache(query: str, jdata, login: str='default'):
             Логин пользователя, добавляется в имя файла для обеспечения уникальности кэша
     """
 
-    if cache_path is None:
+    if CACHE_PATH is None:
         return None
     h = login + '-' + get_hash(query)
     cache_file = _get_cache_fname(h)
-    with open(cache_file, 'w') as f:
+    with open(cache_file, 'w', encoding='utf-8') as f:
         json.dump(jdata, f)
 
 
 def _get_cache_fname(h: str) -> str:
-    file_path = os.path.join(cache_path, h + '.cache')
-    if not os.path.exists(cache_path):
-        os.makedirs(cache_path, exist_ok=True)
+    file_path = os.path.join(CACHE_PATH, h + '.cache')
+    if not os.path.exists(CACHE_PATH):
+        os.makedirs(CACHE_PATH, exist_ok=True)
     return file_path
 
 
@@ -91,4 +94,3 @@ def _check_cache_is_valid(filename: str) -> bool:
         if td.total_seconds() < 86400:
             return True
     return False
-

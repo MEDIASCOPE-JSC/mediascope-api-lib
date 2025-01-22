@@ -1,9 +1,14 @@
+"""
+Media Vortex Task Checker module
+"""
+import difflib as dl
 from . import catalogs
 from ..core import sql
-import difflib as dl
-
 
 class MediaVortexTaskChecker:
+    """
+    Класс для проверки заданий на соответствие MediaVortex
+    """
     def __new__(cls, cats: catalogs.MediaVortexCats, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(MediaVortexTaskChecker, cls).__new__(cls, *args)
@@ -41,25 +46,25 @@ class MediaVortexTaskChecker:
             'playbacktype_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр типа плейбека (биг тв).\n'},
             'bigtv_filter': {'types': [str, dict], 'msg': 'Неверно задан биг тв фильтр.\n'},
             'statistics': {'types': [list], 'msg': 'Не заданы статистики для задания.\n'},
-        }        
+        }
         self.error_text = ''
 
     def _check_filter(self, name, obj):
         if name not in self.check_list:
             return False
-        if obj is not None:
-            if type(obj) not in self.check_list[name]['types']:                
+        if obj:
+            if type(obj) not in self.check_list[name]['types']:
                 self.error_text += self.check_list[name]['msg']
                 return False
-            elif not len(obj):                
+            if len(obj) == 0:
                 self.error_text += self.check_list[name]['msg']
                 return False
         return True
-    
+
     def _check_filter_units(self, task_type, name, obj):
         result = True
         if obj:
-            units = sql.sql_to_units(obj)                        
+            units = sql.sql_to_units(obj)
             for u in units:
                 if u not in self.task_types[task_type]['filters']:
                     result = False
@@ -76,6 +81,9 @@ class MediaVortexTaskChecker:
                    ad_filter, subject_filter, duration_filter, duplication_company_filter,
                    duplication_time_filter, platform_filter, playbacktype_filter,
                    bigtv_filter, slices, statistics, scales, sortings, kit_id):
+        """
+        Проверка задания на соответствие MediaVortex API
+        """
 
         self.task_types = {
             'timeband': self.cats.get_timeband_unit(kit_id),
@@ -87,52 +95,50 @@ class MediaVortexTaskChecker:
         }
 
         self.error_text = ''
-        
+
         self._check_filter('task_type', task_type)
 
         if self._check_filter('date_filter', date_filter):
-            for r in date_filter:                
+            for r in date_filter:
                 self._check_filter('date_filter_item', r)
 
         self._check_scales(statistics, scales)
         if self._check_filter('weekdate_filter', weekdate_filter):
             self._check_filter_units(task_type, 'weekdate_filter', weekdate_filter)
-        
+
         if self._check_filter('daytype_filter', daytype_filter):
             self._check_filter_units(task_type, 'daytype_filter', daytype_filter)
-                    
+
         if self._check_filter('company_filter', company_filter):
             self._check_filter_units(task_type, 'company_filter', company_filter)
-                    
+
         if region_filter is not None:
             print("regionFilter в настоящее время не используется. Используйте companyFilter")
-        #if self._check_filter('region_filter', region_filter):
-        #    self._check_filter_units(task_type, 'region_filter', region_filter)
-        
+
         if self._check_filter('time_filter', time_filter):
             self._check_filter_units(task_type, 'time_filter', time_filter)
-            
+
         if self._check_filter('location_filter', location_filter):
             self._check_filter_units(task_type, 'location_filter', location_filter)
-            
+
         if self._check_filter('basedemo_filter', basedemo_filter):
             self._check_filter_units(task_type, 'basedemo_filter', basedemo_filter)
-            
+
         if self._check_filter('targetdemo_filter', targetdemo_filter):
             self._check_filter_units(task_type, 'targetdemo_filter', targetdemo_filter)
-        
+
         if self._check_filter('program_filter', program_filter):
             self._check_filter_units(task_type, 'program_filter', program_filter)
-        
+
         if self._check_filter('break_filter', break_filter):
             self._check_filter_units(task_type, 'break_filter', break_filter)
-        
+
         if self._check_filter('ad_filter', ad_filter):
             self._check_filter_units(task_type, 'ad_filter', ad_filter)
-        
+
         if self._check_filter('subject_filter', subject_filter):
             self._check_filter_units(task_type, 'subject_filter', subject_filter)
-        
+
         if self._check_filter('duration_filter', duration_filter):
             self._check_filter_units(task_type, 'duration_filter', duration_filter)
 
@@ -150,18 +156,18 @@ class MediaVortexTaskChecker:
 
         if self._check_filter('playbacktype_filter', playbacktype_filter):
             self._check_filter_units(task_type, 'playbacktype_filter', playbacktype_filter)
-        
+
         if slices is not None:
-            if type(slices) is not list:
-                self.error_text += f'Неверно заданы срезы (slices).\n'
+            if not isinstance(slices, list):
+                self.error_text += 'Неверно заданы срезы (slices).\n'
             else:
                 for s in slices:
-                    if type(s) is not str:
+                    if not isinstance(s, str):
                         self.error_text += f'Неверно задан срез (slices): {s}.\n'
 
         if sortings is not None:
-            if type(sortings) != dict:
-                 self.error_text += f'Некорректный тип параметра sortings: допускается тип - dict.\n'
+            if not isinstance(sortings, dict):
+                self.error_text += 'Некорректный тип параметра sortings: допускается тип - dict.\n'
 
         if len(self.error_text) > 0:
             print('Ошибка при формировании задания')
@@ -173,25 +179,29 @@ class MediaVortexTaskChecker:
     def _check_scales(self, statistics, scales):
         for scale_stat in ['drfd', 'reachN']:
             if scale_stat in statistics:
-                if scales is None or type(scales) != dict or len(scales) == 0:
+                if scales is None or not isinstance(scales, dict) or len(scales) == 0:
                     self.error_text += f'1 нe задана шкала для статистики "{scale_stat}".\n'
                 elif scales.get(scale_stat) is None:
                     self.error_text += f'2 нe задана шкала для статистики "{scale_stat}".\n'
                 else:
                     scale_val = scales.get(scale_stat)
-                    if type(scale_val) != list or len(scale_val) == 0:
+                    if not isinstance(scale_val, list) or len(scale_val) == 0:
                         self.error_text += f'3 нe задана шкала для статистики "{scale_stat}".\n'
                         self.error_text += f'формат: "{scale_stat}":[(F, T), ...].\n'
                     else:
                         for val_ft in scale_val:
-                            if type(val_ft) != tuple or type(val_ft[0]) != int or type(val_ft[1]) != int:
+                            if not isinstance(val_ft, tuple) or not isinstance(val_ft[0], int) or \
+                                not isinstance(val_ft[1], int):
                                 self.error_text += f'4 шкала для статистики "{scale_stat} задана не верно,".\n'
                                 self.error_text += f'формат: "{scale_stat}":[(F, T), ...].\n'
 
     def check_units_in_task(self, task_type, tsk):
+        """
+        Проверяет юниты в задании на соответствие типу задания
+        """
         error_text = ''
 
-        if type(tsk['statistics']) == list:
+        if isinstance(tsk['statistics'], list):
             for s in tsk['statistics']:
                 if s not in self.task_types[task_type]['statistics']:
                     error_text += f'Неизвестная статистика "{s}". '
@@ -199,13 +209,13 @@ class MediaVortexTaskChecker:
                     if len(probably_matches) > 0:
                         matches = '" или "'.join(probably_matches)
                         error_text += f'Возможно соответствует "{matches}".\n'
-        if type(tsk['filter']) == list:
-            for filter_name in tsk['filter']:                
+        if isinstance(tsk['filter'], list):
+            for filter_name in tsk['filter']:
                 error_text = self.check_units(f'фильтрах {filter_name}', filter_name,
                                               self.task_types[task_type]['filters'],
                                               error_text)
         if task_type != 'consumption-target':
-            if type(tsk['slices']) == list:
+            if isinstance(tsk['slices'], list):
                 avl_slices = self.get_avl_slices(task_type)
                 for slice_name in tsk['slices']:
                     if slice_name not in avl_slices:
@@ -217,13 +227,15 @@ class MediaVortexTaskChecker:
         if 'sorting' in tsk.keys():
             avl_cols = tsk['statistics'] + tsk['slices']
             avaliable = '", "'.join(avl_cols)
-            for i in tsk["sorting"]['sortingUnits']:  
+            for i in tsk["sorting"]['sortingUnits']:
                 if i['unit'] not in avl_cols:
-                    error_text += f"Cортировка по {i['unit']} невозможна, так как этого элемента нет среди заданных срезов и статистик: {avaliable}.\n"
-                    
+                    error_text += f"Cортировка по {i['unit']} невозможна, так как этого элемента "
+                    error_text += f"нет среди заданных срезов и статистик: {avaliable}.\n"
+
                 if i["direction"] not in(['ASC','DESC']):
-                    error_text += f"Недопустимое значение в параметре sortings: {i['direction']}, допустимые значения: 'ASC','DESC'.\n"        
-        
+                    error_text += f"Недопустимое значение в параметре sortings: {i['direction']}, "
+                    error_text += "допустимые значения: 'ASC','DESC'.\n"
+
         if len(error_text) > 0:
             print('Ошибка при формировании задания')
             print(error_text)
@@ -232,19 +244,25 @@ class MediaVortexTaskChecker:
             return True
 
     def get_units(self, units, obj):
-        if type(obj) == dict:
+        """
+        Получает все юниты из задания
+        """
+        if isinstance(obj, dict):
             for k, v in obj.items():
                 if type(v) in [dict, list]:
                     self.get_units(units, v)
-                elif type(v) == str:
+                elif isinstance(v, str):
                     if str(k) == 'unit':
                         units.append(v)
-        elif type(obj) == list:
+        elif isinstance(obj, list):
             for v in obj:
                 self.get_units(units, v)
 
     @staticmethod
     def check_units(task_item_name, task_units, avl_units, error_text):
+        """
+        Проверяет юниты в задании на соответствие типу задания
+        """
         for unit in task_units:
             if unit not in avl_units:
                 error_text += f'Недопустимое название атрибута: "{unit}" в {task_item_name}'
@@ -254,8 +272,14 @@ class MediaVortexTaskChecker:
                     error_text += f'Возможно соответствует "{matches}".\n'
         return error_text
 
-    def get_avl_slices(self, task_type):        
+    def get_avl_slices(self, task_type):
+        """
+        Получает доступные срезы для задания
+        """
         return self.task_types[task_type]['slices']
-    
+
     def get_avl_stats(self, task_type):
+        """
+        Получает доступные статистики для задания
+        """
         return self.task_types[task_type]['statistics']

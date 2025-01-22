@@ -1,3 +1,6 @@
+"""
+Module for parsing SQL-like expressions to API format
+"""
 import pyparsing
 from pyparsing import (
     Word,
@@ -7,13 +10,11 @@ from pyparsing import (
     alphanums,
     Forward,
     oneOf,
-    sglQuotedString,
     quotedString,
     infixNotation,
     opAssoc,
     restOfLine,
     CaselessKeyword,
-    ParserElement,
     pyparsing_common as ppc
 )
 
@@ -97,10 +98,10 @@ def _get_point(left_obj, logic_operand, right_obj):
     point = {}
     if logic_operand in ['in', 'notin', 'nin']:
         # ожидаем в правой части список атрибутов, бежим по нему
-        if type(right_obj) == list:
+        if isinstance(right_obj, list):
             point = {"unit": left_obj, "relation": str(logic_operand).upper(), "value": []}
             for robj in right_obj:
-                if type(robj) == str and (robj == '(' or robj == ')'):
+                if isinstance(robj, str) and (robj == '(' or robj == ')'):
                     # пропускаем скобки, объекты и так лежат в отдельном списке
                     continue
                 # формируем условие в json формате
@@ -125,13 +126,13 @@ def _find_points(obj):
     """
     Ищет в исходном объекте, объекты типа point и преобразует их в формат API
     """
-    if type(obj) == list:
-        if len(obj) == 3 and type(obj[0]) == str and obj[1] in ['=', '!=', 'in', 'nin', ">", "<", ">=", "<="]:
+    if isinstance(obj, list):
+        if len(obj) == 3 and isinstance(obj[0], str) and obj[1] in ['=', '!=', 'in', 'nin', ">", "<", ">=", "<="]:
             return _get_point(obj[0], obj[1], obj[2])
     i = 0
     while i < len(obj):
         obj_item = obj[i]
-        if type(obj_item) == list:
+        if isinstance(obj_item, list):
             obj[i] = _find_points(obj_item)
         i += 1
     return obj
@@ -153,16 +154,16 @@ def _parse_expr(obj):
     jdat : dict
         Условия фильтрации в формате API
     """
-    if type(obj) == list:
+    if isinstance(obj, list):
         jdata = {}
         for obj_item in obj:
-            if type(obj_item) == list:
+            if isinstance(obj_item, list):
                 ret_data = _parse_expr(obj_item)
                 if jdata.get('children') is None:
                     jdata['children'] = [ret_data]
                 else:
                     jdata['children'].append(ret_data)
-            elif type(obj_item) == dict:  # and 'point' in obj_item.keys():
+            elif isinstance(obj_item, dict):  # and 'point' in obj_item.keys():
                 if obj_item.get('elements') is None:
                     if jdata.get('elements') is None:
                         jdata['elements'] = []
@@ -171,10 +172,10 @@ def _parse_expr(obj):
                     if jdata.get('children') is None:
                         jdata['children'] = []
                     jdata['children'].append(obj_item)
-            elif type(obj_item) == str and obj_item in ['or', 'and']:
+            elif isinstance(obj_item, str) and obj_item in ['or', 'and']:
                 jdata["operand"] = obj_item.upper()
         return jdata
-    elif type(obj) == dict:
+    if isinstance(obj, dict):
         jdata = {'elements': []}
         jdata['elements'].append(obj)
         jdata["operand"] = 'OR'
@@ -203,7 +204,6 @@ def sql_to_json(sql_text):
 
     s = sql_obj.asList()[0]
     prep_points = _find_points(s)
-    
     return _parse_expr(prep_points)
 
 def sql_to_units(sql_text):
@@ -228,11 +228,10 @@ def sql_to_units(sql_text):
 
     s = sql_obj.asList()[0]
     prep_points = _find_points(s)
-    
     result = []
-    
-    if type(prep_points) == list:
-        result = [i['unit'] for i in prep_points if type(i) == dict]
+
+    if isinstance(prep_points, list):
+        result = [i['unit'] for i in prep_points if isinstance(i, dict)]
     else:
         result = [prep_points['unit']]
     return result
@@ -241,11 +240,11 @@ def sql_to_units(sql_text):
 def _get_sql_from_list(obj_name, obj_data, oper):
     result_text = ''
     if obj_data is not None:
-        if type(obj_data) == list:
+        if isinstance(obj_data, list):
             if len(obj_data) > 1:
                 result_text = f"{obj_name} {oper} ({','.join(str(x) for x in obj_data)})"
             elif len(obj_data) == 1:
                 result_text = f"{obj_name} = { obj_data[0]}"
-        elif type(obj_data) == str:
+        elif isinstance(obj_data, str):
             result_text = f"{obj_name} = { obj_data}"
     return result_text

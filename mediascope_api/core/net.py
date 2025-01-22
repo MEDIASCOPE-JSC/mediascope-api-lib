@@ -1,22 +1,29 @@
-import requests
-from urllib3.util import Retry
-from requests import Session
-from requests.adapters import HTTPAdapter
+"""
+Network module for Mediascope API
+"""
 import datetime
 import time
 import re
 import os
+from urllib3.util import Retry
+from requests import Session
+from requests.adapters import HTTPAdapter
 from . import errors
 from . import utils
 from . import cache
 
 
 class MediascopeApiNetwork:
+    """
+    Класс для работы с сетью Mediascope API
+    """
     DEFAULT_SETTINGS_FILENAME = 'settings.json'
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+        #if not hasattr(cls, 'instance'):
+        #    cls.instance = super(MediascopeApiNetwork, cls).__new__(cls, *args, **kwargs)
         return super(MediascopeApiNetwork, cls).__new__(cls, *args, **kwargs) #cls.instance
 
     def __init__(self, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -44,14 +51,14 @@ class MediascopeApiNetwork:
                 if os.path.exists(self.DEFAULT_SETTINGS_FILENAME):
                     settings_filename = self.DEFAULT_SETTINGS_FILENAME
                 else:
-                    raise Exception('Не указаны настройки для подключения к Mediascope-API')
+                    raise ValueError('Не указаны настройки для подключения к Mediascope-API')
 
             self.username, self.passw, self.root_url, self.client_id, \
                 self.client_secret, self.keycloak_url, proxy_server = utils.load_settings(settings_filename)
 
         if self.username is None or self.passw is None or self.root_url is None and \
                 self.client_id is None or self.client_secret is None or self.keycloak_url is None:
-            raise Exception('Не указаны настройки для подключения к Mediascope-API')
+            raise ValueError('Не указаны настройки для подключения к Mediascope-API')
 
         self.token = {}
 
@@ -109,13 +116,13 @@ class MediascopeApiNetwork:
             t = my_token_req.json()
             t['now'] = datetime.datetime.now()
             return t
-        elif my_token_req.status_code == 401:
-            raise Exception(f'Ошибка авторизации!',
-                            f'Не верный логин или пароль. Проверьте параметры указанные в файле: settings.json')
-        elif my_token_req.status_code == 403:
-            raise Exception(f'Ошибка авторизации!', f'Доступ запрещен.')
-        else:
-            raise Exception(f'Status code {my_token_req.status_code}', f'response: {my_token_req.text}')
+        if my_token_req.status_code == 401:
+            raise errors.AuthorizationError('Ошибка авторизации!\nНе верный логин или пароль. ' +
+                                            'Проверьте параметры указанные в файле: settings.json', 401)
+        if my_token_req.status_code == 403:
+            raise errors.AccessForbiddenError()
+        raise errors.MediascopeApiError(f'Status code {my_token_req.status_code} response: {my_token_req.text}',
+                                        my_token_req.status_code)
 
     def refresh_token(self):
         """
@@ -182,7 +189,8 @@ class MediascopeApiNetwork:
         headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                    'Content-Type': 'application/json; charset=utf-8'
                    }
-        req = getattr(self.session, method)(url=url, headers=headers, data=f'{data}'.encode('utf-8'), proxies=self.proxies)
+        req = getattr(self.session, method)(url=url, headers=headers, data=f'{data}'.encode('utf-8'),
+                                            proxies=self.proxies)
 
         if req.status_code == 200:
             # try to save in cache for next use
@@ -265,7 +273,7 @@ class MediascopeApiNetwork:
             if req.status_code == 200:
                 # try to save in cache for next use
                 rj = self._req_to_json(req, endpoint, data)
-                if rj is None or type(rj) != dict:
+                if rj is None or not isinstance(rj, dict):
                     break
                 if 'header' not in rj or 'data' not in rj:
                     break
@@ -280,7 +288,7 @@ class MediascopeApiNetwork:
                 if offset >= total:
                     is_reading = False
 
-                if type(rj['data']) == list:
+                if isinstance(rj['data'], list):
                     result_data.extend(rj['data'])
             else:
                 self._raise_error(req)
@@ -293,10 +301,7 @@ class MediascopeApiNetwork:
 
     def send_raw_request(self, method: str, endpoint: str, data: dict = None):
         """
-        Отправляет запрос в Mediascope-API
-
-        Parameters
-        ----------
+        Отправляет запрос в Mediascope-API, и получает результат в сыром виде (как есть - в тексте)
 
         method : str
             HTTP метод:
@@ -343,7 +348,6 @@ class MediascopeApiNetwork:
         else:
             self._raise_error(req)
             return None
-
 
     def send_crossweb_request(self, method: str, endpoint: str, data: dict = None):
         """
@@ -438,9 +442,9 @@ class MediascopeApiNetwork:
         self.refresh_token()
         url = self.root_url + endpoint
 
-        treq = list()
+        treq = []
         treq.append(f"curl --location --request {str(method).upper()} '{url}'")
-        treq.append(f"--header 'Content-Type: application/json'")
+        treq.append("--header 'Content-Type: application/json'")
         treq.append(f"--header 'Authorization: Bearer {self.token['access_token']}'")
         if len(data) > 0:
             treq.append(f"--data-raw '{data}'")
@@ -451,9 +455,9 @@ class MediascopeApiNetwork:
         try:
             result = req.json()
             return result
-        except:
+        except Exception as exc:
             log_file_name = 'json-error-' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + '.txt'
-            with open(log_file_name, "w") as log_file:
+            with open(log_file_name, "w", encoding="utf-8") as log_file:
                 log_file.write("JSON decode error")
                 log_file.write("\nEndpoint\n")
                 log_file.write(endpoint)
@@ -461,21 +465,21 @@ class MediascopeApiNetwork:
                 log_file.write(str(data))
                 log_file.write("\nJSON request answer\n")
                 log_file.write(req.text)
-            raise Exception('Ошибка', f'Ошибка JSON ответа. Пришлите файл {log_file_name} в Mediascope')
+            raise errors.ServerError(f'Ошибка JSON ответа. Пришлите файл {log_file_name} в Mediascope', 500) from exc
 
     @staticmethod
     def _raise_error(req):
         if req.status_code == 204:
-            raise Exception('Нет данных', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise errors.NoDataError(f'Сообщение: "{req.text}"', req.status_code)
         elif req.status_code == 401:
-            raise Exception('Не авторизирован', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise errors.AuthorizationError(f'Ошибка авторизации: "{req.text}"', req.status_code)
         elif req.status_code == 403:
-            raise Exception('Доступ запрещен', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise errors.AccessForbiddenError(f'Доступ запрещен: "{req.text}"', req.status_code)
         elif req.status_code == 400:
-            raise errors.HTTP400Error(req.status_code, req.text)
+            raise errors.BadRequestError(f'Не верный запрос: "{req.text}"', req.status_code)
         elif req.status_code == 429:
-            raise Exception('Слишком много запросов', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise errors.TooManyRequestsError(f'Слишком много запросов: "{req.text}"', req.status_code)
         elif req.status_code == 404:
-            raise errors.HTTP404Error(f'Code: {req.status_code}, Адрес или задача не найдена: "{req.text}"')
+            raise errors.NotFoundError(f'Ресурс не найден: "{req.text}"', req.status_code)
         else:
-            raise Exception('Ошибка', f'Code: {req.status_code}, Сообщение: "{req.text}"')
+            raise errors.MediascopeApiError(f'Ошибка: "{req.text}"', req.status_code)

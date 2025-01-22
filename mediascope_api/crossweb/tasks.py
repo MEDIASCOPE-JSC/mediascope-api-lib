@@ -1,9 +1,11 @@
+"""
+CrossWeb task module
+"""
+import time
 import datetime as dt
 import json
 import numpy as np
 import pandas as pd
-import time
-from pandas import DataFrame
 from . import catalogs
 from . import checks
 from ..core import errors
@@ -13,7 +15,9 @@ from ..core import utils
 
 
 class CrossWebTask:
-
+    """
+    Класс для работы с заданиями CrossWeb API
+    """
     task_urls = {
         'media': '/task/media',
         'total': '/task/media-total',
@@ -63,7 +67,7 @@ class CrossWebTask:
         """
         data = self.network_module.send_request_lo('get', '/dictionary/common/use-type', use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -81,14 +85,18 @@ class CrossWebTask:
         return pd.DataFrame(res)
 
     def _build_task(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
-                    demo_filter=None, mart_filter=None, duplication_mart_filter=None, ad_description_filter=None,
+                    base_geo_filter=None, demo_filter=None, base_demo_filter=None, mart_filter=None,
+                    duplication_mart_filter=None, ad_description_filter=None,
                     event_description_filter=None, media_usetype_filter=None, profile_usetype_filter=None,
                     media_filter=None, profile_filter=None, slices=None, statistics=None, scales=None):
-        
-        if not self.task_checker.check_task(task_type, date_filter, usetype_filter, geo_filter,
-                                            demo_filter, mart_filter, duplication_mart_filter, 
-                                            ad_description_filter, event_description_filter,
-                                            slices, statistics, scales):
+
+        if not self.task_checker.check_task(
+                task_type=task_type, date_filter=date_filter, usetype_filter=usetype_filter,
+                geo_filter=geo_filter, demo_filter=demo_filter, base_geo_filter=base_geo_filter,
+                base_demo_filter=base_demo_filter, mart_filter=mart_filter,
+                duplication_mart_filter=duplication_mart_filter, ad_description_filter=ad_description_filter,
+                event_description_filter=event_description_filter, slices=slices,
+                statistics=statistics, scales=scales):
             return
 
         # Собираем JSON
@@ -102,6 +110,8 @@ class CrossWebTask:
         self.task_builder.add_usetype_filter(tsk, usetype_filter)
         self.task_builder.add_filter(tsk, geo_filter, 'geoFilter')
         self.task_builder.add_filter(tsk, demo_filter, 'demoFilter')
+        self.task_builder.add_filter(tsk, base_geo_filter, 'baseGeoFilter')
+        self.task_builder.add_filter(tsk, base_demo_filter, 'baseDemoFilter')
         self.task_builder.add_filter(tsk, mart_filter, 'martFilter')
         self.task_builder.add_filter(tsk, duplication_mart_filter, 'duplicationMartFilter')
         self.task_builder.add_filter(tsk, ad_description_filter, 'adDescriptionFilter')
@@ -125,7 +135,9 @@ class CrossWebTask:
             'date_filter': date_filter,
             'usetype_filter': usetype_filter,
             'geo_filter': geo_filter,
+            'base_geo_filter': base_geo_filter,
             'demo_filter': demo_filter,
+            'base_demo_filter': base_demo_filter,
             'mart_filter': mart_filter,
             'duplication_mart_filter': duplication_mart_filter,
             'ad_description_filter': ad_description_filter,
@@ -144,7 +156,8 @@ class CrossWebTask:
 
 
     def build_task(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
-                   demo_filter=None, mart_filter=None, slices=None, statistics=None, scales=None):
+                   demo_filter=None, mart_filter=None, slices=None, statistics=None, scales=None, 
+                   base_geo_filter=None, base_demo_filter=None):
         """
         Формирует текст заданий total, media и ad для расчета статистик
 
@@ -175,21 +188,34 @@ class CrossWebTask:
                 usetype_filter = [1, 2, 3]
 
         geo_filter: list|None
-            Условия фильтрации по географии
+            Условия фильтрации таргета по географии
             Возможные варианты можно получить через метод `find_property` модуля catalogs:
             >>> cats.find_property('CityPop', expand=True)
             >>> cats.find_property('CityPop100', expand=True)
             >>> cats.find_property('FederalOkrug', expand=True)
 
+        base_geo_filter: list|None
+            Условия базовой фильтрации по географии
+            Возможные варианты можно получить через метод `find_property` модуля catalogs:
+            >>> cats.find_property('CityPop', expand=True)
+            >>> cats.find_property('CityPop100', expand=True)
+            >>> cats.find_property('FederalOkrug', expand=True)
 
         demo_filter: str|None
-            Условия фильтрации по демографическим атрибутам
+            Условия фильтрации таргета по демографическим атрибутам
             Пример:
                 demo_filter = "sex = 1 AND occupation = 1"
 
             Список допустимых атрибутов можно получить через метод `get_media_unit` модуля catalogs:
             >>> cats.get_media_unit()['filters']['demo']
 
+        base_demo_filter: str|None
+            Условия базовой фильтрации по демографическим атрибутам
+            Пример:
+                demo_filter = "sex = 1 AND occupation = 1"
+
+            Список допустимых атрибутов можно получить через метод `get_media_unit` модуля catalogs:
+            >>> cats.get_media_unit()['filters']['demo']
 
         mart_filter: str|None
             Условия фильтрации по медиа-объектам
@@ -198,7 +224,7 @@ class CrossWebTask:
 
             Список допустимых атрибутов можно получить через метод `get_media_unit` модуля catalogs:
             >>> cats.get_media_unit()['filters']['mart']
-        
+
         slices: list
             Порядок разбивки результата расчета, задается в виде списка
             Пример:
@@ -228,15 +254,16 @@ class CrossWebTask:
         text : json
             Задание в формате CrossWeb API
         """
-        
-        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter, 
-                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter, 
-                                duplication_mart_filter=None, ad_description_filter=None, event_description_filter=None, 
+
+        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter,
+                                geo_filter=geo_filter, demo_filter=demo_filter, base_demo_filter=base_demo_filter,
+                                base_geo_filter=base_geo_filter, mart_filter=mart_filter,
+                                duplication_mart_filter=None, ad_description_filter=None, event_description_filter=None,
                                 slices=slices, statistics=statistics, scales=scales)
-    
+
     def build_task_monitoring(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
-                              demo_filter=None, mart_filter=None, ad_description_filter=None, event_description_filter=None,
-                              slices=None, statistics=None, scales=None):
+                              demo_filter=None, mart_filter=None, ad_description_filter=None,
+                              event_description_filter=None, slices=None, statistics=None, scales=None):
         """
         Формирует текст задания мониторинга для расчета статистик
 
@@ -288,7 +315,7 @@ class CrossWebTask:
 
             Список допустимых атрибутов можно получить через метод `get_monitoring_unit` модуля catalogs:
             >>> cats.get_monitoring_unit()['filters']['mart']
-     
+
         ad_description_filter: str|None
             Условия фильтрации по описанию рекламы
             Пример:
@@ -296,7 +323,7 @@ class CrossWebTask:
 
             Список допустимых атрибутов можно получить через метод `get_monitoring_unit` модуля catalogs:
             >>> cats.get_monitoring_unit()['filters']['adDescription']
-            
+
         event_description_filter: str|None
             Условия фильтрации по описанию событий рекламы
             Пример:
@@ -334,15 +361,16 @@ class CrossWebTask:
         text : json
             Задание в формате CrossWeb API
         """
-        
-        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter, 
-                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter, 
-                                duplication_mart_filter=None, ad_description_filter=ad_description_filter, 
-                                event_description_filter=event_description_filter, slices=slices, statistics=statistics, 
+
+        return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter,
+                                geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter,
+                                duplication_mart_filter=None, ad_description_filter=ad_description_filter,
+                                event_description_filter=event_description_filter, slices=slices, statistics=statistics,
                                 scales=scales)
-    
-    def build_task_media_duplication(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
-                              demo_filter=None, mart_filter=None, duplication_mart_filter=None, slices=None, statistics=None, scales=None):
+
+    def build_task_media_duplication(self, task_type, task_name='', date_filter=None, usetype_filter=None,
+                                     geo_filter=None, demo_filter=None, mart_filter=None, duplication_mart_filter=None,
+                                     slices=None, statistics=None, scales=None):
         """
         Формирует текст задания пересечения для расчета статистик
 
@@ -394,7 +422,7 @@ class CrossWebTask:
 
             Список допустимых атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
             >>> cats.get_media_duplication_unit()['filters']['mart']
-        
+
         duplication_mart_filter: str|None
             Условия фильтрации по медиа-объектам для пересечения
             Пример:
@@ -416,7 +444,8 @@ class CrossWebTask:
             Пример:
                 statistics = ['reach', 'reachPer', 'dr']
 
-            Список допустимых названий атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            Список допустимых названий атрибутов можно получить через
+            метод `get_media_duplication_unit` модуля catalogs:
             >>> cats.get_media_duplication_unit()['statistics']
 
         scales : dict|None
@@ -432,7 +461,7 @@ class CrossWebTask:
         text : json
             Задание в формате CrossWeb API
         """
-        
+
         return self._build_task(task_type, task_name=task_name, date_filter=date_filter, usetype_filter=usetype_filter,
                                 geo_filter=geo_filter, demo_filter=demo_filter, mart_filter=mart_filter,
                                 duplication_mart_filter=duplication_mart_filter, ad_description_filter=None,
@@ -508,7 +537,8 @@ class CrossWebTask:
             Пример:
                 statistics = ['reach', 'reachPer', 'dr']
 
-            Список допустимых названий атрибутов можно получить через метод `get_media_duplication_unit` модуля catalogs:
+            Список допустимых названий атрибутов можно получить через
+            метод `get_media_duplication_unit` модуля catalogs:
             >>> cats.get_media_duplication_unit()['statistics']
 
         scales : dict|None
@@ -538,12 +568,12 @@ class CrossWebTask:
         if data is None:
             return
 
-        if task_type not in self.task_urls.keys():
+        if task_type not in self.task_urls:
             return
 
         try:
             return self.network_module.send_request('post', self.task_urls[task_type], data)
-        except errors.HTTP400Error as e:
+        except errors.BadRequestError as e:
             print(f"Ошибка: {e}")
 
     def send_task(self, data):
@@ -566,8 +596,8 @@ class CrossWebTask:
             print('Задание пустое')
             return
         task_type = json.loads(data)['task_type']
-        if task_type not in self.task_urls.keys():
-            print(f'Не верно указать тип задания, допустимые значения: {self.task_urls.keys().join(",")}')
+        if task_type not in self.task_urls:
+            print(f'Не верно указать тип задания, допустимые значения: {", ".join(self.task_urls.keys())[:-2]}')
             return
         return self._send_task(task_type, data)
 
@@ -627,7 +657,7 @@ class CrossWebTask:
 
         """
         return self._send_task('ad', data)
-    
+
     def send_monitoring_task(self, data):
         """
         Отправить задание на расчет аудиторных статистик по мониторингу
@@ -646,7 +676,7 @@ class CrossWebTask:
 
         """
         return self._send_task('monitoring', data)
-    
+
     def send_media_duplication_task(self, data):
         """
         Отправить задание на расчет аудиторных статистик по пересечению ресурсов
@@ -740,7 +770,7 @@ class CrossWebTask:
         tsk : dict|list
             Возвращает задание или список заданий
         """
-        if type(tsk) == dict:
+        if isinstance(tsk, dict):
             if tsk.get('taskId') is not None:
                 tid = tsk.get('taskId', None)
                 task_state = ''
@@ -749,12 +779,12 @@ class CrossWebTask:
                 while cnt < 5:
                     try:
                         time.sleep(status_delay)
-                        task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
-                    except errors.HTTP404Error:
+                        task_state_obj = self.network_module.send_request('get', f'/task/state/{tid}')
+                    except errors.NotFoundError:
                         cnt += 1
                         print(cnt)
-                    except Exception:
-                        raise Exception('Ошибка при получении статуса задания')
+                    except errors.MediascopeApiError("Ошибка получения статуса задания") as e:
+                        raise e
                     else:
                         break
 
@@ -767,9 +797,11 @@ class CrossWebTask:
                 while task_state == 'IN_QUEUE' or task_state == 'IN_PROGRESS':
                     print('=', end=' ')
                     time.sleep(status_delay)
-                    task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tsk['taskId']))
+                    task_state_obj = self.network_module.send_request('get', f'/task/state/{tsk["taskId"]}')
                     if task_state_obj is not None:
                         task_state = task_state_obj.get('taskStatus', '')
+                if task_state == 'FAILED':
+                    print(f"Задача завершилась с ошибкой: {task_state_obj.get('message', '')}")
                 time.sleep(1)
                 e = dt.datetime.now()
                 print(f"] время расчета: {str(e - s)}")
@@ -779,7 +811,7 @@ class CrossWebTask:
                     tsk['dtFinish'] = task_state_obj.get('dtFinish', '')
                     tsk['taskProcessingTimeSec'] = task_state_obj.get('taskProcessingTimeSec', '')
                     return tsk
-        elif type(tsk) == list:
+        elif isinstance(tsk, list):
             task_list = list()
             # получим все идентификаторы заданий
             for t in tsk:
@@ -799,13 +831,13 @@ class CrossWebTask:
                     tid = t['task']['taskId']
                     task_state = ''
                     time.sleep(task_delay)
-                    task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
+                    task_state_obj = self.network_module.send_request('get', f'/task/state/{tid}')
                     if task_state_obj is not None:
                         task_state = task_state_obj.get('taskStatus', '')
 
-                    if task_state == 'IN_PROGRESS' or task_state == 'PENDING' or task_state == 'IN_QUEUE' or task_state == 'IDLE':
+                    if task_state in ('IN_PROGRESS', 'PENDING', 'IN_QUEUE', 'IDLE'):
                         continue
-                    elif task_state == 'DONE':
+                    if task_state == 'DONE':
                         t['task']['message'] = 'DONE'
                         t['task']['dtRegister'] = task_state_obj.get('dtRegister', '')
                         t['task']['dtFinish'] = task_state_obj.get('dtFinish', '')
@@ -821,7 +853,7 @@ class CrossWebTask:
                     break
 
             if len(errs) > 0:
-                print(f"Одна или несколько задач завершились с ошибкой")
+                print("Одна или несколько задач завершились с ошибкой")
                 for tid, task_state in errs.items():
                     print(f"Задача: {tid} состояние: {task_state}")
                 return None
@@ -862,7 +894,7 @@ class CrossWebTask:
         if tsk.get('taskId') is not None:
 
             tid = tsk.get('taskId', None)
-            task_state_obj = self.network_module.send_request('get', '/task/state/{}'.format(tid))
+            task_state_obj = self.network_module.send_request('get', f'/task/state/{tid}')
             return task_state_obj
 
     def get_result(self, tsk):
@@ -884,7 +916,7 @@ class CrossWebTask:
         """
         if tsk is None or tsk.get('taskId') is None:
             return None
-        return self.network_module.send_request('get', '/task/result/{}'.format(tsk['taskId']))
+        return self.network_module.send_request('get', f'/task/result/{tsk["taskId"]}')
 
     def restart_task(self, tsk: dict):
         """
@@ -916,7 +948,7 @@ class CrossWebTask:
         """
         if tsk.get('taskId') is not None:
             tid = tsk.get('taskId', None)
-            task_state_obj = self.network_module.send_request('get', '/task/state/restart/{}'.format(tid))
+            task_state_obj = self.network_module.send_request('get', f'/task/state/restart/{tid}')
             return task_state_obj
 
     def restart_tasks(self, tsk_ids: list):
@@ -981,7 +1013,7 @@ class CrossWebTask:
         """
         if tsk.get('taskId') is not None:
             tid = tsk.get('taskId', None)
-            task_state_obj = self.network_module.send_request('get', '/task/state/cancel/{}'.format(tid))
+            task_state_obj = self.network_module.send_request('get', f'/task/state/cancel/{tid}')
             return task_state_obj
 
     def cancel_tasks(self, tsk_ids: list):
@@ -1037,13 +1069,13 @@ class CrossWebTask:
             DataFrame с результатом выполнения задания
         """
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'taskId' not in data or 'resultBody' not in data:
             return None
 
-        if type(data['resultBody']) == list and len(data['resultBody']) == 0:
+        if isinstance(data['resultBody'], list) and len(data['resultBody']) == 0:
             msg = data.get('message', None)
             if msg is not None:
                 print(msg)
@@ -1098,7 +1130,7 @@ class CrossWebTask:
         return df
 
     def _get_text_name_for(self, df: pd.DataFrame, entity_name: str, with_id=True):
-        if type(df) != pd.DataFrame:
+        if not isinstance(df, pd.DataFrame):
             return
         id_name = ''
         if with_id:
@@ -1115,13 +1147,13 @@ class CrossWebTask:
         return df
 
     def _get_text_name_for_mart(self, df: pd.DataFrame):
-        if type(df) != pd.DataFrame:
+        if not isinstance(df, pd.DataFrame):
             return
         matr_attributes = self.cats.get_slices('mart')
         pos = 0
         for col in df.columns:
             pos += 1
-            if "duplication" not in col: 
+            if "duplication" not in col:
                 if col not in matr_attributes:
                     continue
             _attrs = pd.DataFrame()
@@ -1137,25 +1169,25 @@ class CrossWebTask:
                 continue
             if col[:-2] + 'Name' in df.columns:
                 continue
-            _attrs['id'] = _attrs['id'].astype('str')            
+            _attrs['id'] = _attrs['id'].astype('str')
             df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])
             pos += 1
         return df
-    
+
     def _get_text_name_for_ad_description(self, df: pd.DataFrame):
-        if type(df) != pd.DataFrame:
+        if not isinstance(df, pd.DataFrame):
             return
         ad_description_attributes = self.cats.get_slices('adDescription')
-        
+
         pos = 0
         for col in df.columns:
-            pos += 1            
+            pos += 1
             if col not in ad_description_attributes:
                 continue
             if col[:-2] + 'Name' in df.columns:
                 continue
             _attrs = pd.DataFrame()
-            if col == 'productBrandId':                
+            if col == 'productBrandId':
                 _attrs = self.cats.get_product_brand(product_brand_ids = df[col].unique().tolist())
             elif col == 'productSubbrandId':
                 _attrs = self.cats.get_product_subbrand(product_subbrand_ids = df[col].unique().tolist())
@@ -1179,17 +1211,17 @@ class CrossWebTask:
         return df
 
     def _get_text_name_for_event_description(self, df: pd.DataFrame):
-        if type(df) != pd.DataFrame:
+        if not isinstance(df, pd.DataFrame):
             return
         event_description_attributes = self.cats.get_slices('eventDescription')
-        
+
         pos = 0
         for col in df.columns:
-            pos += 1            
+            pos += 1
             if col not in event_description_attributes:
-                continue            
+                continue
             if col[:-2] + 'Name' in df.columns:
-                continue            
+                continue
             _attrs = pd.DataFrame()
             if col == 'adSourceTypeId':
                 _attrs = self.cats.ad_source_type
@@ -1211,7 +1243,7 @@ class CrossWebTask:
             df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])
             pos += 1
         return df
-    
+
     def get_excel_filename(self, task_name, export_path='../excel', add_dates=True):
         """
         Получить имя excel файла
@@ -1234,17 +1266,15 @@ class CrossWebTask:
             Путь и имя excel файла
         """
         return self.task_builder.get_excel_filename(task_name, export_path, add_dates)
-    
+
     def get_report_info(self):
         """
         Возвращает информацию о расчитываемом отчете в виде DataFrame, которая была предварительно сохранена
-        
+
         Returns
         -------
         result: DataFrame
             Информация о расчитываемом отчете
         """
-        
+
         return self.task_builder.get_report_info()
-
-

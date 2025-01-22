@@ -1,13 +1,13 @@
+"""
+Responsum task module
+"""
 import os
-import json
-import pandas as pd
-from ..core import net
-from . import catalogs
 import time
 import datetime as dt
 import hashlib
 import re
-
+import json
+import pandas as pd
 from pyparsing import (
     Word,
     delimitedList,
@@ -21,12 +21,15 @@ from pyparsing import (
     opAssoc,
     restOfLine,
     CaselessKeyword,
-    ParserElement,
     pyparsing_common as ppc
 )
-
+from ..core import net
+from . import catalogs
 
 class ResponsumTask:
+    """
+    Класс для работы с заданиями Responsum
+    """
     STRUCT_NAMES = ["holding", "site", "section", "subsection", "network", "network_section", "network_subsection",
                     "ad_agency", "brand", "position", "subbrand"]
     AUDIENCE_STAT = ["ADF", "ADO", "ADR", "ADRPer", "Affinity", "AffinityIn", "AMF", "AMO", "AMR", "AMRPer", "AvAge",
@@ -38,18 +41,17 @@ class ResponsumTask:
     DURATION_STAT = ["ATT", "ADDperU", "ADDperP", "ADDperUTotal", "ADDperPTotal", "DATT"]
     USETYPES_DICT = {1: "desktop", 2: "mobile-web", 3: "mobile-app-online", 4: "mobile-app-offline", 34: "mobile-app"}
 
-    def __new__(cls, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
-                username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+    def __new__(cls, facility_id, settings_filename: str = None, cache_path: str = None,
+                cache_enabled: bool = True, username: str = None, passw: str = None, root_url: str = None,
+                client_id: str = None, client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         if not hasattr(cls, 'instance'):
             cls.instance = super(ResponsumTask, cls).__new__(cls, *args)
         return cls.instance
 
-    def __init__(self, facility_id, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
-                 username: str = None, passw: str = None, root_url: str = None, client_id: str = None,
-                 client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
+    def __init__(self, facility_id, settings_filename: str = None, cache_path: str = None,
+                 cache_enabled: bool = True, username: str = None, passw: str = None, root_url: str = None,
+                 client_id: str = None, client_secret: str = None, keycloak_url: str = None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        ParserElement.enablePackrat()
         self.rnet = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw, root_url,
                                              client_id, client_secret, keycloak_url)
         self.rcats = catalogs.ResponsumCats(facility_id, settings_filename, cache_path)
@@ -63,16 +65,16 @@ class ResponsumTask:
     def _prepare_sql_parser():
         """
         Подготовка SQL-like парсера для разбора условий в фильтрах.
-        
+
         Returns
         -------
-        
+
         simple_sql : obj
             Объект класса, отвечающего за парсинг.
         """
         # define SQL tokens
         select_stmt = Forward()
-        AND, OR, IN, NOTIN = map(
+        op_and, op_or, op_in, op_notin = map(
             CaselessKeyword, "and or in notin".split()
         )
 
@@ -89,14 +91,14 @@ class ResponsumTask:
         )  # need to add support for alg expressions
         where_condition = Group(
             (column_name + binop + column_rval)
-            | (column_name + IN + Group("(" + delimitedList(column_rval) + ")"))
-            | (column_name + IN + Group("(" + select_stmt + ")"))
-            | (column_name + NOTIN + Group("(" + delimitedList(column_rval) + ")"))
+            | (column_name + op_in + Group("(" + delimitedList(column_rval) + ")"))
+            | (column_name + op_in + Group("(" + select_stmt + ")"))
+            | (column_name + op_notin + Group("(" + delimitedList(column_rval) + ")"))
         )
 
         where_expression = infixNotation(
             where_condition,
-            [(AND, 2, opAssoc.LEFT), (OR, 2, opAssoc.LEFT), ],
+            [(op_and, 2, opAssoc.LEFT), (op_or, 2, opAssoc.LEFT), ],
         )
 
         # define the grammar
@@ -111,23 +113,23 @@ class ResponsumTask:
     def _get_point(self, left_obj, logic_oper, right_obj):
         """
         Формирует объект - point, понятный для API Responsum.
-        
+
         Parameters
         ----------
-        
+
         left_obj : str
             Левая часть выражения.
         logic_oper : str
             Логический оператор.
         right_obj : obj
             Правая часть выражения.
-        
-        
+
+
         Returns
         -------
         point : dict
             Объект - point, понятный для API Responsum.
-        
+
         """
         # корректируем демо атрибуты: переводим названия в идентификаторы
         if left_obj in self.demo_dict:
@@ -136,10 +138,10 @@ class ResponsumTask:
         point = {}
         if logic_oper == 'in' or logic_oper == 'notin':
             # ожидаем в правой части список атрибутов, бежим по нему
-            if type(right_obj) == list:
+            if isinstance(right_obj, list):
                 point = {"children": []}
                 for robj in right_obj:
-                    if type(robj) == str and (robj == '(' or robj == ')'):
+                    if isinstance(robj, str) and (robj in ['(', ')']):
                         # пропускаем скобки, объекты и так лежат в отдельном списке
                         continue
                     # формируем условие в json формате
@@ -163,14 +165,14 @@ class ResponsumTask:
         """
         Ищет в исходном объекте объекты типа point и преобразует их в формат Responsum API
         """
-        if type(obj) == list:
-            if len(obj) == 3 and type(obj[0]) == str and obj[1] in ['=', '!=', '>', '<', 'in', 'notin']:
+        if isinstance(obj, list):
+            if len(obj) == 3 and isinstance(obj[0], str) and obj[1] in ['=', '!=', '>', '<', 'in', 'notin']:
                 return self._get_point(obj[0], obj[1], obj[2])
 
         i = 0
         while i < len(obj):
             obj_item = obj[i]
-            if type(obj_item) == list:
+            if isinstance(obj_item, list):
                 obj[i] = self._find_points(obj_item)
             i += 1
         return obj
@@ -178,32 +180,32 @@ class ResponsumTask:
     def _parse_expr(self, obj):
         """
         Преобразует выражение для фильтрации из набора вложенных списков в формат Responsum API.
-        
+
         Parameters
         ----------
-        
+
         obj : dict | list
             Объект с условиями фильтрации в виде набора вложенных списков, полученный после работы SQL парсера.
-            
-        
+
+
         Returns
         -------
         jdat : dict
             Условия фильтрации в формате Responsum API.
         """
-        if type(obj) == list:
+        if isinstance(obj, list):
             jdat = {'children': []}
             for obj_item in obj:
-                if type(obj_item) == list:
+                if isinstance(obj_item, list):
                     ret_data = self._parse_expr(obj_item)
                     jdat['children'].append(ret_data)
-                elif type(obj_item) == dict:  # and 'point' in obj_item.keys():
+                elif isinstance(obj_item, dict):  # and 'point' in obj_item.keys():
                     jdat['children'].append(obj_item)
-                elif type(obj_item) == str and obj_item in ['or', 'and']:
+                elif isinstance(obj_item, str) and obj_item in ['or', 'and']:
                     jdat["logic"] = obj_item.upper()
                     jdat["isNot"] = False
             return jdat
-        elif type(obj) == dict:
+        elif isinstance(obj, dict):
             jdat = {'children': []}
             jdat['children'].append(obj)
             jdat["logic"] = 'OR'
@@ -213,19 +215,19 @@ class ResponsumTask:
     def _sql_to_json(self, sql_text):
         """
         Преобразует условие фильтрации, записанное в SQL нотации, в формат Responsum API.
-        
+
         Parameters
         ----------
-        
+
         sql_text : str
             Текст условия в SQL формате.
-            
-        
+
+
         Returns
         -------
         obj : dict
             Условия фильтрации в формате Responsum API.
-            
+
         """
 
         sql_obj = self.sql_parser.parseString(sql_text)
@@ -236,14 +238,17 @@ class ResponsumTask:
 
     @staticmethod
     def get_sql_from_list(obj_name, obj_data):
+        """
+        Преобразует список в строку для использования в SQL запросе.
+        """
         result_text = ''
         if obj_data is not None:
-            if type(obj_data) == list:
+            if isinstance(obj_data, list):
                 if len(obj_data) > 1:
                     result_text = f"{obj_name} in ({','.join(str(x) for x in obj_data)})"
                 elif len(obj_data) == 1:
                     result_text = f"{obj_name} = { obj_data[0]}"
-            elif type(obj_data) == str:
+            elif isinstance(obj_data, str):
                 result_text = f"{obj_name} = { obj_data}"
         return result_text
 
@@ -277,7 +282,7 @@ class ResponsumTask:
             tsk['statistics']['scales'] = scales
 
         #  Добавляем фильтр по usetype
-        if usetype_filter is not None and type(usetype_filter) == list:
+        if usetype_filter is not None and isinstance(usetype_filter, list):
             if is_duration:
                 if 3 in usetype_filter and 4 not in usetype_filter:
                     usetype_filter.append(4)
@@ -411,7 +416,7 @@ class ResponsumTask:
             Также необходимо указать заданную переменную при отправке задания.
             Пример:
             build_audience_task(self, ..., reach_n=reach_n)
-            
+
         excl_use: list
             Шкала для ExclUse, ее значения соответствуют значениям use type.
             Для расчета необходимо прописать переменную excl_use с требуемыми параметрами в виде списка со словарем.
@@ -419,12 +424,12 @@ class ResponsumTask:
             excl_use = [ {"from": 1, "to": 1},
                          {"from": 2, "to": 2},
                          {"from": 3, "to": 3},
-                         {"from": 4, "to": 4}                  
-                       ] 
+                         {"from": 4, "to": 4}
+                       ]
             Также необходимо указать заданную переменную при отправке задания.
             Пример:
             build_audience_task(self, ..., excl_use=excl_use)
-            
+
         Returns
         -------
         text : json
@@ -432,10 +437,10 @@ class ResponsumTask:
         """
         error_text = self._check_task_params(date_from, date_to, facility, statistics, structure, self.AUDIENCE_STAT)
         if 'ReachN' in statistics:
-            if reach_n is None or type(reach_n) != list or len(reach_n) == 0:
+            if reach_n is None or not isinstance(reach_n, list) or len(reach_n) == 0:
                 error_text += 'Для статистики ReachN не задана шкала (переменная reach_n) или она пустая.\n'
         if 'ExclUseOTSN' in statistics or 'ExclUseReachN' in statistics:
-            if excl_use is None or type(excl_use) != list or len(excl_use) == 0:
+            if excl_use is None or not isinstance(excl_use, list) or len(excl_use) == 0:
                 error_text += 'Для статистик ExclUseOTSN/ExclUseReachN не задана шкала (переменная excl_use) или ' \
                               'она пустая.\n'
 
@@ -594,36 +599,36 @@ class ResponsumTask:
             error_text += 'date_from должна быть задана, формат: YYYY-MM-DD\n'
         if date_to is None:
             error_text += 'date_to должна быть задана, формат: YYYY-MM-DD\n'
-        if statistics is None or type(statistics) != list or len(statistics) == 0:
+        if statistics is None or not isinstance(statistics, list) or len(statistics) == 0:
             error_text += 'не заданы статистики для задания.\n'
-        if structure is None or type(structure) != dict or len(structure) == 0:
+        if structure is None or not isinstance(structure, dict) or len(structure) == 0:
             error_text += 'не задана структура для результата.\n'
         strucat_date = structure.get('date', None)
         if strucat_date is not None and (strucat_date != 'day' and strucat_date != 'week' and strucat_date != 'month'
                                          and strucat_date != 'weekDay' and strucat_date != 'absence'):
             error_text += 'В структуре отчета в date допускаются значения: day, week, month, weekDay, absence .\n'
         struct_demo = structure.get('demo', None)
-        if struct_demo is not None and (type(struct_demo) != list or len(struct_demo) == 0):
+        if struct_demo is not None and (not isinstance(struct_demo, list) or len(struct_demo) == 0):
             error_text += 'Разбивка по DEMO должна быть задана в виде списка демо-переменных ["SEX", "AGE", ...].\n'
         strucat_media = structure.get('media', None)
-        if strucat_media is not None and (type(strucat_media) != list or len(strucat_media) == 0):
+        if strucat_media is not None and (not isinstance(strucat_media, list) or len(strucat_media) == 0):
             error_text += 'Разбивка по MEDIA должна быть задана в виде списка ["holding", "site", ...].\n'
         for stat in statistics:
             if stat not in stat_list:
                 error_text += f'Статистика: {stat} не найдена.\n'
         if 'Uni' in statistics and 'media' in structure:
-            error_text += f'Разбивка по MEDIA не применима для статистики Uni.\n'
+            error_text += 'Разбивка по MEDIA не применима для статистики Uni.\n'
         if 'Uni' in statistics and structure['usetype'] is True:
-            error_text += f'Разбивка по USETYPE не применима для статистики Uni.\n'
+            error_text += 'Разбивка по USETYPE не применима для статистики Uni.\n'
         if 'Smp' in statistics and 'media' in structure:
-            error_text += f'Разбивка по MEDIA не применима для статистики Smp.\n'
+            error_text += 'Разбивка по MEDIA не применима для статистики Smp.\n'
         if 'Smp' in statistics and structure['usetype'] is True:
-            error_text += f'Разбивка по USETYPE не применима для статистики Smp.\n'
+            error_text += 'Разбивка по USETYPE не применима для статистики Smp.\n'
         return error_text
 
     def _convert_demo_structure(self, structure):
         # корректируем демо атрибуты: переводим названия в идентификаторы
-        if structure.get('demo', None) is not None and type(structure['demo']) == list:
+        if structure.get('demo', None) is not None and isinstance(structure['demo'], list):
             demo_vals = []
             for v in structure['demo']:
                 key = str(v).lower()
@@ -637,19 +642,19 @@ class ResponsumTask:
     def send_audience_task(self, data):
         """
         Отправить задание на расчет аудиторных статистик.
-        
+
         Parameters
         ----------
-        
+
         data : str
             Текст задания в JSON формате.
-            
-        
+
+
         Returns
         -------
         text : json
             Ответ сервера, содержит taskid, который будет необходим для получения результата.
-            
+
         """
         if data is not None:
             return self.rnet.send_request('post', '/task/audience', data)
@@ -659,19 +664,19 @@ class ResponsumTask:
     def send_duplication_task(self, data):
         """
         Отправить задание типа duplication, для расчета пересечения аудиторий.
-        
+
         Parameters
         ----------
-        
+
         data : str
             Текст задания в JSON формате.
-            
-        
+
+
         Returns
         -------
         text : json
             Ответ сервера, содержит taskid, который будет необходим для получения результата.
-            
+
         """
         if data is not None:
             return self.rnet.send_request('post', '/task/duplication', data)
@@ -681,19 +686,19 @@ class ResponsumTask:
     def _send_duration_task(self, data):
         """
         Отправить задание типа duration, для расчета статистик по длительностям.
-        
+
         Parameters
         ----------
-        
+
         data : str
             Текст задания в JSON формате.
-            
-        
+
+
         Returns
         -------
         text : json
             Ответ сервера, содержит taskid, который будет необходим для получения результата.
-            
+
         """
         if data is not None:
             return self.rnet.send_request('post', '/task/audience-duration', data)
@@ -701,9 +706,12 @@ class ResponsumTask:
             return None
 
     def wait_task(self, tsk):
+        """
+        Ожидание завершения задания.
+        """
         if tsk is None:
             return None
-        if type(tsk) == dict:
+        if isinstance(tsk, dict):
             msgs = tsk.get('messages', None)
             for msg in msgs:
                 print(msg)
@@ -711,13 +719,13 @@ class ResponsumTask:
             if tsk.get('taskId') is not None:
                 tid = tsk.get('taskId', None)
                 time.sleep(1)
-                tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tid))
+                tstate = self.rnet.send_raw_request('get', f'/task/state?task-id={tid}')
                 print('Расчет задачи [ ', end='')
                 s = dt.datetime.now()
                 while tstate == 'IN_PROGRESS' or tstate == 'PENDING' or tstate == 'IN_QUEUE' or tstate == 'IDLE':
                     print('=', end=' ')
                     time.sleep(3)
-                    tstate = self.rnet.send_raw_request('get', '/task/state?task-id={}'.format(tsk['taskId']))
+                    tstate = self.rnet.send_raw_request('get', f'/task/state?task-id={tsk["taskId"]}')
                 time.sleep(1)
                 e = dt.datetime.now()
                 print(f"] время расчета: {str(e - s)}")
@@ -725,7 +733,7 @@ class ResponsumTask:
                     return tsk
                 else:
                     print(f" Задача завершена со статутом: {tstate}")
-        elif type(tsk) == list:
+        elif isinstance(tsk, list):
             tasks = list()
             # получим все идентификаторы заданий
             for t in tsk:
@@ -750,7 +758,7 @@ class ResponsumTask:
                 if tstates is None:
                     print("Ошибка при получении статусов заданий")
                     return None
-                if type(tstates) == dict:
+                if isinstance(tstates, dict):
                     for tid, tstate in tstates.items():
                         if tstate == 'IN_PROGRESS' or tstate == 'PENDING' or tstate == 'IN_QUEUE' or tstate == 'IDLE':
                             continue
@@ -762,9 +770,8 @@ class ResponsumTask:
                 print('=', end=' ')
                 if done_count == len(tsk):
                     break
-            # print("]")
             if len(errors) > 0:
-                print(f"Одна или несколько задач завершились с ошибкой")
+                print("Одна или несколько задач завершились с ошибкой")
                 for tid, tstate in errors.items():
                     print(f"Задача: {tid} состояние: {tstate}")
                 return None
@@ -775,23 +782,23 @@ class ResponsumTask:
     def get_result(self, tsk):
         """
         Получить результат выполнения задания по его ID.
-        
+
         Parameters
         ----------
-        
+
         tsk : dict
             Задание
-            
-        
+
+
         Returns
         -------
         text : json
             Результат выполнения задания в JSON формате.
-            
+
         """
         if tsk is None or tsk.get('taskId') is None:
             return None
-        return self.rnet.send_request('get', '/task/result?task-id={}'.format(tsk['taskId']))
+        return self.rnet.send_request('get', f'/task/result?task-id={tsk["taskId"]}')
 
     @staticmethod
     def _result2table(data, axis_y=None):
@@ -806,7 +813,7 @@ class ResponsumTask:
 
         axis_y : list
             Список осей, которые хотим поместить из столбцов в строки.
-            
+
             Пример.
             В отчете присутствует разбивка по двум демографическим переменным:
                 - пол
@@ -859,7 +866,7 @@ class ResponsumTask:
             coord = cell['coord']
             # строим оси для Y
             for ay in axis_y:
-                ay_name = '{}Point'.format(ay)
+                ay_name = f'{ay}Point'
                 if coord.get(ay_name) is None:
                     continue
                 point = coord[ay_name]
@@ -871,7 +878,7 @@ class ResponsumTask:
                     ay_keys[ay].add(point_type)
             # строим оси для X
             for ax in axis_x:
-                ax_name = '{}Point'.format(ax)
+                ax_name = f'{ax}Point'
                 if coord.get(ax_name) is None:
                     continue
                 point = coord[ax_name]
@@ -893,7 +900,7 @@ class ResponsumTask:
         for cell in cells:
             coord = cell['coord']
             for ay in axis_y:
-                ay_name = '{}Point'.format(ay)
+                ay_name = f'{ay}Point'
                 if coord.get(ay_name) is None:
                     continue
                 point = coord[ay_name]
@@ -916,7 +923,7 @@ class ResponsumTask:
                     res[col_attr_val].append(point_val)
 
             for ax in axis_x:
-                ax_name = '{}Point'.format(ax)
+                ax_name = f'{ax}Point'
                 if coord.get(ax_name) is None:
                     continue
                 point = coord[ax_name]
@@ -960,7 +967,7 @@ class ResponsumTask:
 
         axis_y : list
             Список осей, которые хотим поместить из столбцов в строки.
-            
+
             Пример.
             В отчете присутствует разбивка по двум демографическим переменным:
                 - пол
@@ -1041,7 +1048,7 @@ class ResponsumTask:
         # если передали что-то в осях Y, удаляем их из X
         if 'taskId' not in data:
             return None
-        res, ay_keys = self._result2table(data)
+        res, _ = self._result2table(data)
         # Корректируем название столбцов для ReachN
 
         res_size = 1000000000
@@ -1073,7 +1080,8 @@ class ResponsumTask:
                 lev = levels[cname]
                 break
             # Ищем для не пустого значения позицию в каталоге медиа-дерева
-            cat_rows = self.rcats.holdings[self.rcats.holdings[f'{self._map_media_tree_id(necol_name)}_id'] == necol_val].iloc[0]
+            holding_id = f'{self._map_media_tree_id(necol_name)}_id'
+            cat_rows = self.rcats.holdings[self.rcats.holdings[holding_id] == necol_val].iloc[0]
             # Заполняем пустые значения
             for col, vals in res.items():
                 if not str(col).startswith('media_'):
@@ -1088,12 +1096,15 @@ class ResponsumTask:
 
     @staticmethod
     def sort_df(df):
+        """
+        Сортирует DataFrame по столбцам.
+        """
         sort_dict = {'prj_name': 0, 'media_holding': 1, 'media_site': 2, 'media_section': 3, 'media_subsection': 4,
                      'usetype': 5, 'date': 6, 'day': 7, 'month': 8, 'year': 9, 'quater': 10}
         sorted_cols = {}
         p = 100
         for col in df.columns:
-            if col in sort_dict.keys():
+            if col in sort_dict:
                 sorted_cols[sort_dict[col]] = col
             else:
                 sorted_cols[p] = col
@@ -1131,16 +1142,16 @@ class ResponsumTask:
         data : DataFrame
             DataFrame с результатом.
         """
-        if reach_n is None:
-            return
+        if not reach_n:
+            return df
         rename_dict = {}
-        for i in range(0, len(reach_n)):
-            f = reach_n[i]['from']
-            t = reach_n[i]['to']
+        for i, item in enumerate(reach_n):
+            f = item['from']
+            t = item['to']
             n = f'stat_reach_{i}'
             if n in df.columns:
                 rename_dict[n] = f'stat_reach_{f}_{t}'
-        if len(rename_dict) > 0:
+        if rename_dict:
             df = df.rename(columns=rename_dict)
         return df
 
@@ -1315,7 +1326,7 @@ class ResponsumTask:
 
         Examples
         -------
-            Рассчитываем Reach для пересекающейся аудитории проектов Facebook.com и Vk.com. 
+            Рассчитываем Reach для пересекающейся аудитории проектов Facebook.com и Vk.com.
             Тогда в df_project ожидаем данные:
 
                 media_site     | duplication_site | reach
@@ -1469,6 +1480,9 @@ class ResponsumTask:
 
     @staticmethod
     def round_prc(df):
+        """
+        Округляет значения процентов в DataFrame.
+        """
         return df.round(2)
 
     def save_report_info(self, facility=None, date_from=None, date_to=None, usetype_filter=None,
@@ -1552,6 +1566,9 @@ class ResponsumTask:
         return pd.DataFrame(data)
 
     def show_report_info(self):
+        """
+        Выводит информацию о рассчитываемом отчете.
+        """
         for k, v in self.task_info.items():
             if k == 'tasks':
                 continue
@@ -1580,12 +1597,3 @@ class ResponsumTask:
             fname += '-' + dt.datetime.now().strftime('%Y%m%d_%H%M%S')
         fname += '.xlsx'
         return os.path.join(export_path, fname)
-
-    @staticmethod
-    def get_sql_from_list(media_object, items):
-        sql_text = '('
-        for item in items:
-            sql_text += f"{media_object} = {item} OR "
-        if len(sql_text) >= 3:
-            sql_text = sql_text[:-3] + ')'
-        return sql_text

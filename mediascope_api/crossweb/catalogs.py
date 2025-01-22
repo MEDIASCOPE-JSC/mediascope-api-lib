@@ -1,10 +1,14 @@
-import os
+"""
+Module for work with CrossWeb catalogs
+"""
 import json
 import pandas as pd
 from ..core import net
 
-
 class CrossWebCats:
+    """
+    Class for working with CrossWeb catalogs
+    """
     _urls = {
         'media': '/dictionary/common/media-tree',
         'theme': '/dictionary/common/theme',
@@ -117,7 +121,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['property'], use_cache=True, limit=1000)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
@@ -152,7 +156,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['media_property'], use_cache=True, limit=1000)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
@@ -176,7 +180,7 @@ class CrossWebCats:
             else:
                 res['optionName'].append('')
         return pd.DataFrame(res)
-    
+
     def load_monitoring_property(self):
         """
         Загрузить список переменных: все, по id или поиском по названию
@@ -189,7 +193,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['monitoring_property'], use_cache=True, limit=1000)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
@@ -213,7 +217,7 @@ class CrossWebCats:
             else:
                 res['optionName'].append('')
         return pd.DataFrame(res)
-    
+
     def load_media_duplication_property(self):
         """
         Загрузить список переменных: все, по id или поиском по названию
@@ -224,9 +228,10 @@ class CrossWebCats:
 
             DataFrame с демографическими переменными
         """
-        data = self.msapi_network.send_request_lo('get', self._urls['media_duplication_property'], use_cache=True, limit=1000)
+        data = self.msapi_network.send_request_lo('get', self._urls['media_duplication_property'],
+                                                  use_cache=True, limit=1000)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
@@ -261,9 +266,10 @@ class CrossWebCats:
 
             DataFrame с демографическими переменными
         """
-        data = self.msapi_network.send_request_lo('get', self._urls['profile_duplication_property'], use_cache=True, limit=1000)
+        data = self.msapi_network.send_request_lo('get', self._urls['profile_duplication_property'],
+                                                  use_cache=True, limit=1000)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
@@ -359,7 +365,7 @@ class CrossWebCats:
 
     @staticmethod
     def _get_query(vals):
-        if type(vals) != dict:
+        if not isinstance(vals, dict):
             return None
         query = ''
         for k, v in vals.items():
@@ -374,7 +380,7 @@ class CrossWebCats:
 
     @staticmethod
     def _get_post_data(vals):
-        if type(vals) != dict:
+        if not isinstance(vals, dict):
             return None
         data = {}
         for k, v in vals.items():
@@ -382,33 +388,36 @@ class CrossWebCats:
                 data[k] = []
                 continue
 
-            if type(v) == str:
+            if isinstance(v, str):
                 val = []
                 for i in v.split(','):
                     val.append(str(i).strip())
                 v = val
-            if type(v) == list:
+            if isinstance(v, list):
                 data[k] = v
 
         if len(data) > 0:
             return json.dumps(data)
 
-    def get_slices(self, slice_name):        
+    def get_slices(self, slice_name):
+        """
+        Получить срезы
+        """
         if slice_name == "adDescription" or slice_name == "eventDescription":
-            if type(self.units_monitoring) != dict or \
+            if not isinstance(self.units_monitoring, dict) or \
                     self.units_monitoring.get('slices', None) is None or \
                     self.units_monitoring['slices'].get(slice_name, None) is None:
                 return
             return self.units_monitoring['slices'][slice_name]
         else:
             if slice_name == "duplicationMart":
-                if type(self.units_monitoring) != dict or \
+                if not isinstance(self.units_monitoring, dict) or \
                     self.units_media_duplication.get('slices', None) is None or \
                     self.units_media_duplication['slices'].get(slice_name, None) is None:
                     return
                 return self.units_media_duplication['slices'][slice_name]
-            else:            
-                if type(self.units) != dict or \
+            else:
+                if not isinstance(self.units, dict) or \
                         self.units.get('slices', None) is None or \
                         self.units['slices'].get(slice_name, None) is None:
                     return
@@ -416,7 +425,7 @@ class CrossWebCats:
 
     @staticmethod
     def _print_header(header, offset, limit):
-        if type(header) != dict or 'total' not in header:
+        if not isinstance(header, dict) or 'total' not in header:
             return
         total = header["total"]
         print(f'Запрошены записи: {offset} - {offset + limit}\nВсего найдено записей: {total}\n')
@@ -465,7 +474,7 @@ class CrossWebCats:
         post_data = self._get_post_data(body_params)
 
         data = self.msapi_network.send_request_lo('post', url, data=post_data, use_cache=use_cache)
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'header' not in data or 'data' not in data:
@@ -1122,6 +1131,8 @@ class CrossWebCats:
 
     def get_ad(self, agency=None, brand=None, campaign=None, ad=None,
                agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
+               tmsec_msid=None, advertisement_description=None, advertisement_type=None,
+               created_date=None, start_date=None, end_date=None,
                offset=None, limit=None, use_cache=True):
         """
         Получить список рекламных позиций
@@ -1152,6 +1163,24 @@ class CrossWebCats:
 
         ad_ids : list
             Поиск по списку идентификаторов рекламных позиций.
+        
+        tmsec_msid : str
+            Поиск по тематической метке контента. Допускается задавать часть названия.
+
+        advertisement_description : str
+            Поиск по кастомному описанию рекламы. Допускается задавать часть названия.
+
+        advertisement_type : str
+            Поиск по типу рекламы. Допускается задавать часть названия.
+
+        created_date : str
+            Поиск по дате создания счетчика. 
+        
+        start_date : str
+            Поиск по дате старта срабатывания счетчика.
+        
+        end_date : str
+            Поиск по дате окончания срабатывания счетчика.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -1175,7 +1204,14 @@ class CrossWebCats:
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
-                         'advertisementName': ad}
+                         'advertisementName': ad,
+                         'tmsecMsid': tmsec_msid,
+                         'advertisementDescription': advertisement_description,
+                         'advertisementType': advertisement_type,
+                         'createdDate': created_date,
+                         'startDate': start_date,
+                         'endDate': end_date
+                         }
         body_params = {
             'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
@@ -1225,7 +1261,7 @@ class CrossWebCats:
             Словарь с доступными списками
         """
         return self.msapi_network.send_request('get', self._urls['total_unit'], use_cache=False)
-    
+
     def get_monitoring_unit(self):
         """
         Получить списки доступных для использования в заданиях для мониторинга:
@@ -1239,7 +1275,7 @@ class CrossWebCats:
             Словарь с доступными списками
         """
         return self.msapi_network.send_request('get', self._urls['monitoring_unit'], use_cache=False)
-    
+
     def get_media_duplication_unit(self):
         """
         Получить списки доступных для использования в заданиях для пересечений:
@@ -1293,7 +1329,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['usetype'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -1319,7 +1355,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['date_range'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -1346,11 +1382,14 @@ class CrossWebCats:
 
         return df
 
-    def get_product_brand(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+    def get_product_brand(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                          product_brand=None, product_brand_eng=None, product_subbrand=None, product_subbrand_eng=None,
+                          product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
+                          product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None,
+                          product_category_l4=None, product_category_l4_eng=None, advertiser_ids=None,
+                          product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None,
+                          product_category_l1_ids=None, product_category_l2_ids=None, product_category_l3_ids=None,
+                          product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить список товарных брендов
 
@@ -1359,73 +1398,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -1452,7 +1495,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1463,8 +1506,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
 
         body_params = {
@@ -1478,12 +1521,16 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_brand', search_params, body_params, offset, limit, use_cache)
-    
-    def get_product_category_l1(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_category_l1(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                                product_brand=None, product_brand_eng=None, product_subbrand=None,
+                                product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None,
+                                product_category_l2=None, product_category_l2_eng=None, product_category_l3=None,
+                                product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+                                advertiser_ids=None, product_model_ids=None, product_brand_ids=None,
+                                product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
+                                product_category_l3_ids=None, product_category_l4_ids=None,
+                                offset=None, limit=None, use_cache=True):
         """
         Получить список категорий товаров и услуг (уровень 1)
 
@@ -1492,73 +1539,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -1585,7 +1636,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1596,8 +1647,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
 
         body_params = {
@@ -1611,12 +1662,16 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l1', search_params, body_params, offset, limit, use_cache)
-    
-    def get_product_category_l2(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_category_l2(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                                product_brand=None, product_brand_eng=None,product_subbrand=None,
+                                product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None,
+                                product_category_l2=None, product_category_l2_eng=None, product_category_l3=None,
+                                product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+                                advertiser_ids=None, product_model_ids=None, product_brand_ids=None,
+                                product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
+                                product_category_l3_ids=None, product_category_l4_ids=None,
+                                offset=None, limit=None, use_cache=True):
         """
         Получить список категорий товаров и услуг (уровень 2)
 
@@ -1625,73 +1680,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -1718,7 +1777,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1729,8 +1788,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
 
         body_params = {
@@ -1744,12 +1803,16 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l2', search_params, body_params, offset, limit, use_cache)
-    
-    def get_product_category_l3(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_category_l3(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                                product_brand=None, product_brand_eng=None, product_subbrand=None,
+                                product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None,
+                                product_category_l2=None, product_category_l2_eng=None, product_category_l3=None,
+                                product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+                                advertiser_ids=None, product_model_ids=None, product_brand_ids=None,
+                                product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
+                                product_category_l3_ids=None, product_category_l4_ids=None,
+                                offset=None, limit=None, use_cache=True):
         """
         Получить список категорий товаров и услуг (уровень 3)
 
@@ -1758,73 +1821,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -1851,7 +1918,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1862,8 +1929,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
 
         body_params = {
@@ -1877,12 +1944,16 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l3', search_params, body_params, offset, limit, use_cache)
-    
-    def get_product_category_l4(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_category_l4(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                                product_brand=None, product_brand_eng=None, product_subbrand=None,
+                                product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None,
+                                product_category_l2=None, product_category_l2_eng=None, product_category_l3=None,
+                                product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+                                advertiser_ids=None, product_model_ids=None, product_brand_ids=None,
+                                product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
+                                product_category_l3_ids=None, product_category_l4_ids=None,
+                                offset=None, limit=None, use_cache=True):
         """
         Получить список категорий товаров и услуг (уровень 4)
 
@@ -1891,73 +1962,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -1984,7 +2059,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -1995,8 +2070,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
 
         body_params = {
@@ -2010,12 +2085,15 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_category_l4', search_params, body_params, offset, limit, use_cache)
-    
-    def get_product_model(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_model(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                          product_brand=None, product_brand_eng=None, product_subbrand=None, product_subbrand_eng=None,
+                          product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
+                          product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None,
+                          product_category_l4=None, product_category_l4_eng=None, advertiser_ids=None,
+                          product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None,
+                          product_category_l1_ids=None, product_category_l2_ids=None, product_category_l3_ids=None,
+                          product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить список товарных моделей
 
@@ -2024,73 +2102,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -2117,7 +2199,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2128,8 +2210,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
 
         body_params = {
@@ -2143,12 +2225,16 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_model', search_params, body_params, offset, limit, use_cache)
-    
-    def get_product_subbrand(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_subbrand(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                             product_brand=None, product_brand_eng=None, product_subbrand=None,
+                             product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None,
+                             product_category_l2=None, product_category_l2_eng=None, product_category_l3=None,
+                             product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+                             advertiser_ids=None, product_model_ids=None, product_brand_ids=None,
+                             product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
+                             product_category_l3_ids=None, product_category_l4_ids=None,
+                             offset=None, limit=None, use_cache=True):
         """
         Получить список товарных суббрендов
 
@@ -2157,73 +2243,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -2250,7 +2340,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2261,8 +2351,8 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
 
         body_params = {
@@ -2276,7 +2366,7 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('product_subbrand', search_params, body_params, offset, limit, use_cache)
-    
+
     def get_ad_network(self):
         """
         Получить список рекламных сетей
@@ -2289,7 +2379,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['ad_network'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2305,7 +2395,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-    
+
     def get_ad_placement(self):
         """
         Получить список мест размещений для рекламы в социальных сетях
@@ -2318,7 +2408,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['ad_placement'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2334,7 +2424,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-    
+
     def get_ad_player(self):
         """
         Получить список рекламных плееров
@@ -2347,7 +2437,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['ad_player'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2363,7 +2453,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-    
+
     def get_ad_server(self):
         """
         Получить список рекламных серверов
@@ -2376,7 +2466,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['ad_server'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2392,7 +2482,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-    
+
     def get_ad_source_type(self):
         """
         Получить список типов рекламы
@@ -2405,7 +2495,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['ad_source_type'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2421,7 +2511,7 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-    
+
     def get_ad_video_utility(self):
         """
         Получить список принадлежности к видео
@@ -2434,7 +2524,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['ad_video_utility'], use_cache=True)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2450,12 +2540,16 @@ class CrossWebCats:
             res['name'].append(item['name'])
 
         return pd.DataFrame(res)
-    
-    def get_product_advertiser(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_advertiser(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                               product_brand=None, product_brand_eng=None, product_subbrand=None,
+                               product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None,
+                               product_category_l2=None, product_category_l2_eng=None, product_category_l3=None,
+                               product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None,
+                               advertiser_ids=None, product_model_ids=None, product_brand_ids=None,
+                               product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
+                               product_category_l3_ids=None, product_category_l4_ids=None,
+                               offset=None, limit=None, use_cache=True):
         """
         Получить список рекламодателей
 
@@ -2464,73 +2558,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -2557,7 +2655,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2568,10 +2666,10 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
-        
+
         body_params = {
             'advertiserIds': advertiser_ids,
             'productModelIds': product_model_ids,
@@ -2583,12 +2681,15 @@ class CrossWebCats:
             'productCategoryL4Ids': product_category_l4_ids
         }
         return self._get_dict('advertiser', search_params, body_params, offset, limit, use_cache)
-    
-    def get_monitoring(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_monitoring(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None,
+                       product_brand=None, product_brand_eng=None, product_subbrand=None, product_subbrand_eng=None,
+                       product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
+                       product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None,
+                       product_category_l4=None, product_category_l4_eng=None,
+                       advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None,
+                       product_category_l1_ids=None, product_category_l2_ids=None,product_category_l3_ids=None,
+                       product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить дерево связей рекламных единиц контента в мониторинге
 
@@ -2597,73 +2698,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -2690,7 +2795,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2701,10 +2806,10 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
-        
+
         body_params = {
             'advertiserIds': advertiser_ids,
             'productModelIds': product_model_ids,
@@ -2717,12 +2822,16 @@ class CrossWebCats:
         }
 
         return self._get_dict('monitoring', search_params, body_params, offset, limit, use_cache)
-    
-    def get_product_category_tree(self, advertiser=None, advertiser_eng=None, product_model=None, product_model_eng=None, product_brand=None, product_brand_eng=None,
-            product_subbrand=None, product_subbrand_eng=None, product_category_l1=None, product_category_l1_eng=None, product_category_l2=None,
-            product_category_l2_eng=None, product_category_l3=None, product_category_l3_eng=None, product_category_l4=None, product_category_l4_eng=None, 
-            advertiser_ids=None, product_model_ids=None, product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None, product_category_l2_ids=None,
-            product_category_l3_ids=None, product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
+
+    def get_product_category_tree(self, advertiser=None, advertiser_eng=None, product_model=None,
+                                  product_model_eng=None, product_brand=None, product_brand_eng=None,
+                                  product_subbrand=None, product_subbrand_eng=None, product_category_l1=None,
+                                  product_category_l1_eng=None, product_category_l2=None, product_category_l2_eng=None,
+                                  product_category_l3=None, product_category_l3_eng=None, product_category_l4=None,
+                                  product_category_l4_eng=None, advertiser_ids=None, product_model_ids=None,
+                                  product_brand_ids=None, product_subbrand_ids=None, product_category_l1_ids=None,
+                                  product_category_l2_ids=None, product_category_l3_ids=None,
+                                  product_category_l4_ids=None, offset=None, limit=None, use_cache=True):
         """
         Получить дерево категорий товаров и услуг
 
@@ -2731,73 +2840,77 @@ class CrossWebCats:
 
         advertiser : str
             Поиск по названию рекламодателя. Допускается задавать часть названия.
-            
+
         advertiser_eng : str
             Поиск по названию рекламодателя на английском языке. Допускается задавать часть названия.
-        
+
         product_model : str
             Поиск по названию модели. Допускается задавать часть названия.
-            
+
         product_model_eng : str
             Поиск по названию модели на английском языке. Допускается задавать часть названия.
-                    
+
         product_brand : str
             Поиск по названию бренда. Допускается задавать часть названия.
-                
+
         product_brand_eng : str
             Поиск по названию бренда на английском языке. Допускается задавать часть названия.
-                
+
         product_subbrand : str
             Поиск по названию суббренда. Допускается задавать часть названия.
 
         product_subbrand_eng : str
             Поиск по названию суббренда на анг. Допускается задавать часть названия.
-        
+
         product_category_l1 : str
             Поиск по названию категории товаров и услуг (уровень 1). Допускается задавать часть названия.
-        
+
         product_category_l1_eng : str
-            Поиск по названию категории товаров и услуг (уровень 1) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 1) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l2 : str
             Поиск по названию категории товаров и услуг (уровень 2). Допускается задавать часть названия.
-        
+
         product_category_l2_eng : str
-            Поиск по названию категории товаров и услуг (уровень 2) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 2) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l3 : str
             Поиск по названию категории товаров и услуг (уровень 3). Допускается задавать часть названия.
-        
+
         product_category_l3_eng : str
-            Поиск по названию категории товаров и услуг (уровень 3) на английском языке. Допускается задавать часть названия.
-        
+            Поиск по названию категории товаров и услуг (уровень 3) на английском языке.
+            Допускается задавать часть названия.
+
         product_category_l4 : str
             Поиск по названию категории товаров и услуг (уровень 4). Допускается задавать часть названия.
-        
+
         product_category_l4_eng : str
-            Поиск по названию категории товаров и услуг (уровень 4) на английском языке. Допускается задавать часть названия.
-                                                
+            Поиск по названию категории товаров и услуг (уровень 4) на английском языке.
+            Допускается задавать часть названия.
+
         advertiser_ids : list
             Поиск по списку идентификаторов рекламодателей.
-                                                
+
         product_model_ids : list
             Поиск по списку идентификаторов моделей.
-                                                
+
         product_brand_ids : list
             Поиск по списку идентификаторов брендов.
-                                                
+
         product_subbrand_ids : list
             Поиск по списку идентификаторов суббрендов.
-                                                
+
         product_category_l1_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 1).
-                                                
+
         product_category_l2_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 2).
-                                                
+
         product_category_l3_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 3).
-                                                
+
         product_category_l4_ids : list
             Поиск по списку идентификаторов категории товаров и услуг (уровень 4).
 
@@ -2824,7 +2937,7 @@ class CrossWebCats:
             'advertiserName': advertiser,
             'advertiserEngName': advertiser_eng,
             'productModelName': product_model,
-            'productModelEngName': product_model_eng, 
+            'productModelEngName': product_model_eng,
             'productBrandName': product_brand,
             'productBrandEngName': product_brand_eng,
             'productSubbrandName': product_subbrand,
@@ -2835,10 +2948,10 @@ class CrossWebCats:
             'productCategoryL2EngName': product_category_l2_eng,
             'productCategoryL3Name': product_category_l3,
             'productCategoryL3EngName': product_category_l3_eng,
-            'productCategoryL4Name': product_category_l4, 
-            'productCategoryL4EngName': product_category_l4_eng            
+            'productCategoryL4Name': product_category_l4,
+            'productCategoryL4EngName': product_category_l4_eng
         }
-        
+
         body_params = {
             'advertiserIds': advertiser_ids,
             'productModelIds': product_model_ids,
@@ -2884,7 +2997,7 @@ class CrossWebCats:
 
             DataFrame с периодами доступности данных
         """
-
+        _ = ids, name, offset, limit, use_cache
         return self.msapi_network.send_request('get', self._urls['availability'], use_cache=False)
 
     def get_media_usetype(self):
@@ -2898,33 +3011,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['media_usetype'], use_cache=False)
         res = {}
-        if data is None or type(data) != dict:
-            return None
-
-        if 'data' not in data:
-            return None
-
-        res['id'] = []
-        res['name'] = []
-
-        for item in data['data']:
-            res['id'].append(item['id'])
-            res['name'].append(item['name'])
-
-        return pd.DataFrame(res)
-
-    def get_media_usetype(self):
-        """
-        Получить списка usetype для media
-
-        Returns
-        -------
-        info : dataframe
-            Датафрейм со списком
-        """
-        data = self.msapi_network.send_request_lo('get', self._urls['media_usetype'], use_cache=False)
-        res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2950,7 +3037,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['media_total_usetype'], use_cache=False)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -2976,7 +3063,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['media_duplication_usetype'], use_cache=False)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -3002,7 +3089,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['profile_usetype'], use_cache=False)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -3028,7 +3115,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['profile_duplication_usetype'], use_cache=False)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
@@ -3054,7 +3141,7 @@ class CrossWebCats:
         """
         data = self.msapi_network.send_request_lo('get', self._urls['monitoring_usetype'], use_cache=False)
         res = {}
-        if data is None or type(data) != dict:
+        if data is None or not isinstance(data, dict):
             return None
 
         if 'data' not in data:
