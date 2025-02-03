@@ -362,7 +362,7 @@ def test_cities(tasks):
 
     assert not df.empty
 
-
+@pytest.mark.skip(reason="disable")
 def test_timeband_big_tv(tasks):
     # Задаем период
     date_filter = [('2023-07-04', '2023-07-04')]

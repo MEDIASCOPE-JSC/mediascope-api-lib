@@ -480,12 +480,26 @@ class CrossWebCats:
         if 'header' not in data or 'data' not in data:
             return None
 
-        res = {}
+        # извлекаем все заголовки столбцов (их может быть разное количество для nullable полей)
+        res_headers = []
         for item in data['data']:
-            for k, v in item.items():
-                if k not in res:
-                    res[k] = []
-                res[k].append(v)
+            for k, _ in item.items():
+                if k not in res_headers:
+                    res_headers.append(k)
+
+        # инициализируем списки данных столбцов
+        res = {}
+        for h in res_headers:
+            res[h] = []
+
+        # наполняем найденные столбцы значениями
+        for item in data['data']:
+            for h in res_headers:
+                if h in item.keys():
+                    res[h].append(item[h])
+                else:
+                    res[h].append('')
+                    
         # print header
         if offset is not None and limit is not None:
             self._print_header(data['header'], offset, limit)
@@ -939,6 +953,8 @@ class CrossWebCats:
 
     def get_ad_agency(self, agency=None, brand=None, campaign=None, ad=None,
                       agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
+                      tmsec_msid=None, advertisement_description=None, advertisement_type=None,
+                      created_date=None, start_date=None, end_date=None,
                       offset=None, limit=None, use_cache=True):
         """
         Получить список рекламных агентств
@@ -969,6 +985,24 @@ class CrossWebCats:
 
         ad_ids : list
             Поиск по списку идентификаторов рекламных позиций.
+        
+        tmsec_msid : str
+            Поиск по тематической метке контента. Допускается задавать часть названия.
+
+        advertisement_description : str
+            Поиск по кастомному описанию рекламы. Допускается задавать часть названия.
+
+        advertisement_type : str
+            Поиск по типу рекламы. Допускается задавать часть названия.
+
+        created_date : str
+            Поиск по дате создания счетчика. 
+        
+        start_date : str
+            Поиск по дате старта срабатывания счетчика.
+        
+        end_date : str
+            Поиск по дате окончания срабатывания счетчика.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -992,7 +1026,14 @@ class CrossWebCats:
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
-                         'advertisementName': ad}
+                         'advertisementName': ad,
+                         'tmsecMsid': tmsec_msid,
+                         'advertisementDescription': advertisement_description,
+                         'advertisementType': advertisement_type,
+                         'createdDate': created_date,
+                         'startDate': start_date,
+                         'endDate': end_date
+                         }
         body_params = {
             'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
@@ -1003,6 +1044,8 @@ class CrossWebCats:
 
     def get_brand(self, agency=None, brand=None, campaign=None, ad=None,
                   agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
+                  tmsec_msid=None, advertisement_description=None, advertisement_type=None,
+                  created_date=None, start_date=None, end_date=None,
                   offset=None, limit=None, use_cache=True):
         """
         Получить список брендов
@@ -1033,6 +1076,24 @@ class CrossWebCats:
 
         ad_ids : list
             Поиск по списку идентификаторов рекламных позиций.
+        
+        tmsec_msid : str
+            Поиск по тематической метке контента. Допускается задавать часть названия.
+
+        advertisement_description : str
+            Поиск по кастомному описанию рекламы. Допускается задавать часть названия.
+
+        advertisement_type : str
+            Поиск по типу рекламы. Допускается задавать часть названия.
+
+        created_date : str
+            Поиск по дате создания счетчика. 
+        
+        start_date : str
+            Поиск по дате старта срабатывания счетчика.
+        
+        end_date : str
+            Поиск по дате окончания срабатывания счетчика.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -1056,7 +1117,14 @@ class CrossWebCats:
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
-                         'advertisementName': ad}
+                         'advertisementName': ad,
+                         'tmsecMsid': tmsec_msid,
+                         'advertisementDescription': advertisement_description,
+                         'advertisementType': advertisement_type,
+                         'createdDate': created_date,
+                         'startDate': start_date,
+                         'endDate': end_date
+                         }
         body_params = {
             'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
@@ -1067,6 +1135,8 @@ class CrossWebCats:
 
     def get_ad_campaign(self, agency=None, brand=None, campaign=None, ad=None,
                         agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
+                        tmsec_msid=None, advertisement_description=None, advertisement_type=None,
+                        created_date=None, start_date=None, end_date=None,
                         offset=None, limit=None, use_cache=True):
         """
         Получить список рекламных кампаний
@@ -1097,6 +1167,24 @@ class CrossWebCats:
 
         ad_ids : list
             Поиск по списку идентификаторов рекламных позиций.
+        
+        tmsec_msid : str
+            Поиск по тематической метке контента. Допускается задавать часть названия.
+
+        advertisement_description : str
+            Поиск по кастомному описанию рекламы. Допускается задавать часть названия.
+
+        advertisement_type : str
+            Поиск по типу рекламы. Допускается задавать часть названия.
+
+        created_date : str
+            Поиск по дате создания счетчика. 
+        
+        start_date : str
+            Поиск по дате старта срабатывания счетчика.
+        
+        end_date : str
+            Поиск по дате окончания срабатывания счетчика.
 
         offset : int
             Смещение от начала набора отобранных данных
@@ -1120,7 +1208,14 @@ class CrossWebCats:
         search_params = {'advertisementAgencyName': agency,
                          'brandName': brand,
                          'advertisementCampaignName': campaign,
-                         'advertisementName': ad}
+                         'advertisementName': ad,
+                         'tmsecMsid': tmsec_msid,
+                         'advertisementDescription': advertisement_description,
+                         'advertisementType': advertisement_type,
+                         'createdDate': created_date,
+                         'startDate': start_date,
+                         'endDate': end_date
+                         }
         body_params = {
             'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,
@@ -3156,13 +3251,28 @@ class CrossWebCats:
 
         return pd.DataFrame(res)
 
-    def get_ad_list(self, agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
+    def get_ad_list(self, agency=None, brand=None, campaign=None, ad=None, 
+                    agency_ids=None, brand_ids=None, campaign_ids=None, ad_ids=None,
+                    tmsec_msid=None, advertisement_description=None, advertisement_type=None,
+                    created_date=None, start_date=None, end_date=None,
                     offset=None, limit=None, use_cache=True):
         """
         Получить список реклам
 
         Parameters
         ----------
+        agency : str
+            Поиск по названию агентства. Допускается задавать часть названия.
+
+        brand : str
+            Поиск по названию бренда. Допускается задавать часть названия.
+
+        campaign : str
+            Поиск по названию рекламной кампании. Допускается задавать часть названия.
+
+        ad : str
+            Поиск по названию рекламной позиции. Допускается задавать часть названия.
+            
         agency_ids : list
             Поиск по списку идентификаторов агентств.
 
@@ -3177,6 +3287,24 @@ class CrossWebCats:
 
         offset : int
             Смещение от начала набора отобранных данных
+        
+        tmsec_msid : str
+            Поиск по тематической метке контента. Допускается задавать часть названия.
+
+        advertisement_description : str
+            Поиск по кастомному описанию рекламы. Допускается задавать часть названия.
+
+        advertisement_type : str
+            Поиск по типу рекламы. Допускается задавать часть названия.
+
+        created_date : str
+            Поиск по дате создания счетчика. 
+        
+        start_date : str
+            Поиск по дате старта срабатывания счетчика.
+        
+        end_date : str
+            Поиск по дате окончания срабатывания счетчика.
 
         limit : int
             Количество записей в возвращаемом наборе данных
@@ -3194,7 +3322,18 @@ class CrossWebCats:
 
             DataFrame с рекламами
         """
-        search_params = {}
+        search_params = {
+            'advertisementAgencyName': agency,
+            'brandName': brand,
+            'advertisementCampaignName': campaign,
+            'advertisementName': ad,
+            'tmsecMsid': tmsec_msid,
+            'advertisementDescription': advertisement_description,
+            'advertisementType': advertisement_type,
+            'createdDate': created_date,
+            'startDate': start_date,
+            'endDate': end_date
+        }
         body_params = {
             'advertisementAgencyIds': agency_ids,
             'brandIds': brand_ids,

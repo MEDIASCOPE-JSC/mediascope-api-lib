@@ -164,7 +164,7 @@ def test_get_tv_article_list2(catalogs):
 
 
 def test_get_tv_appendix(catalogs):
-    assert not catalogs.get_tv_appendix(ids=['349']).empty
+    assert not catalogs.get_tv_appendix(ids=['153560']).empty
 
 
 def test_get_tv_advertiser(catalogs):
@@ -180,7 +180,7 @@ def test_get_tv_advertiser_tree(catalogs):
 
 
 def test_get_tv_ad(catalogs):
-    assert not catalogs.get_tv_ad(ids=['349']).empty
+    assert not catalogs.get_tv_ad(ids=['153560']).empty
 
 
 def test_get_tv_ad_type(catalogs):
