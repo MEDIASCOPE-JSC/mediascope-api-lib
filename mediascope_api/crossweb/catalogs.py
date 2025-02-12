@@ -286,12 +286,26 @@ class CrossWebCats:
         if 'header' not in data or 'data' not in data:
             return None
 
-        res = {}
+        # извлекаем все заголовки столбцов (их может быть разное количество для nullable полей)
+        res_headers = []
         for item in data['data']:
-            for k, v in item.items():
-                if k not in res:
-                    res[k] = []
-                res[k].append(v)
+            for k, _ in item.items():
+                if k not in res_headers:
+                    res_headers.append(k)
+
+        # инициализируем списки данных столбцов
+        res = {}
+        for h in res_headers:
+            res[h] = []
+
+        # наполняем найденные столбцы значениями
+        for item in data['data']:
+            for h in res_headers:
+                if h in item.keys():
+                    res[h].append(item[h])
+                else:
+                    res[h].append('')
+
         # print header
         if offset is not None and limit is not None:
             self._print_header(data['header'], offset, limit)

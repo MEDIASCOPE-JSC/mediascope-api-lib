@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.4.post1] - 2025-02-13
+
+### Fixed
+- Fixed load null fields from CrossWeb dictionaries
+
 ## [1.1.3] - [1.1.4] - 2022-01-24
 
 ### Updated
