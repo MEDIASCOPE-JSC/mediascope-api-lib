@@ -19,6 +19,8 @@ class CrossWebTaskChecker:
         self.cats = cats
         self.task_types = {'media': self.cats.get_media_unit(),
                            'total': self.cats.get_media_total_unit(),
+                           'hour-media': self.cats.get_hour_media_unit(),
+                           'hour-total': self.cats.get_hour_media_total_unit(),
                            'ad': self.cats.get_ad_unit(),
                            'monitoring': self.cats.get_monitoring_unit(),
                            'media-duplication': self.cats.get_media_duplication_unit(),
@@ -39,6 +41,7 @@ class CrossWebTaskChecker:
             'base_geo_filter': {'types': [str, dict], 'msg': 'Неверно задан базовый фильтр по географии.\n'},
             'ad_description_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по рекламе.\n'},
             'event_description_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по событиям.\n'},
+            'hour_filter': {'types': [str, dict], 'msg': 'Неверно задан фильтр по часам.\n'},
             'usetype_filter': {'types': [list], 'msg': 'неверно задан usetype_filter,\n' +
                                                        'формат: usetype_filter = [1,2,3].\n'},
             'statistics': {'types': [list], 'msg': 'Не заданы статистики для задания.\n'},
@@ -58,7 +61,7 @@ class CrossWebTaskChecker:
 
     def check_task(self, task_type, date_filter, usetype_filter, geo_filter,
                    demo_filter, base_geo_filter, base_demo_filter, mart_filter, duplication_mart_filter,
-                   ad_description_filter, event_description_filter, slices, statistics, scales):
+                   ad_description_filter, event_description_filter, hour_filter, slices, statistics, scales):
         """
         Проверяет задание на корректность
         """
@@ -80,6 +83,7 @@ class CrossWebTaskChecker:
         self._check_filter('mart_filter', duplication_mart_filter, error_text)
         self._check_filter('ad_description_filter', ad_description_filter, error_text)
         self._check_filter('event_description_filter', event_description_filter, error_text)
+        self._check_filter('hour_filter', hour_filter, error_text)
 
         if task_type != 'media-profile':
             if self._check_filter('usetype_filter', usetype_filter, error_text):

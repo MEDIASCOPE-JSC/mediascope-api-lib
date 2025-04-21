@@ -26,8 +26,10 @@ class CrossWebCats:
         'media_duplication_property': '/dictionary/media-duplication/property/full',
         'profile_duplication_property': '/dictionary/profile-duplication/property/full',
         'media_unit': '/unit/media',
+        'hour_media_unit': '/unit/hour-media',
         'ad_unit': '/unit/profile',
         'total_unit': '/unit/media-total',
+        'hour_total_unit': '/unit/hour-media-total',
         'monitoring_unit': '/unit/monitoring',
         'media_duplication_unit': '/unit/media-duplication',
         'media_profile_unit': '/unit/media-profile',
@@ -91,7 +93,9 @@ class CrossWebCats:
         self.resources = self.get_resource()
         self.products = self.get_product()
         self.units = self.get_media_unit()
+        self.hour_units = self.get_hour_media_unit()
         self.units_total = self.get_media_total_unit()
+        self.hour_units_total = self.get_hour_media_total_unit()
         self.units_ad = self.get_ad_unit()
         self.units_monitoring = self.get_monitoring_unit()
         self.units_media_duplication = self.get_media_duplication_unit()
@@ -1329,6 +1333,20 @@ class CrossWebCats:
         """
         return self.msapi_network.send_request('get', self._urls['media_unit'], use_cache=False)
 
+    def get_hour_media_unit(self):
+        """
+        Получить списки доступных для использования в заданиях для медиа c почасовой разбивкой:
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+        return self.msapi_network.send_request('get', self._urls['hour_media_unit'], use_cache=False)
+
     def get_ad_unit(self):
         """
         Получить списки доступных для использования в заданиях для рекламы:
@@ -1356,6 +1374,20 @@ class CrossWebCats:
             Словарь с доступными списками
         """
         return self.msapi_network.send_request('get', self._urls['total_unit'], use_cache=False)
+
+    def get_hour_media_total_unit(self):
+        """
+        Получить списки доступных для использования в заданиях для медиа-тотал с почасовой разбивкой:
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+        return self.msapi_network.send_request('get', self._urls['hour_total_unit'], use_cache=False)
 
     def get_monitoring_unit(self):
         """

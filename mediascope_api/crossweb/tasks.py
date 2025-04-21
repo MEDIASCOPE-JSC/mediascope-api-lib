@@ -25,7 +25,9 @@ class CrossWebTask:
         'monitoring': '/task/monitoring',
         'media-duplication': '/task/media-duplication',
         'media-profile': '/task/media-profile',
-        'profile-duplication': '/task/profile-duplication'
+        'profile-duplication': '/task/profile-duplication',
+        'hour-media': '/task/hour-media',
+        'hour-total': '/task/hour-media-total',
     }
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -88,14 +90,14 @@ class CrossWebTask:
                     base_geo_filter=None, demo_filter=None, base_demo_filter=None, mart_filter=None,
                     duplication_mart_filter=None, ad_description_filter=None,
                     event_description_filter=None, media_usetype_filter=None, profile_usetype_filter=None,
-                    media_filter=None, profile_filter=None, slices=None, statistics=None, scales=None):
+                    media_filter=None, profile_filter=None, hour_filter=None, slices=None, statistics=None, scales=None):
 
         if not self.task_checker.check_task(
                 task_type=task_type, date_filter=date_filter, usetype_filter=usetype_filter,
                 geo_filter=geo_filter, demo_filter=demo_filter, base_geo_filter=base_geo_filter,
                 base_demo_filter=base_demo_filter, mart_filter=mart_filter,
                 duplication_mart_filter=duplication_mart_filter, ad_description_filter=ad_description_filter,
-                event_description_filter=event_description_filter, slices=slices,
+                event_description_filter=event_description_filter, hour_filter=hour_filter, slices=slices,
                 statistics=statistics, scales=scales):
             return
 
@@ -122,6 +124,7 @@ class CrossWebTask:
                                              "profileUseTypeId", 'profileUseTypeFilter')
         self.task_builder.add_filter(tsk, media_filter, 'mediaFilter')
         self.task_builder.add_filter(tsk, profile_filter, 'profileFilter')
+        self.task_builder.add_filter(tsk, hour_filter, 'hourFilter')
         self.task_builder.add_slices(tsk, slices)
         self.task_builder.add_scales(tsk, scales)
 
@@ -146,6 +149,7 @@ class CrossWebTask:
             'profile_usetype_filter': profile_usetype_filter,
             'media_filter': media_filter,
             'profile_filter': profile_filter,
+            'hour_filter': hour_filter,
             'slices': slices,
             'statistics': statistics,
             'scales': scales
@@ -157,9 +161,9 @@ class CrossWebTask:
 
     def build_task(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
                    demo_filter=None, mart_filter=None, slices=None, statistics=None, scales=None, 
-                   base_geo_filter=None, base_demo_filter=None):
+                   base_geo_filter=None, hour_filter=None, base_demo_filter=None):
         """
-        Формирует текст заданий total, media и ad для расчета статистик
+        Формирует текст заданий total, media, ad, hour-total, hour-media для расчета статистик
 
         Parameters
         ----------
@@ -169,6 +173,8 @@ class CrossWebTask:
             - total
             - media
             - ad
+            - hour-total
+            - hour-media
 
         task_name : str
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
@@ -259,6 +265,7 @@ class CrossWebTask:
                                 geo_filter=geo_filter, demo_filter=demo_filter, base_demo_filter=base_demo_filter,
                                 base_geo_filter=base_geo_filter, mart_filter=mart_filter,
                                 duplication_mart_filter=None, ad_description_filter=None, event_description_filter=None,
+                                hour_filter=hour_filter,
                                 slices=slices, statistics=statistics, scales=scales)
 
     def build_task_monitoring(self, task_type, task_name='', date_filter=None, usetype_filter=None, geo_filter=None,
@@ -638,6 +645,44 @@ class CrossWebTask:
 
         """
         return self._send_task('total', data)
+
+    def send_hour_audience_task(self, data):
+        """
+        Отправить задание на расчет аудиторных статистик по медиа с разбивкой по часам
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('hour-media', data)
+
+    def send_hour_total_audience_task(self, data):
+        """
+        Отправить задание на расчет аудиторных статистик по тотал-медиа с разбивкой по часам
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('hour-total', data)
 
     def send_advertisement_task(self, data):
         """

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-04-21
+
+1. Добавление отчета почасовой разбивки интернет-ресурсов hour-media в Crossweb API
+2. Добавление отчета почасовой разбивки по всему интернету hour-media-total в Crossweb API
+
 ## [1.1.21] - 2025-02-03
 
 1. Расширение справочников, поддерживающих дополнительные поля профиля РК для Crossweb API
