@@ -25,7 +25,8 @@ class CrossWebTaskChecker:
                            'monitoring': self.cats.get_monitoring_unit(),
                            'media-duplication': self.cats.get_media_duplication_unit(),
                            'media-profile': self.cats.get_media_profile_unit(),
-                           'profile-duplication': self.cats.get_profile_duplication_unit()}
+                           'profile-duplication': self.cats.get_profile_duplication_unit(),
+                           'media-sp': self.cats.get_media_sp_unit()}
         self.check_list = {
             'task_type': {'types': [list], 'msg': 'Неверно задан тип задачи\n' +
                                                   f'Допустимые варианты: "{", ".join(self.task_types.keys())}"'

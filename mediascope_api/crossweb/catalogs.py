@@ -26,6 +26,7 @@ class CrossWebCats:
         'media_duplication_property': '/dictionary/media-duplication/property/full',
         'profile_duplication_property': '/dictionary/profile-duplication/property/full',
         'media_unit': '/unit/media',
+        'media_sp_unit': '/unit/media-s-p',
         'hour_media_unit': '/unit/hour-media',
         'ad_unit': '/unit/profile',
         'total_unit': '/unit/media-total',
@@ -36,6 +37,7 @@ class CrossWebCats:
         'profile_duplication_unit': '/unit/profile-duplication',
         'usetype': '/dictionary/common/use-type',
         'media_usetype': '/dictionary/media/use-type',
+        'media_sp_usetype': '/dictionary/media-s-p/use-type',
         'media_total_usetype': '/dictionary/media-total/use-type',
         'media_duplication_usetype': '/dictionary/media-duplication/use-type',
         'profile_usetype': '/dictionary/profile/use-type',
@@ -64,7 +66,13 @@ class CrossWebCats:
         'monitoring_resource': '/dictionary/monitoring/resource',
         'monitoring_resource_theme': '/dictionary/monitoring/resource-theme',
         'monitoring_theme': '/dictionary/monitoring/theme',
-        'monitoring_media_tree': '/dictionary/monitoring/media-tree'
+        'monitoring_media_tree': '/dictionary/monitoring/media-tree',
+        'holding_rule': '/dictionary/common/holding-rule',
+        'media_rule_tree': '/dictionary/common/media-rule-tree',
+        'product_rule': '/dictionary/common/product-rule',
+        'resource_theme_rule': '/dictionary/common/resource-theme-rule',
+        'resource_rule': '/dictionary/common/resource-rule',
+        'theme_rule': '/dictionary/common/theme-rule',
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -1332,6 +1340,20 @@ class CrossWebCats:
             Словарь с доступными списками
         """
         return self.msapi_network.send_request('get', self._urls['media_unit'], use_cache=False)
+
+    def get_media_sp_unit(self):
+        """
+        Получить списки доступных для использования в заданиях для медиа:
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+        return self.msapi_network.send_request('get', self._urls['media_sp_unit'], use_cache=False)
 
     def get_hour_media_unit(self):
         """
@@ -3153,6 +3175,32 @@ class CrossWebCats:
 
         return pd.DataFrame(res)
 
+    def get_media_sp_usetype(self):
+        """
+        Получить списка usetype для media sp
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['media_sp_usetype'], use_cache=False)
+        res = {}
+        if data is None or not isinstance(data, dict):
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
     def get_media_total_usetype(self):
         """
         Получить списка usetype для media_total
@@ -3817,3 +3865,579 @@ class CrossWebCats:
         }
 
         return self._get_dict('monitoring_media_tree', search_params, body_params, offset, limit, use_cache)
+
+    def get_holding_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                         product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                         product_ids=None, holding_ids=None, resource_ids=None,
+                         theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
+                         limit=None, use_cache=True):
+        """
+        Получить список холдингов медиа правил
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_url : str
+            Поиск по названию адреса продукта. Допускается задавать часть названия.
+
+        product_bundle_id : str
+            Поиск по названию пакета продукта. Допускается задавать часть названия.
+
+        product_date_from : str
+            Поиск по дате начала продукта.
+
+        product_date_to : str
+            Поиск по дате завершения продукта.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        order_dir : str
+            Направление сортировки записей. Возможные значения: ASC, DESC.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с Холдингами медиа правил
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme,
+                         'productUrl': product_url,
+                         'productBundleId': product_bundle_id,
+                         'productDateFrom': product_date_from,
+                         'productDateTo': product_date_to,
+                         'orderDir': order_dir}
+
+        body_params = {
+            'crossMediaProductId': product_ids,
+            'crossMediaHoldingId': holding_ids,
+            'crossMediaResourceId': resource_ids,
+            'crossMediaThemeId': theme_ids,
+            'crossMediaResourceThemeId': resource_theme_ids
+        }
+
+        return self._get_dict('holding_rule', search_params, body_params, offset, limit, use_cache)
+
+    def get_product_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                         product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                         product_ids=None, holding_ids=None, resource_ids=None,
+                         theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
+                         limit=None, use_cache=True):
+        """
+        Получить список продуктов медиа правил
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_url : str
+            Поиск по названию адреса продукта. Допускается задавать часть названия.
+
+        product_bundle_id : str
+            Поиск по названию пакета продукта. Допускается задавать часть названия.
+
+        product_date_from : str
+            Поиск по дате начала продукта.
+
+        product_date_to : str
+            Поиск по дате завершения продукта.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        order_dir : str
+            Направление сортировки записей. Возможные значения: ASC, DESC.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с продуктами
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme,
+                         'productUrl': product_url,
+                         'productBundleId': product_bundle_id,
+                         'productDateFrom': product_date_from,
+                         'productDateTo': product_date_to,
+                         'orderDir': order_dir}
+
+        body_params = {
+            'crossMediaProductId': product_ids,
+            'crossMediaHoldingId': holding_ids,
+            'crossMediaResourceId': resource_ids,
+            'crossMediaThemeId': theme_ids,
+            'crossMediaResourceThemeId': resource_theme_ids
+        }
+        return self._get_dict('product_rule', search_params, body_params, offset, limit, use_cache)
+
+    def get_resource_theme_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                                product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                                product_ids=None, holding_ids=None, resource_ids=None,
+                                theme_ids=None, resource_theme_ids=None, order_dir=None,
+                                offset=None, limit=None, use_cache=True):
+        """
+        Получить список тематик для правил ресурсов
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_url : str
+            Поиск по названию адреса продукта. Допускается задавать часть названия.
+
+        product_bundle_id : str
+            Поиск по названию пакета продукта. Допускается задавать часть названия.
+
+        product_date_from : str
+            Поиск по дате начала продукта.
+
+        product_date_to : str
+            Поиск по дате завершения продукта.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        order_dir : str
+            Направление сортировки записей. Возможные значения: ASC, DESC.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с Тематиками ресурсов
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme,
+                         'productUrl': product_url,
+                         'productBundleId': product_bundle_id,
+                         'productDateFrom': product_date_from,
+                         'productDateTo': product_date_to,
+                         'orderDir': order_dir}
+
+        body_params = {
+            'crossMediaProductId': product_ids,
+            'crossMediaHoldingId': holding_ids,
+            'crossMediaResourceId': resource_ids,
+            'crossMediaThemeId': theme_ids,
+            'crossMediaResourceThemeId': resource_theme_ids
+        }
+
+        return self._get_dict('resource_theme_rule', search_params, body_params, offset, limit, use_cache)
+
+    def get_resource_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                          product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                          product_ids=None, holding_ids=None, resource_ids=None,
+                          theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
+                          limit=None, use_cache=True):
+        """
+        Получить список ресурсов медиа правил
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_url : str
+            Поиск по названию адреса продукта. Допускается задавать часть названия.
+
+        product_bundle_id : str
+            Поиск по названию пакета продукта. Допускается задавать часть названия.
+
+        product_date_from : str
+            Поиск по дате начала продукта.
+
+        product_date_to : str
+            Поиск по дате завершения продукта.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        order_dir : str
+            Направление сортировки записей. Возможные значения: ASC, DESC.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с найденными ресурсами
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme,
+                         'productUrl': product_url,
+                         'productBundleId': product_bundle_id,
+                         'productDateFrom': product_date_from,
+                         'productDateTo': product_date_to,
+                         'orderDir': order_dir}
+
+        body_params = {
+            'crossMediaProductId': product_ids,
+            'crossMediaHoldingId': holding_ids,
+            'crossMediaResourceId': resource_ids,
+            'crossMediaThemeId': theme_ids,
+            'crossMediaResourceThemeId': resource_theme_ids
+        }
+
+        return self._get_dict('resource_rule', search_params, body_params, offset, limit, use_cache)
+
+    def get_theme_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                       product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                       product_ids=None, holding_ids=None, resource_ids=None,
+                       theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
+                       limit=None, use_cache=True):
+        """
+        Получить список тематик для правил медиа продуктов
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_url : str
+            Поиск по названию адреса продукта. Допускается задавать часть названия.
+
+        product_bundle_id : str
+            Поиск по названию пакета продукта. Допускается задавать часть названия.
+
+        product_date_from : str
+            Поиск по дате начала продукта.
+
+        product_date_to : str
+            Поиск по дате завершения продукта.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        order_dir : str
+            Направление сортировки записей. Возможные значения: ASC, DESC.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        products : DataFrame
+
+            DataFrame с Тематиками
+        """
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme,
+                         'productUrl': product_url,
+                         'productBundleId': product_bundle_id,
+                         'productDateFrom': product_date_from,
+                         'productDateTo': product_date_to,
+                         'orderDir': order_dir}
+
+        body_params = {
+            'crossMediaProductId': product_ids,
+            'crossMediaHoldingId': holding_ids,
+            'crossMediaResourceId': resource_ids,
+            'crossMediaThemeId': theme_ids,
+            'crossMediaResourceThemeId': resource_theme_ids
+        }
+
+        return self._get_dict('theme_rule', search_params, body_params, offset, limit, use_cache)
+
+    def get_media_rule_tree(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
+                            product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                            product_ids=None, holding_ids=None, resource_ids=None,
+                            theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
+                            limit=None, use_cache=True):
+        """
+        Получить список дерева медиа правил
+
+        Parameters
+        ----------
+
+        product : str
+            Поиск по названию продукта. Допускается задавать часть названия.
+
+        holding : str
+            Поиск по названию холдинга. Допускается задавать часть названия.
+
+        theme : str
+            Поиск по названию тематики. Допускается задавать часть названия.
+
+        resource : str
+            Поиск по названию ресурса. Допускается задавать часть названия.
+
+        resource_theme : str
+            Поиск по названию тематики ресурса. Допускается задавать часть названия.
+
+        product_url : str
+            Поиск по названию адреса продукта. Допускается задавать часть названия.
+
+        product_bundle_id : str
+            Поиск по названию пакета продукта. Допускается задавать часть названия.
+
+        product_date_from : str
+            Поиск по дате начала продукта.
+
+        product_date_to : str
+            Поиск по дате завершения продукта.
+
+        product_ids : list
+            Поиск по списку идентификаторов продуктов.
+
+        holding_ids : list
+            Поиск по списку идентификаторов холдингов.
+
+        resource_ids : list
+            Поиск по списку идентификаторов ресурсов.
+
+        theme_ids : list
+            Поиск по списку идентификаторов тематик.
+
+        resource_theme_ids : list
+            Поиск по списку идентификаторов тематик ресурсов.
+
+        order_dir : str
+            Направление сортировки записей. Возможные значения: ASC, DESC.
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        media : DataFrame
+
+            DataFrame с объектами Медиа-дерева
+        """
+
+        search_params = {'productName': product,
+                         'holdingName': holding,
+                         'resourceName': resource,
+                         'themeName': theme,
+                         'resourceThemeName': resource_theme,
+                         'productUrl': product_url,
+                         'productBundleId': product_bundle_id,
+                         'productDateFrom': product_date_from,
+                         'productDateTo': product_date_to,
+                         'orderDir': order_dir}
+
+        body_params = {
+            'crossMediaProductId': product_ids,
+            'crossMediaHoldingId': holding_ids,
+            'crossMediaResourceId': resource_ids,
+            'crossMediaThemeId': theme_ids,
+            'crossMediaResourceThemeId': resource_theme_ids
+        }
+
+        return self._get_dict('media_rule_tree', search_params, body_params, offset, limit, use_cache)

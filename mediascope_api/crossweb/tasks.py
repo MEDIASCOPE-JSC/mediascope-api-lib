@@ -28,6 +28,7 @@ class CrossWebTask:
         'profile-duplication': '/task/profile-duplication',
         'hour-media': '/task/hour-media',
         'hour-total': '/task/hour-media-total',
+        'media-sp': '/task/media-s-p'
     }
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -163,7 +164,8 @@ class CrossWebTask:
                    demo_filter=None, mart_filter=None, slices=None, statistics=None, scales=None, 
                    base_geo_filter=None, hour_filter=None, base_demo_filter=None):
         """
-        Формирует текст заданий total, media, ad, hour-total, hour-media для расчета статистик
+        Формирует текст заданий total, media, ad, hour-total, hour-media,
+        media-sp для расчета статистик
 
         Parameters
         ----------
@@ -175,6 +177,7 @@ class CrossWebTask:
             - ad
             - hour-total
             - hour-media
+            - media-sp
 
         task_name : str
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
@@ -626,6 +629,25 @@ class CrossWebTask:
 
         """
         return self._send_task('media', data)
+
+    def send_media_sp_task(self, data):
+        """
+        Отправить задание на расчет аудиторных статистик по медиа sp
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('media-sp', data)
 
     def send_total_audience_task(self, data):
         """

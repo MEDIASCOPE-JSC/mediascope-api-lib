@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0-1.3.1] - 2025-07-23
+
+1. Добавление отчета media-sp в Crossweb API
+2. Добавление справочников медиа-дерева в Crossweb API
+
 ## [1.2.0] - 2025-04-21
 
 1. Добавление отчета почасовой разбивки интернет-ресурсов hour-media в Crossweb API
