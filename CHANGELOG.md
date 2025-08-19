@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2] - 2025-08-19
+
+1. Добавление функции объединения словарей в комбинации ключей и значений
+
 ## [1.3.0-1.3.1] - 2025-07-23
 
 1. Добавление отчета media-sp в Crossweb API

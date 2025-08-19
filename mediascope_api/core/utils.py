@@ -200,3 +200,26 @@ def check_version():
             response.close()
     else:
         print(f"Ошибка получения информации об установленной библиотеке {package}")
+
+def combine_dicts(*dicts):
+    """
+        Комбинация словарей (декартово произведение всех ключей и значений)
+
+    """
+    if not dicts:
+        return {}
+
+    # Инициализируем результат первым словарём в формате {key: (value,)}
+    result = {k: (v,) for k, v in dicts[0].items()}
+
+    # Последовательно комбинируем с остальными словарями
+    for current_dict in dicts[1:]:
+        new_result = {}
+        for existing_key, existing_values in result.items():
+            for current_key, current_value in current_dict.items():
+                new_key = f"{existing_key}; {current_key}"
+                new_value = existing_values + (current_value,)
+                new_result[new_key] = new_value
+        result = new_result
+
+    return result
