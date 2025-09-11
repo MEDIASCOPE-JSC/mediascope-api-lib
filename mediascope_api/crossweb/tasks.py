@@ -28,7 +28,8 @@ class CrossWebTask:
         'profile-duplication': '/task/profile-duplication',
         'hour-media': '/task/hour-media',
         'hour-total': '/task/hour-media-total',
-        'media-sp': '/task/media-s-p'
+        'media-sp': '/task/media-s-p',
+        'consumption-media': '/task/consumption-media'
     }
 
     def __new__(cls, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -165,7 +166,7 @@ class CrossWebTask:
                    base_geo_filter=None, hour_filter=None, base_demo_filter=None):
         """
         Формирует текст заданий total, media, ad, hour-total, hour-media,
-        media-sp для расчета статистик
+        media-sp, consumption-media для расчета статистик
 
         Parameters
         ----------
@@ -178,6 +179,7 @@ class CrossWebTask:
             - hour-total
             - hour-media
             - media-sp
+            - consumption-media
 
         task_name : str
             Название задания, если не задано - формируется как: пользователь + типа задания + дата/время
@@ -801,6 +803,25 @@ class CrossWebTask:
         """
         return self._send_task('media-profile', data)
 
+    def send_consumption_media_task(self, data):
+        """
+        Отправить задание на расчет статистик по медиапредпочтениям аудитории
+
+        Parameters
+        ----------
+
+        data : str
+            Текст задания в JSON формате
+
+
+        Returns
+        -------
+        text : json
+            Ответ сервера, содержит taskid, который необходим для получения результата
+
+        """
+        return self._send_task('consumption-media', data)
+
     def wait_task(self, tsk, status_delay=3, task_delay=0.2):
         """
         Ожидает окончание расчета задания или заданий.
@@ -819,9 +840,11 @@ class CrossWebTask:
             или список заданий
                  [
                     {
-                        'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-                        'userName': 'user.name',
-                        'message': 'Задача поступила в обработку'
+                        'task': {
+                            'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                            'userName': 'user.name',
+                            'message': 'Задача поступила в обработку'
+                        }
                     },
                     ...
                 ]

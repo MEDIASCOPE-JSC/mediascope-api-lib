@@ -18,6 +18,7 @@ class CrossWebTaskChecker:
         super().__init__(*args, **kwargs)
         self.cats = cats
         self.task_types = {'media': self.cats.get_media_unit(),
+                           'consumption-media': self.cats.get_consumption_media_unit(),
                            'total': self.cats.get_media_total_unit(),
                            'hour-media': self.cats.get_hour_media_unit(),
                            'hour-total': self.cats.get_hour_media_total_unit(),

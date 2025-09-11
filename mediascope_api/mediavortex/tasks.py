@@ -1091,9 +1091,11 @@ class MediaVortexTask:
             или список заданий
                  [
                     {
-                        'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-                        'userName': 'user.name',
-                        'message': 'Задача поступила в обработку'
+                        'task': {
+                            'taskId': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                            'userName': 'user.name',
+                            'message': 'Задача поступила в обработку'
+                        }
                     },
                     ...
                 ]

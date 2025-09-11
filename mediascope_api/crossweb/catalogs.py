@@ -27,6 +27,7 @@ class CrossWebCats:
         'profile_duplication_property': '/dictionary/profile-duplication/property/full',
         'media_unit': '/unit/media',
         'media_sp_unit': '/unit/media-s-p',
+        'consumption_media_unit': '/unit/consumption-media',
         'hour_media_unit': '/unit/hour-media',
         'ad_unit': '/unit/profile',
         'total_unit': '/unit/media-total',
@@ -38,6 +39,7 @@ class CrossWebCats:
         'usetype': '/dictionary/common/use-type',
         'media_usetype': '/dictionary/media/use-type',
         'media_sp_usetype': '/dictionary/media-s-p/use-type',
+        'consumption_media_usetype': '/dictionary/consumption-media/use-type',
         'media_total_usetype': '/dictionary/media-total/use-type',
         'media_duplication_usetype': '/dictionary/media-duplication/use-type',
         'profile_usetype': '/dictionary/profile/use-type',
@@ -107,6 +109,7 @@ class CrossWebCats:
         self.units_ad = self.get_ad_unit()
         self.units_monitoring = self.get_monitoring_unit()
         self.units_media_duplication = self.get_media_duplication_unit()
+        self.units_consumption_media = self.get_consumption_media_unit()
         #self.product_brands = self.get_product_brand()
         #self.product_category_l1 = self.get_product_category_l1()
         #self.product_category_l2 = self.get_product_category_l2()
@@ -1354,6 +1357,20 @@ class CrossWebCats:
             Словарь с доступными списками
         """
         return self.msapi_network.send_request('get', self._urls['media_sp_unit'], use_cache=False)
+
+    def get_consumption_media_unit(self):
+        """
+        Получить списки доступных для использования в заданиях для медиапредпочтений аудитории:
+        - статистик
+        - срезов
+        - фильтров
+
+        Returns
+        -------
+        info : dict
+            Словарь с доступными списками
+        """
+        return self.msapi_network.send_request('get', self._urls['consumption_media_unit'], use_cache=False)
 
     def get_hour_media_unit(self):
         """
@@ -3185,6 +3202,32 @@ class CrossWebCats:
             Датафрейм со списком
         """
         data = self.msapi_network.send_request_lo('get', self._urls['media_sp_usetype'], use_cache=False)
+        res = {}
+        if data is None or not isinstance(data, dict):
+            return None
+
+        if 'data' not in data:
+            return None
+
+        res['id'] = []
+        res['name'] = []
+
+        for item in data['data']:
+            res['id'].append(item['id'])
+            res['name'].append(item['name'])
+
+        return pd.DataFrame(res)
+
+    def get_consumption_media_usetype(self):
+        """
+        Получить списка usetype для consumption_media
+
+        Returns
+        -------
+        info : dataframe
+            Датафрейм со списком
+        """
+        data = self.msapi_network.send_request_lo('get', self._urls['consumption_media_usetype'], use_cache=False)
         res = {}
         if data is None or not isinstance(data, dict):
             return None
