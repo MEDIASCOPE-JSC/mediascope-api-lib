@@ -1803,3 +1803,17 @@ class MediaVortexTask:
                             return demo_filter + ' AND city ' + relation_element + ' (' + city_ids + ')'
                 else:
                     return demo_filter
+
+    def get_active_tasks_count(self):
+        """
+        Получить количество активных задач пользователя.
+
+        Returns
+        -------
+        active_tasks_count : int
+            Возвращает количество активных задач пользователя.
+
+        """
+
+        active_tasks_count_obj = self.network_module.send_request('get', '/task/state/active-tasks-count')
+        return active_tasks_count_obj.get('count')

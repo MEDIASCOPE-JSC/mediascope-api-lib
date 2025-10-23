@@ -86,7 +86,8 @@ class MediaVortexCats:
         'availability-period': '/period/availability-period',
         'monitoring-cities': '/dictionary/tv/monitoring-cities',
         'tv-platform': '/dictionary/tv/platform',
-        'tv-playbacktype': '/dictionary/tv/play-back-type'
+        'tv-playbacktype': '/dictionary/tv/play-back-type',
+        'tv-sales-group': '/dictionary/tv/sales-group'
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None,
@@ -5170,5 +5171,83 @@ class MediaVortexCats:
         }
 
         return self._get_dict(entity_name='tv-playbacktype', search_params=search_params,
+                              body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
+                              show_header=show_header)
+
+    def get_tv_sales_group(self, ids=None, tvcompany_ids=None, tvcompany_names=None, expressions=None,
+                           start_dates=None, finish_dates=None, order_by='id', order_dir=None, offset=None,
+                           limit=None, use_cache=False, show_header=True):
+        """
+        Получить коллекцию баинговых аудиторий телекомпаний
+
+        Parameters
+        ----------
+        ids : list of int
+            Поиск по списку идентификаторов групп
+
+        tvcompany_ids : list of int
+            Поиск по списку идентификаторов телекомпаний
+
+        tvcompany_names : list of str
+            Поиск по имени телекомпаний
+
+        expressions : list of str
+            Поиск по выражению демо переменной
+
+        start_dates : list of str
+            Поиск по дате начала рекламы
+
+        finish_dates : list of str
+            Поиск по дате окончания рекламы
+
+        order_by : string, default 'id'
+            Поле, по которому происходит сортировка
+
+        order_dir : string
+            Направление сортировки данных. Возможные значения ASC - по возрастанию и DESC - по убыванию.
+
+        offset : int
+            Смещение от начала набора отобранных данных.
+            Используется в связке с параметром 'limit': в случае использования одного параметра,
+            другой также должен быть задан.
+
+        limit : int
+            Количество записей в возвращаемом наборе данных.
+            Используется в связке с параметром 'offset': в случае использования одного параметра,
+            другой также должен быть задан.
+            Если смещение не требуется, то в 'offset' может быть передан 0.
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        show_header : bool
+            Вывод информации о количестве загруженных записей. По умолчанию включено (True).
+
+        Returns
+        -------
+        media : DataFrame
+
+            DataFrame с баинговыми аудиториями телекомпаний
+        """
+
+        search_params = {
+            'orderBy': order_by,
+            'orderDir': order_dir
+        }
+
+        body_params = {
+            "id": ids,
+            "tvCompanyId": tvcompany_ids,
+            "tvCompanyName": tvcompany_names,
+            "expression": expressions,
+            "startDate": start_dates,
+            "finishDate": finish_dates
+        }
+
+        return self._get_dict(entity_name='tv-sales-group', search_params=search_params,
                               body_params=body_params, offset=offset, limit=limit, use_cache=use_cache,
                               show_header=show_header)
