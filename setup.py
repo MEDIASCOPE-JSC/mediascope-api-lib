@@ -7,7 +7,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 setup(
     name='mediascope_api_lib',
     packages=find_packages(),
-    version='1.6.0',
+    version='1.6.2',
     description='Library for work with the Mediascope-Delivery-API',
     long_description=long_description,
     long_description_content_type="text/markdown",

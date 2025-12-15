@@ -1,4 +1,4 @@
 """
 Mediascope API library
 """
-version = '1.6.0'
+version = '1.6.2'

@@ -1539,8 +1539,9 @@ class MediaVortexTask:
             return
 
         for col in df.columns:
-            if col in ['programStartTime', 'programFinishTime', 'breaksStartTime',
-                       'breaksFinishTime', 'adStartTime', 'adFinishTime']:
+            if col in ['programStartTime', 'programStartTimeOriginal', 'programFinishTime', 'programFinishTimeOriginal',
+                       'breaksStartTime', 'breaksStartTimeOriginal', 'breaksFinishTime', 'breaksFinishTimeOriginal',
+                       'adStartTime', 'adStartTimeOriginal', 'adFinishTime', 'adFinishTimeOriginal']:
                 df[col] = df[col].str[0:-4] + ':' + df[col].str[-4:-2] + ':' + df[col].str[-2:]
 
         return df
