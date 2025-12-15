@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.3] - 2025-12-15
+Исправление ошибок
+
+1. Возвращено построение whl файла при публикации библиотеки в pypi
+
 ## [1.6.2] - 2025-12-15
 Исправление ошибок
 
