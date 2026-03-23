@@ -170,36 +170,111 @@ def check_version():
         Проверка установленна ли актуальная версия библиотеки
 
     """
-    print("Получаем установленную версию библиотеки...")
-    package = 'mediascope_api_lib'
-    result = subprocess.run(['pip', 'show', package], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    if len(result):
-        version_start_str = "Version: "
-        start = result.find(version_start_str)
-        if start == -1:
-            print(f"Не найдена версия установленной библиотеки {package}")
-            print(f"Проверьте полученный результат {result}")
-        else:
-            current_version = result[start + len(version_start_str) : result.find("\r\n", start)]
-            print(f"Найдена установленная версия {current_version}")
-            pypi_str = f'https://pypi.org/pypi/{package}/json'
-            print(f"Проверяем актуальную версию на {pypi_str} ...")
-            response = requests.get(pypi_str, timeout=10)
-            if response.status_code == 200:
-                latest_version = response.json()['info']['version']
-                print(f"Найдена актуальная версия {latest_version}")
-                if latest_version > current_version:
-                    print(f"Требуется обновление библиотеки с версии {current_version} на {latest_version}")
-                    print("Запускаем обновление...")
-                    print(subprocess.run(['pip', 'install', package, "-U"], stdout=subprocess.PIPE).stdout.decode('utf-8'))
-                else:
-                    print("Обновление не требуется")
+    try:
+        print("Получаем установленную версию библиотеки...")
+        package = 'mediascope_api_lib'
+
+        # Проверяем наличие pip
+        try:
+            result = subprocess.run(['pip', 'show', package],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                    timeout=30,
+                                    check=False)
+            result_str = result.stdout.decode('utf-8')
+        except subprocess.TimeoutExpired:
+            print("Превышено время ожидания при проверке установленной версии")
+            return
+        except FileNotFoundError:
+            print("Ошибка: pip не найден в системе")
+            return
+        except Exception as e:
+            print(f"Ошибка при выполнении pip show: {e}")
+            return
+
+        if len(result_str):
+            version_start_str = "Version: "
+            start = result_str.find(version_start_str)
+            if start == -1:
+                print(f"Не найдена версия установленной библиотеки {package}")
+                print(f"Проверьте полученный результат {result_str}")
             else:
-                print("Не могу проверить актуальную версию")
-                print(response.text)
-            response.close()
-    else:
-        print(f"Ошибка получения информации об установленной библиотеке {package}")
+                current_version = result_str[start + len(version_start_str) : result_str.find("\r\n", start)]
+                print(f"Найдена установленная версия {current_version}")
+                pypi_str = f'https://pypi.org/pypi/{package}/json'
+                print(f"Проверяем актуальную версию на {pypi_str} ...")
+
+                response = None
+                try:
+                    response = requests.get(pypi_str, timeout=10)
+                    response.raise_for_status()  # Проверяем статус код
+
+                    try:
+                        data = response.json()
+                        latest_version = data.get('info', {}).get('version')
+
+                        if latest_version:
+                            print(f"Найдена актуальная версия {latest_version}")
+                            if latest_version > current_version:
+                                print(f"Требуется обновление библиотеки с версии {current_version} на {latest_version}")
+                                print("Запускаем обновление...")
+
+                                try:
+                                    update_result = subprocess.run(['pip', 'install', package, "-U"],
+                                                                   stdout=subprocess.PIPE,
+                                                                   stderr=subprocess.PIPE,
+                                                                   timeout=120,
+                                                                   check=False)
+
+                                    if update_result.returncode == 0:
+                                        print("Обновление успешно выполнено")
+                                        if update_result.stdout:
+                                            print(update_result.stdout.decode('utf-8'))
+                                    else:
+                                        print(f"Ошибка при обновлении (код {update_result.returncode})")
+                                        if update_result.stderr:
+                                            print(update_result.stderr.decode('utf-8'))
+                                except subprocess.TimeoutExpired:
+                                    print("Превышено время ожидания обновления (120 сек)")
+                                except FileNotFoundError:
+                                    print("Ошибка: pip не найден при попытке обновления")
+                                except Exception as e:
+                                    print(f"Непредвиденная ошибка при обновлении: {e}")
+                            else:
+                                print("Обновление не требуется")
+                        else:
+                            print("Не удалось получить версию из ответа PyPI")
+
+                    except ValueError as e:
+                        print(f"Ошибка декодирования JSON ответа: {e}")
+                        print(f"Получен ответ: {response.text[:200]}...")
+
+                except requests.exceptions.Timeout:
+                    print(f"Внимание: Превышено время ожидания (10 сек) при подключении к {pypi_str}")
+                    print("Продолжаем работу с текущей версией библиотеки")
+                except requests.exceptions.ConnectionError:
+                    print(f"Внимание: Нет подключения к {pypi_str}")
+                    print("Продолжаем работу с текущей версией библиотеки")
+                except requests.exceptions.HTTPError as e:
+                    print(f"Внимание: HTTP ошибка при проверке версии: {e}")
+                    print("Продолжаем работу с текущей версией библиотеки")
+                except requests.exceptions.RequestException as e:
+                    print(f"Внимание: Ошибка запроса при проверке версии: {e}")
+                    print("Продолжаем работу с текущей версией библиотеки")
+                finally:
+                    if response is not None:
+                        try:
+                            response.close()
+                        except:
+                            pass  # Игнорируем ошибки при закрытии
+        else:
+            print(f"Ошибка получения информации об установленной библиотеке {package}")
+            if result.stderr:
+                print(f"stderr: {result.stderr.decode('utf-8')}")
+
+    except Exception as e:
+        print(f"Непредвиденная ошибка в функции check_version: {e}")
+        # Не выбрасываем исключение, чтобы не блокировать инициализацию
 
 def combine_dicts(*dicts):
     """

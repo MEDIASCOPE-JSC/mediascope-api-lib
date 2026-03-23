@@ -2,21 +2,90 @@
 Module for parsing SQL-like expressions to API format
 """
 import pyparsing
-from pyparsing import (
-    Word,
-    delimitedList,
-    Group,
-    alphas,
-    alphanums,
-    Forward,
-    oneOf,
-    quotedString,
-    infixNotation,
-    opAssoc,
-    restOfLine,
-    CaselessKeyword,
-    pyparsing_common as ppc
-)
+
+# Проверяем, какая версия pyparsing используется
+IS_NEW_PYPARSE = hasattr(pyparsing, 'delimited_list')
+
+if IS_NEW_PYPARSE:
+    # Новая версия pyparsing (>=3.0)
+    from pyparsing import (
+        Word,
+        Group,
+        alphas,
+        alphanums,
+        Forward,
+        CaselessKeyword,
+        pyparsing_common as ppc,
+        Literal,
+        ParserElement
+    )
+
+    # Включаем поддержку packrat для новых версий
+    ParserElement.enablePackrat()
+
+    # Импортируем с новыми именами
+    delimitedList = pyparsing.delimited_list
+    oneOf = pyparsing.one_of
+    quotedString = pyparsing.quoted_string
+
+    # Проверяем наличие разных вариантов для infix_notation
+    if hasattr(pyparsing, 'infix_notation'):
+        infixNotation = pyparsing.infix_notation
+    else:
+        infixNotation = pyparsing.infixNotation
+
+    # Проверяем наличие op_assoc
+    if hasattr(pyparsing, 'op_assoc'):
+        opAssoc = pyparsing.op_assoc
+    elif hasattr(pyparsing, 'OpAssoc'):
+        opAssoc = pyparsing.OpAssoc
+    else:
+        # Создаем свой класс opAssoc, если его нет
+        class OpAssoc:
+            LEFT = 1
+            RIGHT = 2
+        opAssoc = OpAssoc
+
+    restOfLine = pyparsing.rest_of_line
+    removeQuotes = pyparsing.remove_quotes
+    setName = lambda obj, name: obj.set_name(name)
+    setParseAction = lambda obj, func: obj.set_parse_action(func)
+    parseString = lambda parser, text: parser.parse_string(text)
+    asList = lambda obj: obj.as_list()
+
+    # В новой версии нужно использовать Literal для скобок
+    LPAR = Literal("(")
+    RPAR = Literal(")")
+
+else:
+    # Старая версия pyparsing (<3.0)
+    from pyparsing import (
+        Word,
+        delimitedList,
+        Group,
+        alphas,
+        alphanums,
+        Forward,
+        oneOf,
+        quotedString,
+        infixNotation,
+        opAssoc,
+        restOfLine,
+        CaselessKeyword,
+        pyparsing_common as ppc,
+        removeQuotes,
+        Literal,
+    )
+
+    # Создаем функции-обертки для совместимости
+    setName = lambda obj, name: obj.setName(name)
+    setParseAction = lambda obj, func: obj.setParseAction(func)
+    parseString = lambda parser, text: parser.parseString(text)
+    asList = lambda obj: obj.asList()
+
+    # В старой версии можно использовать строки
+    LPAR = "("
+    RPAR = ")"
 
 
 def _prepare_sql_parser():
@@ -35,9 +104,11 @@ def _prepare_sql_parser():
         CaselessKeyword, "and or in notin nin".split()
     )
 
-    ident = Word(alphas, alphanums + "_$").setName("identifier")
-    column_name = delimitedList(ident, ".", combine=True).setName("column name")
-    # column_name.addParseAction(ppc.downcaseTokens)
+    ident = Word(alphas, alphanums + "_$")
+    setName(ident, "identifier")
+
+    column_name = delimitedList(ident, ".", combine=True)
+    setName(column_name, "column name")
 
     binop = oneOf("= != > < <= >=", caseless=True)
     real_num = ppc.real()
@@ -45,19 +116,31 @@ def _prepare_sql_parser():
 
     column_rval = (
             real_num | int_num | quotedString | column_name
-    )  # need to add support for alg expressions
-    quotedString.setParseAction(pyparsing.removeQuotes)
-    where_condition = Group(
-        (column_name + binop + column_rval)
-        | (column_name + IN + Group("(" + delimitedList(column_rval) + ")"))
-        | (column_name + IN + Group("(" + select_stmt + ")"))
-        | (column_name + NOTIN + Group("(" + delimitedList(column_rval) + ")"))
-        | (column_name + NIN + Group("(" + delimitedList(column_rval) + ")"))
     )
+    setParseAction(quotedString, removeQuotes)
+
+    # Для новой версии pyparsing используем Literal для скобок
+    if IS_NEW_PYPARSE:
+        where_condition = Group(
+            (column_name + binop + column_rval)
+            | (column_name + IN + Group(LPAR + delimitedList(column_rval) + RPAR))
+            | (column_name + IN + Group(LPAR + select_stmt + RPAR))
+            | (column_name + NOTIN + Group(LPAR + delimitedList(column_rval) + RPAR))
+            | (column_name + NIN + Group(LPAR + delimitedList(column_rval) + RPAR))
+        )
+    else:
+        # Для старой версии используем строки
+        where_condition = Group(
+            (column_name + binop + column_rval)
+            | (column_name + IN + Group("(" + delimitedList(column_rval) + ")"))
+            | (column_name + IN + Group("(" + select_stmt + ")"))
+            | (column_name + NOTIN + Group("(" + delimitedList(column_rval) + ")"))
+            | (column_name + NIN + Group("(" + delimitedList(column_rval) + ")"))
+        )
 
     where_expression = infixNotation(
         where_condition,
-        [(AND, 2, opAssoc.LEFT), (OR, 2, opAssoc.LEFT), ],
+        [(AND, 2, opAssoc.LEFT), (OR, 2, opAssoc.LEFT)],
     )
 
     # define the grammar
@@ -200,11 +283,12 @@ def sql_to_json(sql_text):
 
     """
     sql_parser = _prepare_sql_parser()
-    sql_obj = sql_parser.parseString(sql_text)
+    sql_obj = parseString(sql_parser, sql_text)
 
-    s = sql_obj.asList()[0]
+    s = asList(sql_obj)[0]
     prep_points = _find_points(s)
     return _parse_expr(prep_points)
+
 
 def sql_to_units(sql_text):
     """
@@ -224,9 +308,9 @@ def sql_to_units(sql_text):
 
     """
     sql_parser = _prepare_sql_parser()
-    sql_obj = sql_parser.parseString(sql_text)
+    sql_obj = parseString(sql_parser, sql_text)
 
-    s = sql_obj.asList()[0]
+    s = asList(sql_obj)[0]
     prep_points = _find_points(s)
     result = []
 

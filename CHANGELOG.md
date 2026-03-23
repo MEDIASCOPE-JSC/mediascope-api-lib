@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.4] - 2026-03-23
+Исправление ошибок
+
+1. Исправление ошибок при недоступности pypi.org
+2. Исправление предупреждения pyparsing deprecation warnings
+
 ## [1.6.3] - 2025-12-15
 Исправление ошибок
 
