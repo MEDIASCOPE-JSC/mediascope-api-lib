@@ -6,6 +6,7 @@ import json
 import subprocess
 import datetime as dt
 import pandas as pd
+import re
 import requests
 
 def load_settings(settings_filename: str = 'settings.json'):
@@ -298,3 +299,52 @@ def combine_dicts(*dicts):
         result = new_result
 
     return result
+
+def convert_time_condition(condition_str):
+    """
+    Преобразует строку вида:
+    '( TimeBand1 >= 100000 AND TimeBand1 < 180000 )'
+    '( TimeBand1 < 230000 AND TimeBand1 >= 190000 )'
+    в строку вида '10:00:00 - 18:00:00'
+
+    Правило: первое число после >=, второе число после <
+    """
+    # Находим число после >=
+    match_ge = re.search(r'>= (\d+)', condition_str)
+    # Находим число после <
+    match_lt = re.search(r'< (\d+)', condition_str)
+
+    if match_ge and match_lt:
+        start_time = match_ge.group(1)  # число после >=
+        end_time = match_lt.group(1)    # число после <
+
+        # Вставляем двоеточия
+        start_formatted = insert_colons(start_time)
+        end_formatted = insert_colons(end_time)
+
+        return f"{start_formatted} - {end_formatted}"
+
+    return condition_str
+
+def insert_colons(num_str):
+    """
+    Вставляет двоеточия через каждые 2 цифры справа налево
+    Всегда приводит к формату ЧЧ:ММ:СС (6 цифр с ведущими нулями)
+
+    100000 -> 10:00:00
+    180000 -> 18:00:00
+    70000  -> 07:00:00
+    260000 -> 26:00:00
+    123400 -> 12:34:00
+    """
+    # Преобразуем в строку
+    num_str = str(num_str)
+
+    # Дополняем слева нулями до 6 символов (всегда ЧЧ:ММ:СС)
+    num_str = num_str.zfill(6)
+
+    # Разбиваем на пары по 2 цифры
+    parts = [num_str[i:i+2] for i in range(0, len(num_str), 2)]
+
+    # Соединяем двоеточиями
+    return ':'.join(parts)
