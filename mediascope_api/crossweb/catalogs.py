@@ -75,6 +75,7 @@ class CrossWebCats:
         'resource_theme_rule': '/dictionary/common/resource-theme-rule',
         'resource_rule': '/dictionary/common/resource-rule',
         'theme_rule': '/dictionary/common/theme-rule',
+        'spr_mass_media': '/dictionary/common/spr-mass-media',
     }
 
     def __new__(cls, facility_id=None, settings_filename: str = None, cache_path: str = None, cache_enabled: bool = True,
@@ -404,13 +405,16 @@ class CrossWebCats:
                 continue
 
             if isinstance(v, str):
-                val = []
-                for i in v.split(','):
-                    val.append(str(i).strip())
-                v = val
+                if k not in ["lastUpdateDateFrom", "lastUpdateDateTo"]:
+                    val = []
+                    for i in v.split(','):
+                        val.append(str(i).strip())
+                    v = val
+                else:
+                    data[k] = v
             if isinstance(v, list):
                 data[k] = v
-
+    
         if len(data) > 0:
             return json.dumps(data)
 
@@ -485,9 +489,9 @@ class CrossWebCats:
         query = self._get_query(query_dict)
         if query is not None or len(query) > 0:
             url += query
-
+    
         post_data = self._get_post_data(body_params)
-
+        
         data = self.msapi_network.send_request_lo('post', url, data=post_data, use_cache=use_cache)
         if data is None or not isinstance(data, dict):
             return None
@@ -4484,3 +4488,88 @@ class CrossWebCats:
         }
 
         return self._get_dict('media_rule_tree', search_params, body_params, offset, limit, use_cache)
+    
+    def get_spr_mass_media(self, special_product_ids=None, local_mass_media_ids=None,
+                        local_mass_media_type_ids=None, local_mass_media_type_names=None,
+                        special_product_cross_media_resource_ids=None,
+                        crossweb_cross_media_resource_ids=None,
+                        crossweb_cross_media_product_ids=None,
+                        mass_media_ids=None, domains=None, masks=None,
+                        last_update_date_from=None, last_update_date_to=None, 
+                        offset=0, limit=None, use_cache=False):
+        """
+        Получить список специальных проектов СМИ
+
+        Parameters
+        ----------
+        special_product_ids : list
+            Поиск по идентификаторам специальных проектов.
+
+        local_mass_media_ids : list
+            Поиск по локальным для специальных проектов идентификаторам СМИ.
+
+        local_mass_media_type_ids : list
+            Поиск по локальным для специальных проектов идентификаторам типов СМИ.
+
+        local_mass_media_type_names : list
+            Поиск по локальным для специальных проектов названиям типов СМИ.
+
+        special_product_cross_media_resource_ids : list
+            Поиск по идентификаторам кросс-медиа ресурсов СМИ специальных проектов.
+
+        crossweb_cross_media_resource_ids : list
+            Поиск по идентификаторам кросс-медиа ресурсов кроссвеб.
+
+        crossweb_cross_media_product_ids : list
+            Поиск по идентификаторам кросс-медиа продуктов кроссвеб.
+
+        mass_media_ids : list
+            Поиск по идентификаторам СМИ.
+
+        domains : list
+            Поиск по доменам материнских сайтов СМИ.
+
+        masks : list
+            Поиск по маскам доменов СМИ.
+
+        last_update_date_from : str
+            Поиск по начальной границе даты последнего обновления записи (включительно).
+
+        last_update_date_to : str
+            Поиск по конечной границе даты последнего обновления записи (включительно).
+
+        offset : int
+            Смещение от начала набора отобранных данных
+
+        limit : int
+            Количество записей в возвращаемом наборе данных
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
+
+        Returns
+        -------
+        mass_media : DataFrame
+            DataFrame с объектами справочника СМИ
+        """
+        
+        body_params = {
+            'specialProductIds': special_product_ids,
+            'localMassMediaIds': local_mass_media_ids,
+            'localMassMediaTypeIds': local_mass_media_type_ids,
+            'localMassMediaTypeNames': local_mass_media_type_names,
+            'specialProductCrossMediaResourceIds': special_product_cross_media_resource_ids,
+            'crosswebCrossMediaResourceIds': crossweb_cross_media_resource_ids,
+            'crosswebCrossMediaProductIds': crossweb_cross_media_product_ids,
+            'massMediaIds': mass_media_ids,
+            'domains': domains,
+            'masks': masks,
+            'lastUpdateDateFrom': last_update_date_from,
+            'lastUpdateDateTo': last_update_date_to
+        }
+
+        return self._get_dict('spr_mass_media', {}, body_params, offset, limit, use_cache)

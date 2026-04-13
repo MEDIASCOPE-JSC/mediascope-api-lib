@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-04-13
+Новый справочник в Crossweb API
+
+1. Добавление справочника специальных проектов по СМИ
+
 ## [1.6.5] - 2026-03-26
 Добавление сервисных функций
 
