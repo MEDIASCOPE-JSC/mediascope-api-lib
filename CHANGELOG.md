@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2026-04-23
+Исправление ошибок в TV Index API
+
+1. Исправление названия переменной при передаче результата отчета consumption target
+
 ## [1.7.0] - 2026-04-13
 Новый справочник в Crossweb API
 

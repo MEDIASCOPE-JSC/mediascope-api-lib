@@ -89,7 +89,7 @@ def get_dict_from_dataframe(df):
     res = {}
     if isinstance(df, pd.DataFrame):
         df_cons = df.rename(columns={"CommonWatchers": "respondent",
-                                     "CommonNonWatchers": "respondent",
+                                     "CommonNotWatchers": "respondent",
                                      "NGroupResp": "respondent",
                                      "NGroupDur": "respondent"
                                      })
