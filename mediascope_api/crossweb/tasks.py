@@ -1246,18 +1246,18 @@ class CrossWebTask:
             if "duplication" not in col:
                 if col not in matr_attributes:
                     continue
+            if col[:-2] + 'Name' in df.columns:
+                continue
             _attrs = pd.DataFrame()
             if col == 'crossMediaProductId' or col == 'duplicationCrossMediaProductId':
-                _attrs = self.cats.products
+                _attrs = self.cats.get_product(product_ids=df[col].unique().tolist())
             elif col == 'crossMediaHoldingId' or col == 'duplicationCrossMediaHoldingId':
-                _attrs = self.cats.holdings
+                _attrs = self.cats.get_holding(holding_ids=df[col].unique().tolist())
             elif col == 'crossMediaResourceId' or col == 'duplicationCrossMediaResourceId':
-                _attrs = self.cats.resources
+                _attrs = self.cats.get_resource(resource_ids=df[col].unique().tolist())
             elif col == 'crossMediaThemeId' or col == 'duplicationCrossMediaThemeId':
-                _attrs = self.cats.themes
+                _attrs = self.cats.get_theme(theme_ids=df[col].unique().tolist())
             else:
-                continue
-            if col[:-2] + 'Name' in df.columns:
                 continue
             _attrs['id'] = _attrs['id'].astype('str')
             df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])
@@ -1293,8 +1293,6 @@ class CrossWebTask:
                 _attrs = self.cats.get_product_category_l4(product_category_l4_ids = df[col].unique().tolist())
             else:
                 continue
-            if col[:-2] + 'Name' in df.columns:
-                continue
             _attrs['id'] = _attrs['id'].astype('str')
             df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])
             pos += 1
@@ -1314,17 +1312,17 @@ class CrossWebTask:
                 continue
             _attrs = pd.DataFrame()
             if col == 'adSourceTypeId':
-                _attrs = self.cats.ad_source_type
+                _attrs = self.cats.get_ad_source_type()
             elif col == 'adNetworkId':
-                _attrs = self.cats.ad_network
+                _attrs = self.cats.get_ad_network()
             elif col == 'adServerId':
-                _attrs = self.cats.ad_server
+                _attrs = self.cats.get_ad_server()
             elif col == 'adPlayerId':
-                _attrs = self.cats.ad_player
+                _attrs = self.cats.get_ad_player()
             elif col == 'adVideoUtilityId':
-                _attrs = self.cats.ad_video_utility
+                _attrs = self.cats.get_ad_video_utility()
             elif col == 'adPlacementId':
-                _attrs = self.cats.ad_placement
+                _attrs = self.cats.get_ad_placement()
             else:
                 continue
             if col[:-2] + 'Name' in df.columns:

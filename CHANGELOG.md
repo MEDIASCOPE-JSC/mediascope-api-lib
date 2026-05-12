@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.2] - 2026-05-12
+Исправление ошибок в Crossweb API
+
+1. Ускорение загрузки словарей при инициализации объекта работы с Crossweb API
+
 ## [1.7.1] - 2026-04-23
 Исправление ошибок в TV Index API
 
