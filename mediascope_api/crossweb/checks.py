@@ -151,22 +151,13 @@ class CrossWebTaskChecker:
                         matches = '" или "'.join(probably_matches)
                         error_text += f' Возможно соответствует "{matches}".\n'
         if isinstance(tsk['filter'], dict):
-            for filter_name, filter_val in tsk['filter'].items():
-                filter_name = filter_name.replace('Filter', '')
-                units = []
-                if filter_name == "baseGeo":
-                    filter_name = "geo"
-                if filter_name == "baseDemo":
-                    filter_name = "demo"
-                if filter_name == "duplicationMart":
-                    filter_name = "mart"
-                if filter_name == "media" \
-                    or filter_name == "profile":
-                    filter_name = filter_name + "Mart"
-                self.get_units(units, filter_val)
-                error_text = self.check_units(f'фильтрах {filter_name}', units,
-                                              self.task_types[task_type]['filters'][filter_name],
-                                              error_text)
+            if ('subFilters' in tsk['filter']):
+                for i in tsk['filter']['subFilters']:
+                    for filter_name, filter_val in i.items():
+                        error_text = self.check_one_filter(task_type, filter_name, filter_val, error_text)
+            else:
+                for filter_name, filter_val in tsk['filter'].items():
+                    error_text = self.check_one_filter(task_type, filter_name, filter_val, error_text)
         if isinstance(tsk['slices'], list):
             avl_slices = self.get_avl_slices(task_type)
             for slice_name in tsk['slices']:
@@ -181,6 +172,37 @@ class CrossWebTaskChecker:
             print(error_text)
             return False
         return True
+    
+    def check_one_filter(self, task_type, filter_name, filter_val, error_text):
+        filter_name = filter_name.replace('Filter', '')
+        units = []
+        if filter_name == "baseGeo":
+            filter_name = "geo"
+        if filter_name == "baseDemo":
+            filter_name = "demo"
+        if filter_name == "duplicationMart":
+            filter_name = "mart"
+        if filter_name == "media" \
+            or filter_name == "profile":
+            filter_name = filter_name + "Mart"
+        self.get_units(units, filter_val)
+        # Проверяем, существует ли такой фильтр в task_types
+        if filter_name not in self.task_types[task_type]['filters']:
+            error_text += f'Неизвестный фильтр "{filter_name}".\n'
+            return error_text
+        
+        # Получаем допустимые значения для этого фильтра
+        allowed_units = self.task_types[task_type]['filters'][filter_name]
+        
+        # Проверяем, что allowed_units не None и является списком/словарем
+        if allowed_units is None:
+            error_text += f'Для фильтра "{filter_name}" не определены допустимые значения.\n'
+            return error_text
+        
+        # Проверяем единицы
+        error_text = self.check_units(f'фильтрах {filter_name}', units, allowed_units, error_text)
+        
+        return error_text
 
     def get_units(self, units, obj):
         """

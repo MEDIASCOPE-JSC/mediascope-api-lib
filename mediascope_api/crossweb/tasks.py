@@ -47,7 +47,7 @@ class CrossWebTask:
             utils.check_version()
         self.network_module = net.MediascopeApiNetwork(settings_filename, cache_path, cache_enabled, username, passw,
                                                        root_url, client_id, client_secret, keycloak_url)
-        self.task_builder = tasks.TaskBuilder()
+        self.task_builder = tasks.TaskWithSubfiltersBuilder()
         self.usetypes = self.get_usetype()
         self.cats = catalogs.CrossWebCats(0, settings_filename, cache_path, cache_enabled, username, passw,
                                           root_url, client_id, client_secret, keycloak_url)
@@ -1324,8 +1324,6 @@ class CrossWebTask:
             elif col == 'adPlacementId':
                 _attrs = self.cats.get_ad_placement()
             else:
-                continue
-            if col[:-2] + 'Name' in df.columns:
                 continue
             _attrs['id'] = _attrs['id'].astype('str')
             df.insert(pos, col[:-2] + 'Name', df.merge(_attrs, how='left', left_on=col, right_on='id')['name'])

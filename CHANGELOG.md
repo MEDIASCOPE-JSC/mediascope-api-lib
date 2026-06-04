@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2026-06-04
+Новые возможности фильтров в Crossweb API
+
+1. Добавлена поддержка сложных фильтров в Crossweb API
+
 ## [1.7.2] - 2026-05-12
 Исправление ошибок в Crossweb API
 
