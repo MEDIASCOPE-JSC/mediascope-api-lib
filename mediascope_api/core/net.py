@@ -203,7 +203,7 @@ class MediascopeApiNetwork:
             return None
 
     def send_request_lo(self, method: str, endpoint: str, data: dict = None,
-                        use_cache: bool = False, limit: int = 1000):
+                        use_cache: bool = False, limit: int = 50000):
         """
         Отправляет запрос в Mediascope-API
 
@@ -243,7 +243,7 @@ class MediascopeApiNetwork:
         if method not in ['post', 'get', 'delete']:
             raise ValueError(f'Method "{method}" is not supported')
         if data is None:
-            data = []
+            data = {}
 
         # Check cache
         cache_query = f'{method}\n{endpoint}\n{data}'
@@ -254,26 +254,53 @@ class MediascopeApiNetwork:
 
         result = {'header': {'total': 0}}
         result_data = []
-        offset = 0
         is_reading = True
+
+        # Извлекаем существующие параметры из endpoint
+        base_endpoint = endpoint
+        existing_params = {}
+
+        if '?' in endpoint:
+            base_endpoint, query_string = endpoint.split('?', 1)
+            # Парсим существующие параметры
+            for param in query_string.split('&'):
+                if '=' in param:
+                    key, value = param.split('=', 1)
+                    existing_params[key] = value
+
+        if 'offset' in existing_params:
+            offset = int(existing_params['offset'])
+        else:
+            offset = 0
 
         while is_reading:
             self.refresh_token()
 
-            # No cache, request service
-            if endpoint.rfind('?') >= 0:
-                url = self.root_url + endpoint + f'&offset={offset}&limit={limit}'
+            # Формируем параметры запроса
+            params = existing_params.copy()
+            params['offset'] = offset
+
+            if 'limit' not in params:
+                params['limit'] = limit
+
+            # Собираем URL
+            if params:
+                query_string = '&'.join([f'{k}={v}' for k, v in params.items()])
+                url = self.root_url + base_endpoint + '?' + query_string
             else:
-                url = self.root_url + endpoint + f'?offset={offset}&limit={limit}'
+                url = self.root_url + base_endpoint
+
             headers = {'Authorization': f'Bearer {self.token["access_token"]}',
                        'Content-Type': 'application/json'
                        }
-            req = getattr(self.session, method)(url=url, headers=headers, data=f'{data}', proxies=self.proxies)
+
+            req = getattr(self.session, method)(url=url, headers=headers, data=data, proxies=self.proxies)
 
             if req.status_code == 200:
                 # try to save in cache for next use
                 rj = self._req_to_json(req, endpoint, data)
-                if rj is None or not isinstance(rj, dict):
+
+                if rj is None or type(rj) != dict:
                     break
                 if 'header' not in rj or 'data' not in rj:
                     break
@@ -282,13 +309,17 @@ class MediascopeApiNetwork:
                 if 'total' not in header:
                     is_reading = False
                     total = limit
+
                 total = int(header['total'])
                 result['header']['total'] = total
                 offset += limit
                 if offset >= total:
                     is_reading = False
 
-                if isinstance(rj['data'], list):
+                if 'limit' in existing_params:
+                    is_reading = False
+
+                if type(rj['data']) == list:
                     result_data.extend(rj['data'])
             else:
                 self._raise_error(req)

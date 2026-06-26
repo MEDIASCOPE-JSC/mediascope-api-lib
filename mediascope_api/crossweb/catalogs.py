@@ -3894,7 +3894,7 @@ class CrossWebCats:
         return self._get_dict('monitoring_media_tree', search_params, body_params, offset, limit, use_cache)
 
     def get_holding_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
-                         product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                         product_url=None, product_app_code=None, product_date_from=None, product_date_to=None,
                          product_ids=None, holding_ids=None, resource_ids=None,
                          theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
                          limit=None, use_cache=True):
@@ -3922,7 +3922,7 @@ class CrossWebCats:
         product_url : str
             Поиск по названию адреса продукта. Допускается задавать часть названия.
 
-        product_bundle_id : str
+        product_app_code : str
             Поиск по названию пакета продукта. Допускается задавать часть названия.
 
         product_date_from : str
@@ -3974,7 +3974,7 @@ class CrossWebCats:
                          'themeName': theme,
                          'resourceThemeName': resource_theme,
                          'productUrl': product_url,
-                         'productBundleId': product_bundle_id,
+                         'productAppCode': product_app_code,
                          'productDateFrom': product_date_from,
                          'productDateTo': product_date_to,
                          'orderDir': order_dir}
@@ -3990,7 +3990,7 @@ class CrossWebCats:
         return self._get_dict('holding_rule', search_params, body_params, offset, limit, use_cache)
 
     def get_product_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
-                         product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                         product_url=None, product_app_code=None, product_date_from=None, product_date_to=None,
                          product_ids=None, holding_ids=None, resource_ids=None,
                          theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
                          limit=None, use_cache=True):
@@ -4018,7 +4018,7 @@ class CrossWebCats:
         product_url : str
             Поиск по названию адреса продукта. Допускается задавать часть названия.
 
-        product_bundle_id : str
+        product_app_code : str
             Поиск по названию пакета продукта. Допускается задавать часть названия.
 
         product_date_from : str
@@ -4070,7 +4070,7 @@ class CrossWebCats:
                          'themeName': theme,
                          'resourceThemeName': resource_theme,
                          'productUrl': product_url,
-                         'productBundleId': product_bundle_id,
+                         'productAppCode': product_app_code,
                          'productDateFrom': product_date_from,
                          'productDateTo': product_date_to,
                          'orderDir': order_dir}
@@ -4085,7 +4085,7 @@ class CrossWebCats:
         return self._get_dict('product_rule', search_params, body_params, offset, limit, use_cache)
 
     def get_resource_theme_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
-                                product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                                product_url=None, product_app_code=None, product_date_from=None, product_date_to=None,
                                 product_ids=None, holding_ids=None, resource_ids=None,
                                 theme_ids=None, resource_theme_ids=None, order_dir=None,
                                 offset=None, limit=None, use_cache=True):
@@ -4113,7 +4113,7 @@ class CrossWebCats:
         product_url : str
             Поиск по названию адреса продукта. Допускается задавать часть названия.
 
-        product_bundle_id : str
+        product_app_code : str
             Поиск по названию пакета продукта. Допускается задавать часть названия.
 
         product_date_from : str
@@ -4165,7 +4165,7 @@ class CrossWebCats:
                          'themeName': theme,
                          'resourceThemeName': resource_theme,
                          'productUrl': product_url,
-                         'productBundleId': product_bundle_id,
+                         'productAppCode': product_app_code,
                          'productDateFrom': product_date_from,
                          'productDateTo': product_date_to,
                          'orderDir': order_dir}
@@ -4181,7 +4181,7 @@ class CrossWebCats:
         return self._get_dict('resource_theme_rule', search_params, body_params, offset, limit, use_cache)
 
     def get_resource_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
-                          product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                          product_url=None, product_app_code=None, product_date_from=None, product_date_to=None,
                           product_ids=None, holding_ids=None, resource_ids=None,
                           theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
                           limit=None, use_cache=True):
@@ -4209,7 +4209,7 @@ class CrossWebCats:
         product_url : str
             Поиск по названию адреса продукта. Допускается задавать часть названия.
 
-        product_bundle_id : str
+        product_app_code : str
             Поиск по названию пакета продукта. Допускается задавать часть названия.
 
         product_date_from : str
@@ -4261,7 +4261,7 @@ class CrossWebCats:
                          'themeName': theme,
                          'resourceThemeName': resource_theme,
                          'productUrl': product_url,
-                         'productBundleId': product_bundle_id,
+                         'productAppCode': product_app_code,
                          'productDateFrom': product_date_from,
                          'productDateTo': product_date_to,
                          'orderDir': order_dir}
@@ -4277,7 +4277,7 @@ class CrossWebCats:
         return self._get_dict('resource_rule', search_params, body_params, offset, limit, use_cache)
 
     def get_theme_rule(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
-                       product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                       product_url=None, product_app_code=None, product_date_from=None, product_date_to=None,
                        product_ids=None, holding_ids=None, resource_ids=None,
                        theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
                        limit=None, use_cache=True):
@@ -4305,7 +4305,7 @@ class CrossWebCats:
         product_url : str
             Поиск по названию адреса продукта. Допускается задавать часть названия.
 
-        product_bundle_id : str
+        product_app_code : str
             Поиск по названию пакета продукта. Допускается задавать часть названия.
 
         product_date_from : str
@@ -4357,7 +4357,7 @@ class CrossWebCats:
                          'themeName': theme,
                          'resourceThemeName': resource_theme,
                          'productUrl': product_url,
-                         'productBundleId': product_bundle_id,
+                         'productAppCode': product_app_code,
                          'productDateFrom': product_date_from,
                          'productDateTo': product_date_to,
                          'orderDir': order_dir}
@@ -4373,7 +4373,7 @@ class CrossWebCats:
         return self._get_dict('theme_rule', search_params, body_params, offset, limit, use_cache)
 
     def get_media_rule_tree(self, product=None, holding=None, theme=None, resource=None, resource_theme=None,
-                            product_url=None, product_bundle_id=None, product_date_from=None, product_date_to=None,
+                            product_url=None, product_app_code=None, product_date_from=None, product_date_to=None,
                             product_ids=None, holding_ids=None, resource_ids=None,
                             theme_ids=None, resource_theme_ids=None, order_dir=None, offset=None,
                             limit=None, use_cache=True):
@@ -4401,7 +4401,7 @@ class CrossWebCats:
         product_url : str
             Поиск по названию адреса продукта. Допускается задавать часть названия.
 
-        product_bundle_id : str
+        product_app_code : str
             Поиск по названию пакета продукта. Допускается задавать часть названия.
 
         product_date_from : str
@@ -4454,7 +4454,7 @@ class CrossWebCats:
                          'themeName': theme,
                          'resourceThemeName': resource_theme,
                          'productUrl': product_url,
-                         'productBundleId': product_bundle_id,
+                         'productAppCode': product_app_code,
                          'productDateFrom': product_date_from,
                          'productDateTo': product_date_to,
                          'orderDir': order_dir}

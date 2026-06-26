@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2026-06-26
+Исправление ошибок
+
+1. Изменено название переменной product_bundle_id на product_app_code в Crossweb API
+2. Исправление ошибок при загрузке больших справочников
+
 ## [1.8.0] - 2026-06-04
 Новые возможности фильтров в Crossweb API
 
