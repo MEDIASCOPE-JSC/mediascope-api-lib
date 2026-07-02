@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.2] - 2026-07-02
+Изменения в TV Index API
+
+1. Выполнен рефакторинг возвращаемого ответа для Consumption Target
+
 ## [1.8.1] - 2026-06-26
 Исправление ошибок
 

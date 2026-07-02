@@ -75,30 +75,26 @@ def get_excel_filename(task_name: str, export_path: str = '../excel', add_date: 
 
 def get_dict_from_dataframe(df):
     """
-    Формирует дикт из первой строки датафрейма пандас (используется в фильтре респондентов при передаче результата
-    consumption target
-
-    Parameters
-    ----------
-    df : dataframe
-
-    Returns
-    -------
-    res: dict
+    Формирует dict из первой строки DataFrame.
+    Для consumption target payload хранится JSON-строкой
+    в статистической колонке результата.
     """
-    res = {}
-    if isinstance(df, pd.DataFrame):
-        df_cons = df.rename(columns={"CommonWatchers": "respondent",
-                                     "CommonNotWatchers": "respondent",
-                                     "NGroupResp": "respondent",
-                                     "NGroupDur": "respondent"
-                                     })
-        for col in df_cons.columns:
-            if col == 'respondent':
-                res[col] = df_cons.iloc[0][col]
-            else:
-                res[col] = json.loads(df_cons.iloc[0][col])
-    return res
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        return {}
+    stat_cols = ['CommonWatchers', 'CommonNotWatchers', 'NGroupResp', 'NGroupDur']
+    for col in stat_cols:
+        if col not in df.columns:
+            continue
+        value = df.iloc[0][col]
+        if not isinstance(value, str):
+            continue
+        try:
+            parsed_value = json.loads(value)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed_value, dict):
+            return parsed_value
+    return {}
 
 
 def format_time_column(dataframe, writer, column_names, sheet_name, index):
