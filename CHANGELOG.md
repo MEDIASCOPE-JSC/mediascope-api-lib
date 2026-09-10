@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.3] - 2026-09-10
+Изменения в Crossweb API
+
+1. Отключено кеширование по умолчанию для получения доступных периодов данных в Crossweb API
+
 ## [1.8.2] - 2026-07-02
 Изменения в TV Index API
 

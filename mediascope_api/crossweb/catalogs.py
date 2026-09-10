@@ -1494,16 +1494,32 @@ class CrossWebCats:
 
         return pd.DataFrame(res)
 
-    def get_date_range(self, ids=None, name=None):
+    def get_date_range(self, ids=None, name=None, use_cache=False):
         """
         Получить списки доступных периодов данных
+
+        Parameters
+        ----------
+
+        ids : list
+            Список идентификаторов для фильтрации
+
+        name : str
+            Имя (часть имени) для фильтрации
+
+        use_cache : bool
+            Использовать кэширование: True - да, False - нет
+            Если опция включена (True), метод при первом получении справочника
+            сохраняет его в кэш на локальном диске, а при следующих запросах этого же справочника
+            с такими же параметрами - читает его из кэша, это позволяет существенно ускорить
+            получение данных.
 
         Returns
         -------
         info : dict
             Словарь с доступными периодами
         """
-        data = self.msapi_network.send_request_lo('get', self._urls['date_range'], use_cache=True)
+        data = self.msapi_network.send_request_lo('get', self._urls['date_range'], use_cache=use_cache)
         res = {}
         if data is None or not isinstance(data, dict):
             return None
